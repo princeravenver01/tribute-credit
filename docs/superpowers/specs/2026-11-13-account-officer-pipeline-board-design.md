@@ -48,6 +48,10 @@ The redesign fails if it:
 
 ## Constraints and existing product facts
 
+- This phase is strictly a visual redesign. It must not add, remove, reinterpret, or alter any product functionality.
+- Existing routes, API calls, data mapping, calculations, persisted status values, storage keys, polling, draft restoration, event handlers, form validation, submission behavior, signatures, GPS, face capture, printing, and offline synchronization must remain functionally identical.
+- Mockup controls that do not map to an existing interaction must not be implemented as new behavior. They may be shown only as non-interactive presentation when that cannot mislead the user; otherwise omit them.
+- Do not add dependencies, change the database schema, or modify API contracts for this redesign.
 - The application uses Next.js 16.4.3, React 19.3, TypeScript, and Lucide icons.
 - Relevant Account Officer routes currently include:
   - `/officer/dashboard`
@@ -316,6 +320,7 @@ Continue using Lucide icons. Icons support labels and must not replace essential
 
 ## Acceptance criteria
 
+- A behavior-diff review confirms that no business logic, event-handler bodies, API requests, storage keys, calculation calls, or route destinations changed.
 - At 390 px, an officer can identify the current stage, top urgent file, blocker, and next action without horizontal page scrolling.
 - At 320 px, all primary controls remain usable and no meaningful text is clipped.
 - An incomplete onboarding draft can be resumed in two taps or fewer from the Pipeline screen.
