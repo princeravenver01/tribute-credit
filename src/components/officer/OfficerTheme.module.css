@@ -1,0 +1,151 @@
+.theme {
+  /* Core Green & White Light Theme Tokens */
+  --officer-primary: #15803d;
+  --officer-primary-hover: #166534;
+  --officer-highlight: #16a34a;
+  --officer-header-bg: linear-gradient(135deg, #14532d 0%, #15803d 100%);
+  --officer-header-solid: #15803d;
+  --officer-bg: #f6fbf7;
+  --officer-surface: #ffffff;
+  --officer-surface-muted: #f0fdf4;
+  --officer-surface-subtle: #f8faf9;
+
+  /* Borders & Dividers */
+  --officer-border: #dcece0;
+  --officer-border-strong: #bbf7d0;
+  --officer-divider: #e6f2e9;
+
+  /* Text Hierarchy (WCAG AA compliant on white & #f6fbf7) */
+  --officer-text: #0f291a;
+  --officer-text-secondary: #334e3e;
+  --officer-text-muted: #526b5c;
+
+  /* Semantic Status Colors */
+  --officer-success-bg: #dcfce7;
+  --officer-success-border: #86efac;
+  --officer-success-text: #15803d;
+
+  --officer-amber-bg: #fef3c7;
+  --officer-amber-border: #fde68a;
+  --officer-amber-text: #b45309;
+  --officer-amber-accent: #d97706;
+
+  --officer-danger-bg: #fef2f2;
+  --officer-danger-border: #fecaca;
+  --officer-danger-text: #b91c1c;
+  --officer-danger-accent: #dc2626;
+
+  --officer-info-bg: #eff6ff;
+  --officer-info-border: #bfdbfe;
+  --officer-info-text: #1d4ed8;
+  --officer-info-accent: #0284c7;
+
+  /* Geometry & Touch Targets */
+  --officer-radius-card: 16px;
+  --officer-radius-card-lg: 18px;
+  --officer-radius-control: 10px;
+  --officer-radius-pill: 9999px;
+  --officer-touch-target: 44px;
+
+  /* Subtle Shadow Layer */
+  --officer-shadow-card: 0 2px 8px rgba(20, 83, 45, 0.05);
+  --officer-shadow-floating: 0 6px 24px rgba(20, 83, 45, 0.12);
+
+  /* Typography Scale */
+  --officer-font-heading: 22px;
+  --officer-font-title: 15px;
+  --officer-font-body: 14px;
+  --officer-font-meta: 12px;
+
+  background-color: var(--officer-bg);
+  color: var(--officer-text);
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.pageShell {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background-color: var(--officer-bg);
+  color: var(--officer-text);
+}
+
+.main {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  padding: 24px;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 96px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.touchTarget {
+  min-height: var(--officer-touch-target);
+  min-width: var(--officer-touch-target);
+}
+
+.focusable:focus-visible {
+  outline: 2px solid var(--officer-primary);
+  outline-offset: 2px;
+}
+
+.screenReaderOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.mobileOnly {
+  display: none;
+}
+
+.desktopOnly {
+  display: block;
+}
+
+/* Tablet and below (< 1024px) */
+@media (max-width: 1023px) {
+  .main {
+    padding: 16px 16px calc(env(safe-area-inset-bottom, 0px) + 104px) 16px;
+    max-width: 100vw;
+  }
+}
+
+/* Phones (< 600px, down to 320px) */
+@media (max-width: 599px) {
+  .theme {
+    --officer-font-heading: 20px;
+    --officer-font-title: 14.5px;
+    --officer-font-body: 13.5px;
+    --officer-font-meta: 12px;
+  }
+
+  .main {
+    padding: 12px 12px calc(env(safe-area-inset-bottom, 0px) + 104px) 12px;
+  }
+
+  .mobileOnly {
+    display: block;
+  }
+
+  .desktopOnly {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .theme *,
+  .pageShell * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
