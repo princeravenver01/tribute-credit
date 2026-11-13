@@ -222,10 +222,10 @@ The existing Clear Data control must not appear beside normal synchronization. I
 
 ### Color
 
-- Primary: Tribute forest green, approximately `#0E7C66` to `#168A4A` depending on final brand alignment.
-- Header: very dark forest/ink, not pure black.
-- Background: quiet warm or neutral gray.
-- Surfaces: white in light mode and deep green-gray in dark mode.
+- Primary: Tribute green `#15803D`, with `#16A34A` available for selected highlights.
+- Header: solid or subtly graded forest green, never black or teal.
+- Background: very pale green-white `#F6FBF7`.
+- Surfaces: white `#FFFFFF`; this Account Officer redesign uses a fixed green-and-white light theme.
 - Amber: waiting, missing information, or attention.
 - Red: destructive actions, failed states, and declined decisions only.
 - Blue: informational states where green would incorrectly imply success.
