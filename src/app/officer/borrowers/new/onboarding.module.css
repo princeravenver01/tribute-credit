@@ -1,0 +1,267 @@
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.autoSavedBadge {
+  font-size: 11.5px;
+  color: #15803d;
+  background-color: #dcfce7;
+  border: 1px solid #86efac;
+  padding: 6px 12px;
+  border-radius: 9999px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 36px;
+}
+
+.newApplicationBtn {
+  background-color: #ffffff;
+  color: #b91c1c;
+  border: 1.5px solid #fecaca;
+  min-height: 40px;
+  padding: 7px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 12.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.newApplicationBtn:hover {
+  background-color: #fef2f2;
+}
+
+/* Progress Stepper & Mobile Progress Header */
+.stepperShell {
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 14px 18px;
+  margin-bottom: 22px;
+  border: 1px solid #dcece0;
+  box-shadow: 0 2px 8px rgba(20, 83, 45, 0.04);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobileProgressHeader {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.mobileProgressTopRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.mobileStepBadge {
+  font-size: 12px;
+  font-weight: 800;
+  color: #15803d;
+  background-color: #dcfce7;
+  border: 1px solid #bbf7d0;
+  padding: 3px 10px;
+  border-radius: 9999px;
+}
+
+.mobileStepTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f291a;
+  margin: 0;
+}
+
+.mobileProgressTrack {
+  width: 100%;
+  height: 8px;
+  border-radius: 9999px;
+  background-color: #e6f2e9;
+  overflow: hidden;
+}
+
+.mobileProgressFill {
+  height: 100%;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #16a34a 0%, #15803d 100%);
+  transition: width 0.25s ease;
+}
+
+.stepperGrid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 8px;
+  width: 100%;
+}
+
+.stepTab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background-color: #f6fbf7;
+  border: 1.5px solid #e6f2e9;
+  transition: all 0.15s ease;
+  min-width: 0;
+}
+
+.stepTab:hover {
+  border-color: #86efac;
+}
+
+.stepTabActive {
+  background-color: #dcfce7;
+  border-color: #15803d;
+}
+
+.stepTabCompleted {
+  background-color: #f0fdf4;
+  border-color: #bbf7d0;
+}
+
+.stepNumberBadge {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background-color: #ffffff;
+  border: 1px solid #dcece0;
+  color: #526b5c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.stepNumberBadgeActive {
+  background-color: #15803d;
+  border-color: #15803d;
+  color: #ffffff;
+}
+
+.stepNumberBadgeCompleted {
+  background-color: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+
+.stepTitleWrap {
+  overflow: hidden;
+  min-width: 0;
+}
+
+.stepTitleText {
+  font-size: 12px;
+  font-weight: 700;
+  color: #334e3e;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+
+.stepTitleTextActive {
+  font-weight: 800;
+  color: #15803d;
+}
+
+.alertError {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 14px 18px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+.alertSuccess {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #15803d;
+  padding: 14px 18px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 20px;
+}
+
+/* Form Section Primitives Scoped to Screen Onboarding Cards */
+@media screen {
+  .onboardingMain :global(.officer-card) {
+    background-color: #ffffff !important;
+    border: 1px solid #dcece0 !important;
+    border-radius: 18px !important;
+    box-shadow: 0 2px 10px rgba(20, 83, 45, 0.05) !important;
+  }
+
+  .onboardingMain :global(.officer-card) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  .onboardingMain :global(.officer-card) select,
+  .onboardingMain :global(.officer-card) textarea {
+    border-color: #dcece0;
+    border-radius: 10px;
+    min-height: 44px;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .onboardingMain :global(.officer-card) input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):focus,
+  .onboardingMain :global(.officer-card) select:focus,
+  .onboardingMain :global(.officer-card) textarea:focus {
+    border-color: #15803d !important;
+    box-shadow: 0 0 0 3px rgba(21, 128, 61, 0.12);
+  }
+}
+
+@media (max-width: 1023px) {
+  .stepperGrid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 599px) {
+  .stepperShell {
+    padding: 14px;
+  }
+
+  .mobileProgressHeader {
+    display: flex;
+  }
+
+  .stepperGrid {
+    grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
+    gap: 4px !important;
+    padding: 0 !important;
+    overflow-x: visible !important;
+  }
+
+  .stepTab {
+    min-width: 0 !important;
+    padding: 6px 2px !important;
+    justify-content: center;
+    border-radius: 10px;
+  }
+
+  .stepTitleWrap {
+    display: none;
+  }
+}
