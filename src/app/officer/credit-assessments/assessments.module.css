@@ -1,0 +1,533 @@
+.clearRecordsBtn {
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1.5px solid #fecaca;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 12.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.clearRecordsBtn:hover {
+  background-color: #fee2e2;
+}
+
+.primaryHeaderAction {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: #ffffff;
+  text-decoration: none;
+  min-height: 40px;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 12.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 3px 10px rgba(21, 128, 61, 0.22);
+  border: 1px solid #15803d;
+}
+
+.successBanner {
+  background-color: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #15803d;
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.assessmentLayout {
+  display: grid;
+  grid-template-columns: 360px minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+}
+
+/* Left Queue Column */
+.queueColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
+.filterTabs {
+  background-color: #ffffff;
+  border-radius: 14px;
+  padding: 6px;
+  border: 1px solid #dcece0;
+  display: flex;
+  gap: 4px;
+}
+
+.filterTabBtn {
+  flex: 1;
+  min-height: 38px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: none;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  background-color: transparent;
+  color: #526b5c;
+  transition: all 0.15s ease;
+}
+
+.filterTabBtnActive {
+  background-color: #15803d;
+  color: #ffffff;
+  font-weight: 800;
+  box-shadow: 0 2px 6px rgba(21, 128, 61, 0.2);
+}
+
+.searchWrap {
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px 10px 38px;
+  border-radius: 12px;
+  border: 1.5px solid #dcece0;
+  font-size: 13.5px;
+  color: #0f291a;
+  background-color: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.searchInput:focus {
+  border-color: #15803d;
+}
+
+.applicantList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.emptyListBox {
+  padding: 24px;
+  text-align: center;
+  background-color: #ffffff;
+  border-radius: 14px;
+  border: 1px dashed #bbf7d0;
+  color: #526b5c;
+  font-size: 13px;
+}
+
+.applicantCard {
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 16px;
+  cursor: pointer;
+  border: 1.5px solid #dcece0;
+  box-shadow: 0 1px 4px rgba(20, 83, 45, 0.03);
+  transition: all 0.15s ease;
+}
+
+.applicantCard:hover {
+  border-color: #86efac;
+}
+
+.applicantCardSelected {
+  border: 2px solid #15803d;
+  background-color: #f6fbf7;
+  box-shadow: 0 4px 14px rgba(21, 128, 61, 0.12);
+}
+
+.applicantCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.applicantName {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #0f291a;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.applicantRef {
+  font-size: 11.5px;
+  color: #15803d;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-weight: 700;
+}
+
+.statusPill {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  white-space: nowrap;
+}
+
+.applicantCardBottom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #e6f2e9;
+}
+
+/* Right Worksheet Column */
+.worksheetCard {
+  background-color: #ffffff;
+  border-radius: 18px;
+  border: 1px solid #dcece0;
+  padding: 26px;
+  box-shadow: 0 2px 10px rgba(20, 83, 45, 0.05);
+  min-width: 0;
+}
+
+.borrowerHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid #e6f2e9;
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.borrowerTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.borrowerTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f291a;
+  margin: 0;
+}
+
+.policyBadge {
+  background-color: #dcfce7;
+  border: 1px solid #bbf7d0;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: #15803d;
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-weight: 800;
+}
+
+.borrowerSubtitle {
+  font-size: 13px;
+  color: #526b5c;
+  margin-top: 4px;
+}
+
+.gradeBadge {
+  font-size: 12.5px;
+  font-weight: 800;
+  padding: 7px 14px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Forest Green Cashflow & Recommendation Insight Bar */
+.insightBar {
+  background: linear-gradient(135deg, #14532d 0%, #15803d 100%);
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 26px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 16px;
+}
+
+.insightLabel {
+  font-size: 11px;
+  color: #dcfce7;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.insightValWhite {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-top: 3px;
+}
+
+.insightValAmber {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fde68a;
+  margin-top: 3px;
+}
+
+.insightValGreen {
+  font-size: 18px;
+  font-weight: 800;
+  color: #86efac;
+  margin-top: 3px;
+}
+
+.sectionHeading {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f291a;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fiveCsStack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 26px;
+}
+
+.fiveCsCard {
+  background-color: #f6fbf7;
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid #dcece0;
+}
+
+.fiveCsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.fiveCsTitle {
+  font-size: 14px;
+  color: #0f291a;
+  font-weight: 800;
+}
+
+.fiveCsDesc {
+  font-size: 12px;
+  color: #526b5c;
+  margin: 2px 0 0 0;
+}
+
+.scoreInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.scoreInput {
+  width: 68px;
+  min-height: 40px;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1.5px solid #bbf7d0;
+  background-color: #ffffff;
+  color: #15803d;
+  font-weight: 800;
+  font-size: 14px;
+  text-align: center;
+}
+
+.notesInput {
+  width: 100%;
+  min-height: 42px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid #dcece0;
+  background-color: #ffffff;
+  color: #0f291a;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.recommendationPanel {
+  background-color: #ffffff;
+  border-radius: 16px;
+  padding: 22px;
+  border: 1.5px solid #bbf7d0;
+  margin-bottom: 26px;
+}
+
+.recommendationTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f291a;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.recommendationGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.fieldLabel {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #334e3e;
+  display: block;
+  margin-bottom: 6px;
+}
+
+.amountInput {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #dcece0;
+  font-weight: 800;
+  font-size: 16px;
+  color: #15803d;
+  box-sizing: border-box;
+}
+
+.verdictSelect {
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #dcece0;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f291a;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.justificationTextarea {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1.5px solid #dcece0;
+  font-size: 13.5px;
+  color: #0f291a;
+  box-sizing: border-box;
+}
+
+.actionFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.saveDraftBtn {
+  background-color: #f6fbf7;
+  border: 1.5px solid #dcece0;
+  color: #334e3e;
+  min-height: 44px;
+  padding: 11px 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+}
+
+.primaryActionGroup {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.endorseAdminBtn {
+  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+  color: #ffffff;
+  border: none;
+  min-height: 44px;
+  padding: 11px 22px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 13.5px;
+  cursor: pointer;
+  box-shadow: 0 3px 12px rgba(21, 128, 61, 0.25);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.proceedContractLink {
+  background-color: #14532d;
+  color: #ffffff;
+  text-decoration: none;
+  min-height: 44px;
+  padding: 11px 22px;
+  border-radius: 12px;
+  font-weight: 800;
+  font-size: 13.5px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 3px 12px rgba(20, 83, 45, 0.25);
+}
+
+.emptyWorksheet {
+  background-color: #ffffff;
+  padding: 40px 24px;
+  border-radius: 18px;
+  border: 1px dashed #bbf7d0;
+  text-align: center;
+  color: #526b5c;
+}
+
+@media (max-width: 1023px) {
+  .assessmentLayout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 599px) {
+  .worksheetCard {
+    padding: 16px;
+  }
+
+  .saveDraftBtn,
+  .primaryActionGroup,
+  .endorseAdminBtn,
+  .proceedContractLink {
+    width: 100%;
+  }
+}
