@@ -1,0 +1,904 @@
+.headerCta {
+  background-color: #15803d;
+  color: #ffffff;
+  text-decoration: none;
+  padding: 9px 16px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  box-shadow: 0 2px 6px rgba(21, 128, 61, 0.22);
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+
+.headerCta:hover {
+  background-color: #166534;
+}
+
+.headerCta:focus-visible {
+  outline: 2px solid #16a34a;
+  outline-offset: 2px;
+}
+
+/* Metrics Summary Grid */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.metricCard {
+  background-color: #ffffff;
+  padding: 18px 20px;
+  border-radius: 14px;
+  border: 1px solid #dcece0;
+  border-top: 3px solid #16a34a;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(21, 128, 61, 0.04);
+}
+
+.metricCardWarning {
+  border-top-color: #d97706;
+}
+
+.metricLabel {
+  font-size: 11px;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  display: block;
+}
+
+.metricValue {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 6px 0 0 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.metricValueGreen {
+  color: #15803d;
+}
+
+.metricValueEmerald {
+  color: #16a34a;
+}
+
+.metricValueAmber {
+  color: #d97706;
+}
+
+/* Filter & Sort Controls Bar */
+.filterBar {
+  background-color: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #dcece0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.searchBox {
+  position: relative;
+  min-width: 260px;
+  flex: 1;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 9px 12px 9px 36px;
+  border-radius: 10px;
+  border: 1px solid #d1e5d6;
+  background-color: #ffffff;
+  color: #0f172a;
+  font-size: 13px;
+  min-height: 40px;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+}
+
+.filterGroup {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filterLabel {
+  font-size: 12px;
+  color: #475569;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.selectInput {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #d1e5d6;
+  background-color: #ffffff;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #0f172a;
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.selectInput:focus {
+  outline: none;
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+}
+
+.selectSort {
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1.5px solid #86efac;
+  background-color: #f0fdf4;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #15803d;
+  min-height: 40px;
+  cursor: pointer;
+}
+
+.selectSort:focus {
+  outline: none;
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+}
+
+/* Desktop Table Container */
+.tableCard {
+  background-color: #ffffff;
+  border-radius: 14px;
+  border: 1px solid #dcece0;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(21, 128, 61, 0.04);
+  overflow: hidden;
+}
+
+.desktopTableWrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.tableHeadRow {
+  background-color: #f2f8f4;
+  border-bottom: 1px solid #dcece0;
+}
+
+.th {
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #475569;
+  white-space: nowrap;
+}
+
+.thRight {
+  text-align: right;
+}
+
+.thCenter {
+  text-align: center;
+}
+
+.thMcid {
+  color: #15803d;
+}
+
+.tr {
+  border-bottom: 1px solid #edf6ef;
+  background-color: #ffffff;
+  transition: background-color 0.12s ease;
+}
+
+.tr:nth-child(even) {
+  background-color: #fbfdfc;
+}
+
+.tr:hover {
+  background-color: #f4faf6;
+}
+
+.td {
+  padding: 13px 16px;
+  vertical-align: middle;
+}
+
+.tdRight {
+  padding: 13px 16px;
+  text-align: right;
+  vertical-align: middle;
+  font-variant-numeric: tabular-nums;
+}
+
+.tdCenter {
+  padding: 13px 16px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.emptyCell {
+  padding: 44px 20px;
+  text-align: center;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.borrowerName {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  display: block;
+}
+
+.borrowerSub {
+  font-size: 11.5px;
+  color: #64748b;
+  display: block;
+  margin-top: 2px;
+}
+
+.policyMono {
+  font-family: var(--font-geist-mono), monospace;
+  font-weight: 700;
+  font-size: 12px;
+  color: #0f172a;
+}
+
+.mcidBadge {
+  font-family: var(--font-geist-mono), monospace;
+  font-weight: 800;
+  color: #15803d;
+  background-color: #f0fdf4;
+  border: 1px solid #86efac;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12px;
+  letter-spacing: 0.3px;
+  display: inline-block;
+}
+
+.productTitle {
+  font-weight: 600;
+  color: #0f172a;
+  display: block;
+}
+
+.productSub {
+  font-size: 11px;
+  color: #64748b;
+  display: block;
+  margin-top: 2px;
+}
+
+.principalVal {
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.installmentVal {
+  color: #15803d;
+  font-size: 13.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  display: block;
+}
+
+.installmentSub {
+  font-size: 10.5px;
+  color: #64748b;
+  display: block;
+}
+
+.dueDateBadge {
+  font-size: 11.5px;
+  font-weight: 700;
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.cbuVal {
+  font-weight: 700;
+  color: #16a34a;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Status Badges */
+.statusPaid {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.statusActive {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background-color: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+.statusAwaiting {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  display: inline-block;
+  white-space: nowrap;
+}
+
+/* Row Action Cluster */
+.actionCluster {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: center;
+}
+
+.actionRowPrimary {
+  display: inline-flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.actionRowSecondary {
+  display: inline-flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.btnPayLoan {
+  background-color: #15803d;
+  border: 1px solid #15803d;
+  color: #ffffff;
+  padding: 6px 12px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 1px 3px rgba(21, 128, 61, 0.2);
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.btnPayLoan:hover {
+  background-color: #166534;
+}
+
+.btnFullyPaid {
+  background-color: #f1f5f9;
+  border: 1px solid #cbd5e1;
+  color: #64748b;
+  padding: 6px 12px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: not-allowed;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+.btnSavings {
+  background-color: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #15803d;
+  padding: 6px 12px;
+  border-radius: 7px;
+  font-size: 11.5px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.btnSavings:hover {
+  background-color: #dcfce7;
+  border-color: #4ade80;
+}
+
+.btnRenew {
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #6ee7b7;
+  padding: 5px 12px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  width: 100%;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.btnRenew:hover {
+  background-color: #d1fae5;
+}
+
+.btnRecord {
+  background-color: #ffffff;
+  border: 1px solid #d1e5d6;
+  color: #334155;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.btnRecord:hover {
+  background-color: #f2f8f4;
+  border-color: #86efac;
+  color: #15803d;
+}
+
+.btnRecordGreen {
+  background-color: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #15803d;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background-color 0.15s ease;
+  white-space: nowrap;
+}
+
+.btnRecordGreen:hover {
+  background-color: #dcfce7;
+}
+
+/* Mobile / Tablet Borrower Cards (< 1024px) */
+.mobileCardList {
+  display: none;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mobileCard {
+  background-color: #ffffff;
+  border: 1px solid #dcece0;
+  border-radius: 14px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.mobileCardTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.mobileBadgeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.mobileMetricsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  background-color: #f8fbf9;
+  border: 1px solid #e4f0e7;
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.mobileMetricItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobileMetricLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+
+.mobileActionGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.mobileActionFull {
+  grid-column: 1 / -1;
+}
+
+.mobileDocRow {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.mobileBtnTouch {
+  min-height: 40px;
+  justify-content: center;
+  width: 100%;
+}
+
+/* Modals */
+.modalBackdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 16px;
+}
+
+.modalDialog {
+  background-color: #ffffff;
+  border-radius: 16px;
+  width: 100%;
+  max-width: 580px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
+  border: 1px solid #dcece0;
+}
+
+.modalDialogWide {
+  max-width: 620px;
+}
+
+.modalDialogPassbook {
+  max-width: 1120px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.modalHeader {
+  padding: 16px 20px;
+  background-color: #f2f8f4;
+  border-bottom: 1px solid #dcece0;
+  color: #0f172a;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.modalHeaderTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.modalHeaderIcon {
+  background-color: #dcfce7;
+  border: 1px solid #86efac;
+  color: #15803d;
+  padding: 7px;
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modalTitle {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0;
+  color: #0f172a;
+}
+
+.modalSubtitle {
+  font-size: 11.5px;
+  color: #475569;
+  display: block;
+  margin-top: 2px;
+}
+
+.modalCloseBtn {
+  background: #ffffff;
+  border: 1px solid #d1e5d6;
+  color: #475569;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.modalCloseBtn:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.modalBody {
+  padding: 20px;
+}
+
+.modalPassbookBody {
+  padding: 24px;
+  overflow-y: auto;
+  flex: 1;
+  background-color: #f6fbf7;
+}
+
+.modalSummaryGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.modalSummaryBox {
+  background-color: #f8fbf9;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #dcece0;
+}
+
+.modalSummaryLabel {
+  font-size: 10px;
+  color: #475569;
+  text-transform: uppercase;
+  font-weight: 700;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.modalFieldGroup {
+  margin-bottom: 12px;
+}
+
+.modalLabel {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0f172a;
+  margin-bottom: 4px;
+}
+
+.modalInput {
+  width: 100%;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: 1px solid #d1e5d6;
+  font-size: 13px;
+  color: #0f172a;
+  background-color: #ffffff;
+  box-sizing: border-box;
+}
+
+.modalInput:focus {
+  outline: none;
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+}
+
+.modalInputAmount {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #86efac;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  background-color: #ffffff;
+  font-variant-numeric: tabular-nums;
+  box-sizing: border-box;
+}
+
+.modalInputAmount:focus {
+  outline: none;
+  border-color: #15803d;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18);
+}
+
+.signatureBox {
+  margin-bottom: 16px;
+  background-color: #f8fbf9;
+  border: 1.5px dashed #86efac;
+  border-radius: 12px;
+  padding: 12px;
+  transition: all 0.2s ease;
+}
+
+.signatureBoxCaptured {
+  border: 1.5px solid #16a34a;
+  background-color: #f0fdf4;
+}
+
+.requiredBadge {
+  background-color: #15803d;
+  color: #ffffff;
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.modalFooter {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  margin-top: 4px;
+}
+
+.btnCancel {
+  background-color: #f8fafc;
+  color: #334155;
+  border: 1px solid #d1e5d6;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btnCancel:hover {
+  background-color: #f1f5f9;
+}
+
+.btnConfirm {
+  background-color: #15803d;
+  color: #ffffff;
+  border: 1px solid #15803d;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(21, 128, 61, 0.25);
+}
+
+.btnConfirm:hover {
+  background-color: #166534;
+}
+
+.btnConfirmDanger {
+  background-color: #dc2626;
+  color: #ffffff;
+  border: 1px solid #dc2626;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 2px 4px rgba(220, 38, 38, 0.25);
+}
+
+@media (max-width: 1023px) {
+  .tableCard {
+    display: none;
+  }
+
+  .mobileCardList {
+    display: flex;
+  }
+}
+
+@media (max-width: 640px) {
+  .filterBar {
+    padding: 14px;
+  }
+
+  .searchBox {
+    min-width: 100%;
+  }
+
+  .filterGroup {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .selectInput,
+  .selectSort {
+    flex: 1;
+  }
+
+  .modalSummaryGrid {
+    grid-template-columns: 1fr;
+  }
+}
