@@ -614,7 +614,7 @@ export default function CurrentBorrowersPage() {
                   b.paymentMode || 'Weekly',
                   1
                 );
-                dueDateStr = schedDates[0] ? schedDates[0].shortDateStr : new Date(Date.now() + 86400000 * 7).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
+                dueDateStr = schedDates[0] ? schedDates[0].shortDateStr : baseDate.toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' });
               }
 
               const mcidDisplay = b.mcid || b.cidNumber || 'TCID-A-00001';

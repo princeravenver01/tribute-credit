@@ -1,40 +1,66 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+  /* Tribute Grace Brand Identity */
+  --tg-emerald: #15803d;
+  --tg-green-600: #16a34a;
+  --tg-green-500: #22c55e;
+  --tg-green-400: #4ade80;
+  --tg-green-light: #f0fdf4;
+  --tg-green-border: #bbf7d0;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+  --tg-slate-900: #0b1320;
+  --tg-slate-800: #111e33;
+  --tg-slate-700: #1e293b;
+  --tg-slate-600: #334155;
+  --tg-slate-500: #64748b;
+  --tg-slate-200: #e2e8f0;
+  --tg-slate-100: #f1f5f9;
+  --tg-slate-50: #f8fafc;
 
-html {
-  height: 100%;
-}
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-
-body {
-  min-height: 100%;
-  display: flex;
-  flex-direction: column;
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+  /* Accent & Status */
+  --primary: #15803d;
+  --primary-hover: #166534;
+  --primary-light: #f0fdf4;
+  --secondary: #0b1320;
+  --accent: #22c55e;
+  --accent-light: #dcfce7;
+  --warning: #d97706;
+  --warning-light: #fef3c7;
+  --danger: #dc2626;
+  --danger-light: #fee2e2;
+  
+  --bg-main: #f8fafc;
+  --bg-card: #ffffff;
+  --border-color: #e2e8f0;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 26px;
+  
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 12px -2px rgb(11 19 32 / 0.08);
+  --shadow-lg: 0 12px 28px -4px rgb(11 19 32 / 0.12);
+  --shadow-emerald: 0 8px 20px -4px rgba(22, 163, 74, 0.28);
 }
 
 * {
   box-sizing: border-box;
-  padding: 0;
   margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 a {
@@ -42,8 +68,421 @@ a {
   text-decoration: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  html {
-    color-scheme: dark;
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* Safe area padding for mobile notches */
+.safe-area-bottom {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+}
+
+/* =====================================================================
+   RESPONSIVE MOBILE & TABLET APP-LIKE STYLES
+   ===================================================================== */
+
+/* Desktop defaults: sidebar is static sidebar, mobile elements are hidden */
+.officer-desktop-sidebar {
+  width: 280px;
+  background-color: #ffffff;
+  color: #0f172a;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 2px 0 12px rgba(15, 23, 42, 0.04);
+  border-right: 1px solid #dcece0;
+  user-select: none;
+  flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.officer-sidebar-close-btn {
+  display: none;
+}
+
+.officer-menu-toggle-btn {
+  display: none;
+}
+
+.officer-bottom-nav {
+  display: none;
+}
+
+/* TABLET & MOBILE VIEWPORT BREAKPOINT (<= 992px) */
+@media (max-width: 992px) {
+  /* Turn desktop sidebar into an off-canvas drawer */
+  .officer-desktop-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100% !important;
+    width: 280px !important;
+    max-width: 85vw !important;
+    z-index: 9999 !important;
+    transform: translateX(-100%);
+  }
+
+  .officer-desktop-sidebar.drawer-open {
+    transform: translateX(0) !important;
+  }
+
+  .officer-sidebar-close-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Show the hamburger menu in the top bar */
+  .officer-menu-toggle-btn {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Show the mobile bottom app bar */
+  .officer-bottom-nav {
+    display: flex !important;
+  }
+
+  /* Add spacing at bottom of main content so bottom bar doesn't overlay elements */
+  .officer-main-content {
+    padding: 16px 14px 100px 14px !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Stepper horizontal scroll on mobile */
+  .stepper-container {
+    display: flex !important;
+    overflow-x: auto !important;
+    padding: 8px 10px !important;
+    gap: 8px !important;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    grid-template-columns: none !important;
+  }
+  .stepper-container::-webkit-scrollbar {
+    display: none;
+  }
+
+  .stepper-tab {
+    flex-shrink: 0 !important;
+    min-width: 120px !important;
+  }
+
+  /* Responsive cards on mobile */
+  .officer-card {
+    padding: 16px 14px !important;
+    border-radius: 16px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Responsive grid columns */
+  .form-grid-responsive,
+  .step-form-grid,
+  .form-grid-2col,
+  .form-grid-3col {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    width: 100% !important;
+  }
+
+  .col-span-2-responsive {
+    grid-column: span 1 !important;
+    width: 100% !important;
+  }
+
+  .officer-btn-responsive {
+    width: 100% !important;
+    justify-content: center !important;
+  }
+
+  .mobile-flex-col {
+    flex-direction: column !important;
+    align-items: stretch !important;
   }
 }
+
+/* Hide dedicated print bundle on screen */
+.official-print-bundle {
+  display: none !important;
+}
+
+/* =====================================================================
+   OFFICIAL OFFICE PRINT & PDF STYLES (Philippine Cooperative Formal)
+   ===================================================================== */
+@media print {
+  .official-print-bundle {
+    display: block !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 6mm 8mm;
+  }
+
+  /* Reset body and background for crisp formal office document */
+  html, body {
+    background: #ffffff !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10.5pt !important;
+    line-height: 1.4 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Hide all web application chrome, navigation, headers, drafts, buttons */
+  .no-print,
+  .officer-desktop-sidebar,
+  .officer-mobile-nav,
+  .officer-bottom-nav,
+  .officer-menu-toggle-btn,
+  .officer-sidebar-close-btn,
+  .stepper-container,
+  .onboarding-top-header,
+  .interactive-execution-section,
+  .status-announcement-banner,
+  .doc-tab-switcher,
+  .doc-action-buttons,
+  .web-nav-buttons,
+  button,
+  header,
+  aside,
+  nav {
+    display: none !important;
+  }
+
+  /* Ensure main content container has no padding/margins/shadows */
+  .officer-main-content,
+  .officer-card {
+    padding: 0 !important;
+    margin: 0 !important;
+    box-shadow: none !important;
+    border: none !important;
+    background: transparent !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Target print container */
+  .official-printable-page {
+    display: block !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Force page break after each formal document in the bundle */
+  .page-break-after {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  /* Executive Office Document Typography & Styling */
+  .official-printable-page {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif !important;
+    color: #0f172a !important;
+  }
+
+  .print-header-coop {
+    border-bottom: 2px solid #0f172a !important;
+    padding-bottom: 10px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .print-header-title {
+    font-size: 14pt !important;
+    font-weight: 900 !important;
+    color: #0b1320 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.8px !important;
+    margin: 0 0 2px 0 !important;
+  }
+
+  .print-header-sub {
+    font-size: 8pt !important;
+    color: #475569 !important;
+    font-weight: 600 !important;
+    margin: 0 0 4px 0 !important;
+  }
+
+  .print-header-meta {
+    font-size: 8pt !important;
+    color: #334155 !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.3px !important;
+  }
+
+  /* Sleek, Modern Data Tables */
+  table.print-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin-top: 8px !important;
+    margin-bottom: 12px !important;
+    font-size: 8.5pt !important;
+  }
+
+  table.print-table th,
+  table.print-table td {
+    border: 1px solid #cbd5e1 !important;
+    padding: 6px 8px !important;
+    color: #0f172a !important;
+  }
+
+  table.print-table th {
+    background-color: #f1f5f9 !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    font-size: 7.5pt !important;
+    letter-spacing: 0.5px !important;
+    color: #1e293b !important;
+  }
+
+  /* Signature & Biometric Card Panels */
+  .signature-box-print {
+    border: 1.5px solid #cbd5e1 !important;
+    border-radius: 6px !important;
+    padding: 8px 10px !important;
+    background: #ffffff !important;
+    min-height: 90px !important;
+  }
+
+  /* Isolation between documents for individual print actions */
+  body.print-mode-contract .print-doc-schedule,
+  body.print-mode-contract .print-doc-ledger,
+  body.print-mode-contract .print-doc-passbook,
+  body.print-mode-contract .print-doc-payment-ledger,
+  body.print-mode-contract .print-doc-slip {
+    display: none !important;
+  }
+
+  body.print-mode-schedule .print-doc-contract,
+  body.print-mode-schedule .print-doc-ledger,
+  body.print-mode-schedule .print-doc-passbook,
+  body.print-mode-schedule .print-doc-payment-ledger,
+  body.print-mode-schedule .print-doc-slip {
+    display: none !important;
+  }
+
+  body.print-mode-ledger .print-doc-contract,
+  body.print-mode-ledger .print-doc-schedule,
+  body.print-mode-ledger .print-doc-details {
+    display: none !important;
+  }
+
+  body.print-mode-passbook .print-doc-contract,
+  body.print-mode-passbook .print-doc-schedule,
+  body.print-mode-passbook .print-doc-payment-ledger,
+  body.print-mode-passbook .print-doc-details {
+    display: none !important;
+  }
+
+  body.print-mode-payment-ledger .print-doc-contract,
+  body.print-mode-payment-ledger .print-doc-schedule,
+  body.print-mode-payment-ledger .print-doc-passbook,
+  body.print-mode-payment-ledger .print-doc-details,
+  body.print-mode-payment-ledger .print-doc-slip {
+    display: none !important;
+  }
+
+  body.print-mode-details .print-doc-contract,
+  body.print-mode-details .print-doc-schedule,
+  body.print-mode-details .print-doc-ledger,
+  body.print-mode-details .print-doc-passbook,
+  body.print-mode-details .print-doc-payment-ledger,
+  body.print-mode-details .print-doc-slip {
+    display: none !important;
+  }
+}
+
+/* =====================================================================
+   BORDERLESS LANDSCAPE ORIENTATION FOR STATEMENT / LEDGER (FULL PAGE SPREAD)
+   ===================================================================== */
+@media print {
+  body.print-mode-passbook,
+  body.print-mode-ledger,
+  body.print-mode-payment-ledger {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body.print-mode-passbook .passbook-booklet-container,
+  body.print-mode-ledger .passbook-booklet-container,
+  body.print-mode-payment-ledger .loan-payment-ledger-container {
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  body.print-mode-passbook .passbook-page,
+  body.print-mode-ledger .passbook-page,
+  body.print-mode-payment-ledger .passbook-page {
+    box-shadow: none !important;
+    border: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    padding: 5mm 6mm !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    min-height: 195mm !important;
+  }
+}
+
+/* Dynamic landscape @page rules: edge-to-edge full paper spread */
+@page landscapeStatementPage {
+  size: A4 landscape !important;
+  margin: 3mm !important;
+}
+
+@media print {
+  body.print-mode-passbook,
+  body.print-mode-ledger,
+  body.print-mode-payment-ledger {
+    page: landscapeStatementPage;
+  }
+}
+
+
+
