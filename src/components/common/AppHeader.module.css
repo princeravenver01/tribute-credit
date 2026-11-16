@@ -1,388 +1,43 @@
-/* AppHeader CSS Module (AO Light Green & Admin Light White/Red Variants) */
+/* AppHeader CSS Module (AO Light Green & Admin Light White/Red Variants)
+   Formal Institutional Financial-Services Design */
 
 /* Base Header Container */
 .headerBase {
   position: relative;
-  border-radius: 14px;
-  margin-bottom: 20px;
-  overflow: hidden;
+  background-color: #FFFFFF;
+  border-radius: 10px;
+  margin-bottom: 18px;
   box-sizing: border-box;
   width: 100%;
   font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
-/* --- AO Light Green Variant --- */
+/* --- AO Variant --- */
 .headerAO {
-  background-color: #ffffff;
-  border: 1px solid #dcece0;
-  box-shadow: 0 2px 8px rgba(20, 83, 45, 0.04);
+  border: 1px solid #DCECE0;
+  border-left: 3px solid #15803D;
 }
 
-.topAccentAO {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #14532d 0%, #15803d 55%, #16a34a 100%);
-}
-
-.topRowAO {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  flex-wrap: wrap;
-  padding: 12px 20px;
-  background-color: #ffffff;
-}
-
-.logoBoxAO {
-  background-color: #ffffff;
-  padding: 4px 8px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #dcece0;
-  flex-shrink: 0;
-}
-
-.brandTextColAO {
-  border-left: 1.5px solid #dcece0;
-  padding-left: 12px;
-  min-width: 0;
-}
-
-.coopNameAO {
-  font-size: 14px;
-  font-weight: 800;
-  color: #0f291a;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  line-height: 1.2;
-}
-
-.roleBadgeAO {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  padding: 2.5px 8px;
-  border-radius: 9999px;
-  letter-spacing: 0.03em;
-  background-color: #dcfce7;
-  color: #15803d;
-  border: 1px solid #bbf7d0;
-}
-
-.roleDotAO {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: #16a34a;
-}
-
-.brandMetaRowAO {
-  font-size: 11px;
-  color: #526b5c;
-  font-weight: 500;
-  margin-top: 3px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.regCodeAO {
-  font-family: 'SFMono-Regular', Consolas, monospace;
-  font-weight: 700;
-  color: #334e3e;
-}
-
-.verifiedTagAO {
-  color: #15803d;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.menuToggleBtnAO {
-  background: #f6fbf7;
-  border: 1.5px solid #bbf7d0;
-  min-width: 40px;
-  min-height: 40px;
-  padding: 8px;
-  border-radius: 8px;
-  color: #15803d;
-  cursor: pointer;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.userPillAO {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background-color: #f6fbf7;
-  border: 1px solid #dcece0;
-  padding: 4px 12px 4px 5px;
-  border-radius: 9999px;
-}
-
-.userAvatarAO {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 13px;
-  flex-shrink: 0;
-}
-
-.userNameAO {
-  font-size: 12px;
-  font-weight: 800;
-  color: #0f291a;
-  line-height: 1.2;
-}
-
-.userRoleAO {
-  font-size: 10.5px;
-  color: #526b5c;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.subBannerAO {
-  background: linear-gradient(135deg, #14532d 0%, #15803d 100%);
-  color: #ffffff;
-  padding: 14px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.pageTitleAO {
-  font-size: 19px;
-  font-weight: 800;
-  color: #ffffff;
-  margin: 0;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.pageSubtitleAO {
-  font-size: 12.5px;
-  color: #dcfce7;
-  margin: 3px 0 0 0;
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-/* --- Admin Light White/Red Variant --- */
+/* --- Admin Variant --- */
 .headerAdmin {
-  background-color: #ffffff;
   border: 1px solid #E5E7EB;
-  box-shadow: 0 2px 8px rgba(185, 28, 28, 0.04);
+  border-left: 3px solid #B91C1C;
 }
 
-.topAccentAdmin {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, #991B1B 0%, #B91C1C 55%, #DC2626 100%);
-}
-
-.topRowAdmin {
+/* Primary Navigation Row */
+.topRow {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 16px;
   flex-wrap: wrap;
-  padding: 12px 20px;
-  background-color: #ffffff;
+  padding: 10px 18px;
+  background-color: #FFFFFF;
 }
 
-.logoBoxAdmin {
-  background-color: #ffffff;
-  padding: 4px 8px;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid #FECACA;
-  flex-shrink: 0;
-}
-
-.brandTextColAdmin {
-  border-left: 1.5px solid #FECACA;
-  padding-left: 12px;
-  min-width: 0;
-}
-
-.coopNameAdmin {
-  font-size: 14px;
-  font-weight: 800;
-  color: #111827;
-  letter-spacing: -0.01em;
-  text-transform: uppercase;
-  line-height: 1.2;
-}
-
-.roleBadgeAdmin {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 11px;
-  font-weight: 800;
-  text-transform: uppercase;
-  padding: 2.5px 9px;
-  border-radius: 9999px;
-  letter-spacing: 0.04em;
-  background-color: #FEF2F2;
-  color: #B91C1C;
-  border: 1px solid #FECACA;
-  box-shadow: 0 1px 2px rgba(185, 28, 28, 0.06);
-}
-
-.roleDotAdmin {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background-color: #DC2626;
-  box-shadow: 0 0 6px rgba(220, 38, 38, 0.6);
-}
-
-.brandMetaRowAdmin {
-  font-size: 11px;
-  color: #64748B;
-  font-weight: 500;
-  margin-top: 3px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
-
-.regCodeAdmin {
-  font-family: 'SFMono-Regular', Consolas, monospace;
-  font-weight: 700;
-  color: #475569;
-}
-
-.verifiedTagAdmin {
-  color: #B91C1C;
-  font-weight: 700;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.menuToggleBtnAdmin {
-  background: #FEF2F2;
-  border: 1.5px solid #FECACA;
-  min-width: 40px;
-  min-height: 40px;
-  padding: 8px;
-  border-radius: 8px;
-  color: #B91C1C;
-  cursor: pointer;
-  flex-shrink: 0;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.15s ease;
-}
-
-.menuToggleBtnAdmin:hover {
-  background-color: #FEE2E2;
-  border-color: #B91C1C;
-}
-
-.userPillAdmin {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background-color: #FEF2F2;
-  border: 1px solid #FECACA;
-  padding: 4px 12px 4px 5px;
-  border-radius: 9999px;
-}
-
-.userAvatarAdmin {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #B91C1C 0%, #DC2626 100%);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 800;
-  font-size: 13px;
-  flex-shrink: 0;
-  border: 1px solid #FECACA;
-}
-
-.userNameAdmin {
-  font-size: 12px;
-  font-weight: 800;
-  color: #111827;
-  line-height: 1.2;
-}
-
-.userRoleAdmin {
-  font-size: 10.5px;
-  color: #B91C1C;
-  font-weight: 700;
-  line-height: 1.2;
-}
-
-.subBannerAdmin {
-  background: linear-gradient(135deg, #991B1B 0%, #B91C1C 60%, #DC2626 100%);
-  color: #ffffff;
-  padding: 14px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  flex-wrap: wrap;
-  gap: 8px;
-  border-top: 1px solid #E5E7EB;
-}
-
-.pageTitleAdmin {
-  font-size: 19px;
-  font-weight: 800;
-  color: #ffffff;
-  margin: 0;
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.pageSubtitleAdmin {
-  font-size: 12.5px;
-  color: #FEF2F2;
-  margin: 3px 0 0 0;
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-/* Shared Brand & Layout Classes */
+/* Brand Group */
 .brandGroup {
   display: flex;
   align-items: center;
@@ -398,10 +53,72 @@
   min-width: 0;
 }
 
+/* Menu Toggle Button */
+.menuToggleBtnAO {
+  background: #F6FBF7;
+  border: 1px solid #DCECE0;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 6px;
+  border-radius: 8px;
+  color: #15803D;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.menuToggleBtnAO:hover {
+  background-color: #EBF7EE;
+  border-color: #86EFAC;
+}
+
+.menuToggleBtnAdmin {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 6px;
+  border-radius: 8px;
+  color: #B91C1C;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.menuToggleBtnAdmin:hover {
+  background-color: #FEE2E2;
+  border-color: #B91C1C;
+}
+
+/* Compact Brand Logo */
+.logoBox {
+  background-color: #FFFFFF;
+  padding: 3px 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #E5E7EB;
+  flex-shrink: 0;
+}
+
 .logoImg {
-  height: 36px;
+  height: 30px;
   width: auto;
   object-fit: contain;
+}
+
+/* Typography Hierarchy */
+.brandTextCol {
+  border-left: 1px solid #E5E7EB;
+  padding-left: 12px;
+  min-width: 0;
 }
 
 .brandTitleWrap {
@@ -411,6 +128,95 @@
   flex-wrap: wrap;
 }
 
+.coopName {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  line-height: 1.2;
+}
+
+/* Role Badges */
+.roleBadgeAO {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  background-color: #F0FDF4;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
+}
+
+.roleBadgeAdmin {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.03em;
+  background-color: #FEF2F2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+}
+
+.roleDotAO {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #16A34A;
+}
+
+.roleDotAdmin {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background-color: #DC2626;
+}
+
+/* Institutional Metadata Row */
+.brandMetaRow {
+  font-size: 10.5px;
+  color: #64748B;
+  font-weight: 500;
+  margin-top: 2px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.regCode {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-weight: 600;
+  color: #475569;
+}
+
+.verifiedTagAO {
+  color: #15803D;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.verifiedTagAdmin {
+  color: #B91C1C;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Right Controls Group */
 .rightGroup {
   display: flex;
   align-items: center;
@@ -425,25 +231,138 @@
   flex-wrap: wrap;
 }
 
+/* Vertical Separator */
+.divider {
+  width: 1px;
+  height: 28px;
+  background-color: #E5E7EB;
+  flex-shrink: 0;
+}
+
+/* Compact Institutional Profile Cluster */
+.profileCluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.userAvatarAO {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background-color: #F0FDF4;
+  color: #15803D;
+  border: 1px solid #BBF7D0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.userAvatarAdmin {
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background-color: #FEF2F2;
+  color: #B91C1C;
+  border: 1px solid #FECACA;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+.userName {
+  font-size: 12px;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.2;
+}
+
+.userRoleAO {
+  font-size: 10.5px;
+  color: #526B5C;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+.userRoleAdmin {
+  font-size: 10.5px;
+  color: #64748B;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+/* Sub-Bar: Slim, Quiet Page Context Strip */
+.subStripAO {
+  padding: 8px 18px;
+  border-top: 1px solid #DCECE0;
+  background-color: #F6FBF7;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.subStripAdmin {
+  padding: 8px 18px;
+  border-top: 1px solid #F1F5F9;
+  background-color: #FEF2F2;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.pageTitleAO {
+  font-size: 14px;
+  font-weight: 700;
+  color: #14532D;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.pageTitleAdmin {
+  font-size: 14px;
+  font-weight: 700;
+  color: #991B1B;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.pageSubtitle {
+  font-size: 11.5px;
+  color: #64748B;
+  margin: 1px 0 0 0;
+  line-height: 1.3;
+}
+
 /* Responsive Rules for Small Devices (320px / 390px) */
 @media (max-width: 640px) {
-  .topRowAO,
-  .topRowAdmin {
-    padding: 10px 12px;
+  .topRow {
+    padding: 8px 12px;
     gap: 8px;
   }
 
   .logoImg {
-    height: 30px;
+    height: 24px;
   }
 
-  .coopNameAO,
-  .coopNameAdmin {
-    font-size: 12.5px;
+  .coopName {
+    font-size: 12px;
   }
 
-  .brandMetaRowAO,
-  .brandMetaRowAdmin {
+  .brandMetaRow {
+    display: none;
+  }
+
+  .divider {
     display: none;
   }
 
@@ -452,34 +371,24 @@
     display: none;
   }
 
-  .userPillAO,
-  .userPillAdmin {
-    padding: 3px 8px 3px 3px;
-  }
-
-  .subBannerAO,
-  .subBannerAdmin {
-    padding: 12px 14px;
+  .subStripAO,
+  .subStripAdmin {
+    padding: 7px 12px;
   }
 
   .pageTitleAO,
   .pageTitleAdmin {
-    font-size: 16px;
+    font-size: 13px;
   }
 
-  .pageSubtitleAO,
-  .pageSubtitleAdmin {
-    font-size: 11.5px;
+  .pageSubtitle {
+    font-size: 11px;
   }
 
   .rightGroup {
     width: 100%;
     justify-content: space-between;
-    padding-top: 8px;
-    border-top: 1px solid rgba(220, 236, 224, 0.4);
-  }
-
-  .topRowAdmin .rightGroup {
-    border-top: 1px solid #FECACA;
+    padding-top: 6px;
+    border-top: 1px solid #F1F5F9;
   }
 }

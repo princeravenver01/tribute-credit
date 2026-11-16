@@ -29,21 +29,18 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
   return (
     <header className={`no-print ${styles.headerBase} ${isSuperAdmin ? styles.headerAdmin : styles.headerAO}`}>
-      {/* Decorative top accent line */}
-      <div className={isSuperAdmin ? styles.topAccentAdmin : styles.topAccentAO} />
-
-      {/* Main Top Navigation Row */}
-      <div className={isSuperAdmin ? styles.topRowAdmin : styles.topRowAO}>
+      {/* Primary Formal Navigation Row */}
+      <div className={styles.topRow}>
         {/* Left: Brand Identity & Portal Context */}
         <div className={styles.brandGroup}>
           {onOpenMobileSidebar && (
             <button
               type="button"
               onClick={onOpenMobileSidebar}
-              className={`officer-menu-toggle-btn ${isSuperAdmin ? styles.menuToggleBtnAdmin : styles.menuToggleBtnAO}`}
+              className={isSuperAdmin ? styles.menuToggleBtnAdmin : styles.menuToggleBtnAO}
               aria-label="Open navigation menu"
             >
-              <Menu size={20} />
+              <Menu size={18} />
             </button>
           )}
 
@@ -52,7 +49,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             className={styles.brandLink}
           >
             {/* Logo Container */}
-            <div className={isSuperAdmin ? styles.logoBoxAdmin : styles.logoBoxAO}>
+            <div className={styles.logoBox}>
               <img
                 src="/tribute-credit-logo.png"
                 alt="Tribute Credit Cooperative"
@@ -61,33 +58,33 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             </div>
 
             {/* Typography Hierarchy */}
-            <div className={isSuperAdmin ? styles.brandTextColAdmin : styles.brandTextColAO}>
+            <div className={styles.brandTextCol}>
               <div className={styles.brandTitleWrap}>
-                <span className={isSuperAdmin ? styles.coopNameAdmin : styles.coopNameAO}>
+                <span className={styles.coopName}>
                   Tribute Credit Cooperative
                 </span>
 
-                {/* Role Pill Badge */}
+                {/* Subdued Role Badge */}
                 <div className={isSuperAdmin ? styles.roleBadgeAdmin : styles.roleBadgeAO}>
                   <span className={isSuperAdmin ? styles.roleDotAdmin : styles.roleDotAO} />
                   {badgeLabel}
                 </div>
               </div>
 
-              <div className={isSuperAdmin ? styles.brandMetaRowAdmin : styles.brandMetaRowAO}>
-                <span className={isSuperAdmin ? styles.regCodeAdmin : styles.regCodeAO}>
+              <div className={styles.brandMetaRow}>
+                <span className={styles.regCode}>
                   CDA REG: NCR-COOP-88219
                 </span>
-                <span style={{ color: isSuperAdmin ? '#284237' : '#cbd5e1' }}>&bull;</span>
+                <span style={{ color: '#CBD5E1' }}>&bull;</span>
                 <span className={isSuperAdmin ? styles.verifiedTagAdmin : styles.verifiedTagAO}>
-                  <ShieldCheck size={12} color={isSuperAdmin ? '#4ade80' : '#15803d'} /> Financial Services & Credit Operations
+                  <ShieldCheck size={11} /> Financial Services &amp; Credit Operations
                 </span>
               </div>
             </div>
           </Link>
         </div>
 
-        {/* Right: Actions Slot, Sync Status, and User Identity Profile */}
+        {/* Right: Operational Controls & Compact Profile */}
         <div className={styles.rightGroup}>
           <SyncStatusBar />
 
@@ -97,14 +94,17 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
             </div>
           )}
 
-          {/* Profile Pill */}
-          <div className={isSuperAdmin ? styles.userPillAdmin : styles.userPillAO}>
+          {/* Clean Vertical Divider */}
+          <div className={styles.divider} />
+
+          {/* Compact Profile Cluster */}
+          <div className={styles.profileCluster}>
             <div className={isSuperAdmin ? styles.userAvatarAdmin : styles.userAvatarAO}>
               {userName.charAt(0)}
             </div>
 
-            <div style={{ lineHeight: 1.25 }}>
-              <div className={isSuperAdmin ? styles.userNameAdmin : styles.userNameAO}>
+            <div style={{ lineHeight: 1.2 }}>
+              <div className={styles.userName}>
                 {userName}
               </div>
               <div className={isSuperAdmin ? styles.userRoleAdmin : styles.userRoleAO}>
@@ -115,9 +115,9 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
       </div>
 
-      {/* Sub-bar: Clean Page Title & Context Header */}
+      {/* Slim, Quiet Page Context Strip */}
       {(pageTitle || pageSubtitle) && (
-        <div className={isSuperAdmin ? styles.subBannerAdmin : styles.subBannerAO}>
+        <div className={isSuperAdmin ? styles.subStripAdmin : styles.subStripAO}>
           <div>
             {pageTitle && (
               <h1 className={isSuperAdmin ? styles.pageTitleAdmin : styles.pageTitleAO}>
@@ -125,7 +125,7 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
               </h1>
             )}
             {pageSubtitle && (
-              <p className={isSuperAdmin ? styles.pageSubtitleAdmin : styles.pageSubtitleAO}>
+              <p className={styles.pageSubtitle}>
                 {pageSubtitle}
               </p>
             )}

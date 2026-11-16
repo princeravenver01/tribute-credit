@@ -1,10 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Wifi, WifiOff, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Wifi, WifiOff, RefreshCw } from 'lucide-react';
 import { syncOfflineData } from '@/lib/sync-manager';
 import { offlineDB } from '@/lib/offline-db';
-import { clearCreditAssessments } from '@/lib/credit-assessment-store';
 import styles from '@/components/officer/OfficerChrome.module.css';
 
 export const SyncStatusBar: React.FC = () => {
@@ -66,7 +65,7 @@ export const SyncStatusBar: React.FC = () => {
     <div className={`${styles.syncBar} ${isOnline ? styles.syncBarOnline : styles.syncBarOffline}`}>
       <div className={styles.syncStatusIndicator}>
         {isOnline ? <Wifi size={14} color="#15803d" /> : <WifiOff size={14} color="#b45309" />}
-        <span>{isOnline ? 'Online' : 'Offline Mode (APK)'}</span>
+        <span>{isOnline ? 'Online' : 'Offline'}</span>
       </div>
 
       {pendingCount > 0 && (
@@ -86,33 +85,6 @@ export const SyncStatusBar: React.FC = () => {
           <span>{isSyncing ? 'Syncing...' : pendingCount > 0 ? 'Sync Now' : 'Synced'}</span>
         </button>
       )}
-
-      {/* Clear Database & Drafts Button (Preserves admin/officer login) */}
-      <button
-        type="button"
-        onClick={async () => {
-          if (confirm('Are you sure you want to clear all borrower applications, credit assessments, and drafts? (Login accounts will be preserved)')) {
-            clearCreditAssessments();
-            try {
-              offlineDB.applications.clear();
-              offlineDB.collections.clear();
-            } catch (e) {}
-            try {
-              await fetch('/api/assessments', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'clear_all' }),
-              });
-            } catch (e) {}
-            window.dispatchEvent(new Event('storage'));
-            window.location.reload();
-          }
-        }}
-        className={styles.syncClearBtn}
-        title="Reset all test borrowers, assessments and drafts (keeps login accounts)"
-      >
-        Clear Data
-      </button>
 
       <style jsx global>{`
         @keyframes spin {
