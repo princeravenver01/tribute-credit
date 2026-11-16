@@ -28,7 +28,7 @@ import {
   interpolateContractHtml
 } from '@/lib/contract-template-store';
 import { VisualTextEditor } from '@/components/common/VisualTextEditor';
-import theme from '@/components/officer/OfficerTheme.module.css';
+import theme from '@/components/admin/AdminTheme.module.css';
 import styles from './editor.module.css';
 
 export default function AdminContractEditorPage() {
@@ -100,7 +100,7 @@ export default function AdminContractEditorPage() {
   };
 
   return (
-    <div className={`${theme.themeRoot} ${theme.pageShell}`}>
+    <div className={`${theme.adminThemeRoot} ${theme.adminPageShell}`}>
       <Sidebar
         role="admin"
         userName="Super Admin"
@@ -109,7 +109,7 @@ export default function AdminContractEditorPage() {
         onOpenMobile={() => setMobileMenuOpen(true)}
       />
 
-      <main className={`officer-main-content ${theme.mainContent}`} style={{ flex: 1, padding: '24px 32px', overflowY: 'auto', paddingBottom: '90px' }}>
+      <main className={`officer-main-content ${theme.adminMainContent}`} style={{ flex: 1, padding: '24px 32px', overflowY: 'auto', paddingBottom: '90px' }}>
         <AppHeader
           panelType="admin"
           userName="Dennis Yuan"
@@ -123,8 +123,8 @@ export default function AdminContractEditorPage() {
                 type="button"
                 onClick={handleSave}
                 style={{
-                  backgroundColor: '#16a34a',
-                  color: '#ffffff',
+                  backgroundColor: '#B91C1C',
+                  color: '#FFFFFF',
                   border: 'none',
                   padding: '9px 18px',
                   borderRadius: '8px',
@@ -134,7 +134,7 @@ export default function AdminContractEditorPage() {
                   alignItems: 'center',
                   gap: '6px',
                   cursor: 'pointer',
-                  boxShadow: '0 2px 6px rgba(22, 163, 74, 0.3)'
+                  boxShadow: '0 2px 6px rgba(185, 28, 28, 0.25)'
                 }}
               >
                 <Save size={16} /> Publish New Version
@@ -372,7 +372,7 @@ export default function AdminContractEditorPage() {
                   onClick={handleSave}
                   style={{
                     width: '100%',
-                    backgroundColor: '#16a34a',
+                    backgroundColor: '#B91C1C',
                     color: '#ffffff',
                     border: 'none',
                     padding: '11px',
@@ -383,7 +383,8 @@ export default function AdminContractEditorPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    gap: '6px'
+                    gap: '6px',
+                    boxShadow: '0 2px 8px rgba(185, 28, 28, 0.25)'
                   }}
                 >
                   <Save size={16} /> Publish Changes
@@ -393,12 +394,12 @@ export default function AdminContractEditorPage() {
               {/* Dynamic Interpolation Placeholders Guide */}
               <div className={styles.dynamicTagsBox}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '10px' }}>
-                  <Code2 size={16} color="#15803d" />
-                  <h4 style={{ fontSize: '12px', fontWeight: '800', color: '#15803d', margin: 0, textTransform: 'uppercase' }}>
+                  <Code2 size={16} color="#B91C1C" />
+                  <h4 style={{ fontSize: '12px', fontWeight: '800', color: '#B91C1C', margin: 0, textTransform: 'uppercase' }}>
                     Dynamic Tags Available
                   </h4>
                 </div>
-                <p style={{ fontSize: '11px', color: '#166534', margin: '0 0 10px 0' }}>
+                <p style={{ fontSize: '11px', color: '#64748B', margin: '0 0 10px 0' }}>
                   You can embed these dynamic placeholders in your HTML text. They are automatically filled with the borrower&apos;s actual numbers:
                 </p>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '11px', fontFamily: 'monospace' }}>

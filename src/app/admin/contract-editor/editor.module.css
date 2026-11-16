@@ -1,4 +1,5 @@
-/* Contract Editor CSS Module - Tribute Credit Admin Panel */
+/* Admin Contract Editor CSS Module - Light Theme with Red Executive Accents */
+
 .editorLayout {
   display: grid;
   grid-template-columns: 2.5fr 1fr;
@@ -14,9 +15,10 @@
 
 /* Master Status Banner */
 .statusBanner {
-  background-color: #14532d;
-  color: #ffffff;
+  background: linear-gradient(135deg, #7F1D1D 0%, #991B1B 50%, #B91C1C 100%);
+  color: #FFFFFF;
   border-radius: 14px;
+  border: 1px solid #FECACA;
   padding: 18px 24px;
   margin-bottom: 24px;
   display: flex;
@@ -24,7 +26,7 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 16px;
-  box-shadow: 0 4px 14px rgba(20, 83, 45, 0.15);
+  box-shadow: 0 4px 14px rgba(185, 28, 28, 0.2);
 }
 
 .statusBannerTitle {
@@ -33,19 +35,20 @@
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #ffffff;
+  color: #FFFFFF;
 }
 
 .statusBannerSubtitle {
   font-size: 12px;
-  color: #bbf7d0;
+  color: #FEF2F2;
   margin: 4px 0 0 0;
 }
 
 .statusBannerPill {
   font-size: 11px;
-  color: #dcfce7;
-  background-color: rgba(255, 255, 255, 0.15);
+  color: #B91C1C;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
   padding: 5px 12px;
   border-radius: 6px;
   font-weight: 700;
@@ -55,7 +58,7 @@
 .tabsBar {
   display: flex;
   gap: 10px;
-  border-bottom: 2px solid #dcece0;
+  border-bottom: 2px solid #E5E7EB;
   margin-bottom: 24px;
   overflow-x: auto;
 }
@@ -65,7 +68,7 @@
   border: none;
   background: none;
   border-bottom: 3px solid transparent;
-  color: #64748b;
+  color: #64748B;
   font-weight: 800;
   font-size: 13.5px;
   cursor: pointer;
@@ -76,16 +79,20 @@
   transition: all 0.15s ease;
 }
 
+.tabBtn:hover {
+  color: #B91C1C;
+}
+
 .tabBtnActive {
-  border-bottom: 3px solid #16a34a;
-  color: #15803d;
+  border-bottom: 3px solid #B91C1C;
+  color: #B91C1C;
 }
 
 /* Cards & Section Boxes */
 .cardBox {
-  background-color: #ffffff;
+  background-color: #FFFFFF;
   border-radius: 12px;
-  border: 1px solid #dcece0;
+  border: 1px solid #E5E7EB;
   padding: 20px;
 }
 
@@ -100,14 +107,14 @@
 .cardTitle {
   font-size: 13.5px;
   font-weight: 800;
-  color: #0f172a;
+  color: #111827;
   margin: 0;
   text-transform: uppercase;
 }
 
 .subLabel {
   font-size: 11px;
-  color: #15803d;
+  color: #B91C1C;
   font-weight: 700;
 }
 
@@ -123,25 +130,28 @@
   width: 100%;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid #dcece0;
+  border: 1px solid #D1D5DB;
+  background-color: #FFFFFF;
   font-size: 13px;
   font-weight: 700;
-  color: #0f172a;
+  color: #111827;
   box-sizing: border-box;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .textInput:focus {
-  border-color: #16a34a;
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+  border-color: #B91C1C;
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.12);
 }
 
 .sectionTitleInput {
   width: 100%;
   padding: 8px 12px;
   border-radius: 6px;
-  border: 1px solid #dcece0;
+  border: 1px solid #D1D5DB;
+  background-color: #FFFFFF;
+  color: #111827;
   font-size: 12px;
   font-weight: 700;
   margin-bottom: 12px;
@@ -150,21 +160,22 @@
 }
 
 .sectionTitleInput:focus {
-  border-color: #16a34a;
+  border-color: #B91C1C;
 }
 
 /* Side Rail Release Version Box */
 .versionReleaseBox {
-  background-color: #ffffff;
+  background-color: #FFFFFF;
   border-radius: 12px;
-  border: 1.5px solid #16a34a;
+  border: 1.5px solid #B91C1C;
   padding: 20px;
+  box-shadow: 0 2px 10px rgba(185, 28, 28, 0.08);
 }
 
 .versionTagLabel {
   font-size: 11px;
   font-weight: 800;
-  color: #15803d;
+  color: #B91C1C;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
@@ -173,45 +184,48 @@
   width: 100%;
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1.5px solid #16a34a;
+  border: 1.5px solid #FECACA;
+  background-color: #FEF2F2;
   font-size: 15px;
   font-weight: 800;
-  color: #0f172a;
+  color: #111827;
   margin: 8px 0 12px 0;
   box-sizing: border-box;
   outline: none;
 }
 
 .versionInput:focus {
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+  border-color: #B91C1C;
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.15);
 }
 
 /* Dynamic Tags Guide Box */
 .dynamicTagsBox {
-  background-color: #f6fbf7;
+  background-color: #FEF2F2;
   border-radius: 12px;
-  border: 1px solid #dcece0;
+  border: 1px solid #FECACA;
   padding: 18px;
 }
 
 .dynamicTagPill {
-  background-color: #ffffff;
+  background-color: #FFFFFF;
   padding: 5px 8px;
   border-radius: 4px;
-  border: 1px solid #dcece0;
-  color: #15803d;
+  border: 1px solid #FECACA;
+  color: #B91C1C;
   font-weight: 700;
 }
 
-/* Live Formal Contract Canvas */
+/* Live Formal Contract Canvas - IMPORTANT: PRESERVE LIGHT CANVAS FOR ACCURATE PRINT OUTPUT */
 .previewCanvas {
-  background-color: #ffffff;
+  background-color: #FFFFFF;
   border-radius: 16px;
-  border: 1.5px solid #14532d;
+  border: 1.5px solid #CBD5E1;
   padding: 32px;
   max-width: 880px;
   margin: 0 auto;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+  color: #0F172A;
 }
 
 @media (max-width: 640px) {
@@ -223,7 +237,7 @@
 .previewTopBar {
   display: flex;
   justify-content: space-between;
-  border-bottom: 2.5px solid #14532d;
+  border-bottom: 2.5px solid #0F172A;
   padding-bottom: 14px;
   margin-bottom: 20px;
   flex-wrap: wrap;
@@ -235,21 +249,21 @@
   font-weight: 900;
   margin: 0;
   text-transform: uppercase;
-  color: #0f172a;
+  color: #0F172A;
 }
 
 .previewVersionBadge {
   font-size: 7pt;
   font-weight: 800;
-  background-color: #14532d;
-  color: #ffffff;
+  background-color: #0F172A;
+  color: #FFFFFF;
   padding: 3px 8px;
   border-radius: 3px;
 }
 
 .previewBannerBox {
-  background-color: #14532d;
-  color: #ffffff;
+  background-color: #0F172A;
+  color: #FFFFFF;
   text-align: center;
   padding: 10px 14px;
   border-radius: 6px;
@@ -257,10 +271,10 @@
 }
 
 .previewBodyCard {
-  border: 1px solid #dcece0;
+  border: 1px solid #E2E8F0;
   border-radius: 8px;
   padding: 18px;
-  background-color: #f6fbf7;
+  background-color: #FAFAFA;
   font-size: 8.5pt;
   line-height: 1.55;
   color: #334155;
@@ -273,8 +287,8 @@
   align-items: center;
   padding: 14px 18px;
   border-radius: 10px;
-  border: 1px solid #dcece0;
-  background-color: #f6fbf7;
+  border: 1px solid #E5E7EB;
+  background-color: #F8FAFC;
   flex-wrap: wrap;
   gap: 12px;
 }
@@ -282,16 +296,17 @@
 .historyVersionPill {
   font-size: 12px;
   font-weight: 900;
-  color: #15803d;
-  background-color: #dcfce7;
+  color: #B91C1C;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
   padding: 2px 8px;
   border-radius: 4px;
 }
 
 .historyRollbackBtn {
-  background-color: #ffffff;
-  border: 1px solid #86efac;
-  color: #15803d;
+  background-color: #FFFFFF;
+  border: 1px solid #FECACA;
+  color: #B91C1C;
   padding: 7px 14px;
   border-radius: 6px;
   font-size: 12px;
@@ -301,6 +316,6 @@
 }
 
 .historyRollbackBtn:hover {
-  background-color: #f0fdf4;
-  border-color: #16a34a;
+  background-color: #FEF2F2;
+  border-color: #B91C1C;
 }

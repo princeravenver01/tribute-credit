@@ -1,7 +1,9 @@
+/* Admin Dashboard CSS Module - Light Theme with Red Executive Accents */
+
 .auditBtn {
-  background-color: #15803d;
-  color: #ffffff;
-  border: 1px solid #15803d;
+  background-color: #B91C1C;
+  color: #FFFFFF;
+  border: 1px solid #991B1B;
   padding: 9px 16px;
   border-radius: 10px;
   font-weight: 800;
@@ -11,12 +13,12 @@
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgba(21, 128, 61, 0.22);
-  transition: background-color 0.15s ease;
+  box-shadow: 0 2px 6px rgba(185, 28, 28, 0.22);
+  transition: all 0.15s ease;
 }
 
 .auditBtn:hover {
-  background-color: #166534;
+  background-color: #991B1B;
 }
 
 .statsGrid {
@@ -27,12 +29,18 @@
 }
 
 .statCard {
-  background-color: #ffffff;
+  background-color: #FFFFFF;
   padding: 20px 22px;
   border-radius: 14px;
-  border: 1px solid #dcece0;
-  border-top: 3px solid #16a34a;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(21, 128, 61, 0.04);
+  border: 1px solid #E5E7EB;
+  border-top: 3px solid #B91C1C;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(185, 28, 28, 0.04);
+  transition: transform 0.18s ease, border-color 0.18s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  border-color: #FECACA;
 }
 
 .statCardTop {
@@ -44,253 +52,325 @@
 
 .statTitle {
   font-size: 12px;
-  color: #475569;
+  color: #64748B;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
 
 .statIconWrap {
-  background-color: #f0fdf4;
-  border: 1px solid #bbf7d0;
-  padding: 8px;
+  width: 38px;
+  height: 38px;
   border-radius: 10px;
-  display: inline-flex;
+  display: flex;
   align-items: center;
   justify-content: center;
+  background-color: #FEF2F2;
+  border: 1px solid #FECACA;
 }
 
 .statValue {
-  font-size: 26px;
-  font-weight: 800;
-  color: #0f291a;
-  margin-bottom: 6px;
-  font-variant-numeric: tabular-nums;
+  font-size: 25px;
+  font-weight: 900;
+  color: #111827;
+  margin: 0;
   letter-spacing: -0.02em;
 }
 
-.statChangeUp {
+.statMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-size: 12px;
-  color: #15803d;
+  color: #64748B;
+  margin-top: 8px;
+}
+
+.statMetaTrend {
   font-weight: 700;
+  color: #B91C1C;
+  display: inline-flex;
+  align-items: center;
 }
 
-.statChangeWarn {
-  font-size: 12px;
-  color: #d97706;
-  font-weight: 700;
-}
-
-/* Recent Applications Board Card */
-.boardCard {
-  background-color: #ffffff;
-  border-radius: 14px;
-  border: 1px solid #dcece0;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(21, 128, 61, 0.04);
-  overflow: hidden;
-}
-
-.boardHeader {
-  padding: 18px 22px;
-  border-bottom: 1px solid #dcece0;
-  background-color: #ffffff;
+/* Quick Action Banner */
+.actionBanner {
+  background: linear-gradient(135deg, #FEF2F2 0%, #FFFFFF 100%);
+  border: 1.5px solid #FECACA;
+  border-radius: 16px;
+  padding: 22px 26px;
+  margin-bottom: 28px;
   display: flex;
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 16px;
+  box-shadow: 0 2px 12px rgba(185, 28, 28, 0.05);
 }
 
-.boardTitle {
+.actionBannerLeft {
+  max-width: 600px;
+}
+
+.actionBannerTitle {
   font-size: 17px;
   font-weight: 800;
-  color: #0f291a;
+  color: #111827;
+  margin: 0 0 6px 0;
+}
+
+.actionBannerDesc {
+  font-size: 13px;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.actionBannerBtn {
+  background: linear-gradient(135deg, #991B1B 0%, #B91C1C 60%, #DC2626 100%);
+  color: #ffffff;
+  text-decoration: none;
+  padding: 11px 20px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 14px rgba(185, 28, 28, 0.28);
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.actionBannerBtn:hover {
+  background: linear-gradient(135deg, #7F1D1D 0%, #991B1B 100%);
+  transform: translateY(-1px);
+}
+
+/* Table Card Container */
+.tableCard {
+  background-color: #FFFFFF;
+  border-radius: 16px;
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.tableHeaderRow {
+  padding: 18px 22px;
+  border-bottom: 1px solid #E5E7EB;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  background-color: #F8FAFC;
+}
+
+.tableTitle {
+  font-size: 15px;
+  font-weight: 800;
+  color: #111827;
   margin: 0;
 }
 
-.boardSubtitle {
+.tableSub {
   font-size: 12px;
-  color: #526b5c;
-  font-weight: 600;
+  color: #64748B;
+  margin: 2px 0 0 0;
 }
 
-.tableWrap {
+.viewAllLink {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #B91C1C;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.viewAllLink:hover {
+  text-decoration: underline;
+}
+
+/* Desktop Data Table */
+.desktopTableWrap {
+  display: block;
   overflow-x: auto;
 }
 
-.table {
+.dataTable {
   width: 100%;
   border-collapse: collapse;
   text-align: left;
-  font-size: 13.5px;
 }
 
-.theadRow {
-  background-color: #f2f8f4;
-  border-bottom: 1px solid #dcece0;
-  color: #475569;
+.dataTable th {
+  padding: 13px 20px;
   font-size: 11px;
+  font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  color: #64748B;
+  background-color: #F8FAFC;
+  border-bottom: 1px solid #E5E7EB;
 }
 
-.th {
-  padding: 12px 18px;
-  font-weight: 700;
-}
-
-.tr {
-  border-bottom: 1px solid #edf6ef;
-  transition: background-color 0.12s ease;
-}
-
-.tr:hover {
-  background-color: #f6fbf7;
-}
-
-.td {
-  padding: 14px 18px;
+.dataTable td {
+  padding: 16px 20px;
+  font-size: 13px;
+  color: #111827;
+  border-bottom: 1px solid #F1F5F9;
   vertical-align: middle;
 }
 
-.loanId {
-  font-family: var(--font-geist-mono), monospace;
-  font-weight: 700;
-  color: #15803d;
-  font-size: 13px;
+.dataTable tbody tr {
+  transition: background-color 0.12s ease;
 }
 
-.borrowerName {
-  font-weight: 700;
-  color: #0f291a;
+.dataTable tbody tr:hover {
+  background-color: #FEF2F2;
 }
 
-.productCell {
-  color: #526b5c;
-  font-weight: 500;
+.appIdCell {
+  font-family: 'SFMono-Regular', Consolas, monospace;
+  font-weight: 700;
+  color: #B91C1C;
+  font-size: 12px;
+}
+
+.borrowerCell {
+  font-weight: 700;
+  color: #111827;
 }
 
 .amountCell {
   font-weight: 800;
-  color: #0f291a;
-  font-variant-numeric: tabular-nums;
+  color: #111827;
+}
+
+/* Badges (Semantic: Approved is green, Pending is amber, Declined is red, Disbursed is sky) */
+.badgePending {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 800;
+  background-color: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
 }
 
 .badgeApproved {
-  padding: 4px 10px;
-  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 9999px;
   font-size: 11px;
   font-weight: 800;
-  background-color: #dcfce7;
-  color: #15803d;
-  border: 1px solid #86efac;
-  display: inline-block;
+  background-color: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #86EFAC;
 }
 
 .badgeDisbursed {
-  padding: 4px 10px;
-  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 9999px;
   font-size: 11px;
   font-weight: 800;
-  background-color: #ecfdf5;
-  color: #047857;
-  border: 1px solid #6ee7b7;
-  display: inline-block;
+  background-color: #E0F2FE;
+  color: #0369A1;
+  border: 1px solid #7DD3FC;
 }
 
 .badgeDeclined {
-  padding: 4px 10px;
-  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 9999px;
   font-size: 11px;
   font-weight: 800;
-  background-color: #fee2e2;
-  color: #dc2626;
-  border: 1px solid #fca5a5;
-  display: inline-block;
+  background-color: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FCA5A5;
 }
 
-.badgePending {
-  padding: 4px 10px;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 800;
-  background-color: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fde68a;
-  display: inline-block;
-}
-
-.reviewLink {
-  background-color: #f0fdf4;
-  border: 1px solid #86efac;
-  padding: 6px 14px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 800;
-  color: #15803d;
+.actionLink {
+  color: #B91C1C;
+  font-weight: 700;
+  font-size: 12.5px;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  transition: background-color 0.15s ease;
+  gap: 4px;
 }
 
-.reviewLink:hover {
-  background-color: #dcfce7;
+.actionLink:hover {
+  text-decoration: underline;
 }
 
-.emptyState {
-  padding: 36px 20px;
-  text-align: center;
-  color: #64748b;
-  font-size: 13.5px;
-}
-
-/* Mobile Card List (< 768px) */
-.mobileList {
+/* Mobile Responsive Cards */
+.mobileCardsWrap {
   display: none;
   flex-direction: column;
   gap: 12px;
   padding: 16px;
 }
 
-.mobileItem {
-  background-color: #f8fbf9;
-  border: 1px solid #dcece0;
+.mobileAppCard {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
   border-radius: 12px;
-  padding: 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+  padding: 14px 16px;
 }
 
-.mobileItemHeader {
+.mobileAppHeader {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px;
+  margin-bottom: 8px;
 }
 
-.mobileItemMeta {
+.mobileAppBorrower {
+  font-size: 14px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+}
+
+.mobileAppId {
+  font-family: monospace;
+  font-size: 11px;
+  color: #64748B;
+}
+
+.mobileAppDetails {
   display: flex;
   justify-content: space-between;
   align-items: center;
   font-size: 12.5px;
-  color: #475569;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #F1F5F9;
 }
 
-.mobileReviewBtn {
-  width: 100%;
-  justify-content: center;
-  min-height: 40px;
+.emptyState {
+  padding: 36px 20px;
+  text-align: center;
+  color: #64748B;
+  font-size: 13px;
 }
 
-@media (max-width: 767px) {
-  .tableWrap {
+@media (max-width: 768px) {
+  .desktopTableWrap {
     display: none;
   }
 
-  .mobileList {
+  .mobileCardsWrap {
     display: flex;
   }
 }

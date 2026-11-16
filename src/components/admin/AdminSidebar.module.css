@@ -1,0 +1,315 @@
+/* Admin Sidebar and Mobile Navigation - Light White/Red System */
+
+.adminBackdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(17, 24, 39, 0.4);
+  backdrop-filter: blur(3px);
+  z-index: 9998;
+  transition: opacity 0.2s ease;
+}
+
+.adminSidebar {
+  width: 280px;
+  background-color: #FFFFFF !important;
+  color: #111827 !important;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  box-shadow: 2px 0 16px rgba(185, 28, 28, 0.05) !important;
+  border-right: 1px solid #E5E7EB !important;
+  user-select: none;
+  flex-shrink: 0;
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.adminSidebarBrandHeader {
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.16);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: linear-gradient(135deg, #991B1B 0%, #B91C1C 60%, #DC2626 100%);
+  color: #FFFFFF;
+}
+
+.adminSidebarBrandLink {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: #FFFFFF;
+}
+
+.adminSidebarBrandTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.adminSidebarBrandDot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #FECACA;
+  box-shadow: 0 0 8px rgba(254, 202, 202, 0.8);
+}
+
+.adminSidebarBrandTitle {
+  font-size: 13px;
+  color: #FFFFFF;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.adminSidebarBrandSubtitle {
+  font-size: 11.5px;
+  color: #FEF2F2;
+  margin: 2px 0 0 0;
+  font-weight: 500;
+}
+
+.adminSidebarCloseBtn {
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  color: #FFFFFF;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 6px;
+  cursor: pointer;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.adminSidebarCloseBtn:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.adminSidebarProfileSection {
+  padding: 14px 16px;
+  border-bottom: 1px solid #E5E7EB;
+  background-color: #FFFFFF;
+}
+
+.adminSidebarProfileCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background-color: #FEF2F2;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #FECACA;
+}
+
+.adminSidebarAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #B91C1C 0%, #DC2626 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 15px;
+}
+
+.adminSidebarProfileMeta {
+  min-width: 0;
+}
+
+.adminSidebarProfileName {
+  font-size: 13px;
+  font-weight: 800;
+  color: #111827;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.adminSidebarProfileRoleRow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 3px;
+}
+
+.adminSidebarProfileRoleText {
+  font-size: 11px;
+  color: #B91C1C;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.adminSidebarNav {
+  flex: 1;
+  padding: 16px 12px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.adminSidebarNavSectionLabel {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94A3B8;
+  padding: 6px 12px 8px 12px;
+}
+
+.adminSidebarNavLink {
+  display: flex;
+  align-items: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  color: #475569;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 13px;
+  transition: all 0.15s ease;
+  border: 1px solid transparent;
+}
+
+.adminSidebarNavLink:hover {
+  background-color: #FEF2F2;
+  color: #B91C1C;
+  border-color: #FECACA;
+}
+
+.adminSidebarNavLinkActive {
+  background-color: #FEF2F2 !important;
+  color: #B91C1C !important;
+  border: 1px solid #FECACA !important;
+  box-shadow: 0 1px 3px rgba(185, 28, 28, 0.08);
+}
+
+.adminSidebarNavLinkInner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.adminSidebarFooter {
+  padding: 16px;
+  border-top: 1px solid #E5E7EB;
+  background-color: #F8FAFC;
+}
+
+.adminSidebarLogoutBtn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 10px;
+  background-color: #FFFFFF;
+  border: 1px solid #FECACA;
+  color: #DC2626;
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.adminSidebarLogoutBtn:hover {
+  background-color: #FEF2F2;
+  border-color: #DC2626;
+}
+
+/* Mobile Bottom Navigation Dock for Admin */
+.adminBottomNav {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background-color: #FFFFFF;
+  border-top: 1px solid #E5E7EB;
+  padding: 6px 8px calc(env(safe-area-inset-bottom, 0px) + 6px) 8px;
+  z-index: 999;
+  justify-content: space-around;
+  align-items: center;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.adminMobileNavItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 4px;
+  color: #64748B;
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 8px;
+  min-height: 48px;
+  transition: all 0.15s ease;
+}
+
+.adminMobileNavItem:hover {
+  color: #B91C1C;
+}
+
+.adminMobileNavItemActive {
+  color: #B91C1C !important;
+}
+
+.adminMobileNavItemPrimary {
+  color: #DC2626;
+}
+
+.adminMobileMenuBtn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 6px 4px;
+  background: none;
+  border: none;
+  color: #64748B;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 48px;
+}
+
+.adminMobileMenuBtn:hover {
+  color: #B91C1C;
+}
+
+/* Drawer open state on small screens */
+@media (max-width: 1024px) {
+  .adminSidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    transform: translateX(-100%);
+    z-index: 9999;
+  }
+
+  :global(.drawer-open).adminSidebar {
+    transform: translateX(0);
+  }
+
+  .adminBottomNav {
+    display: flex;
+  }
+}

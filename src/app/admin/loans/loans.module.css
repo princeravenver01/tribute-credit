@@ -1,4 +1,5 @@
-/* Loans Page CSS Module - Tribute Credit Admin Panel */
+/* Admin Loans Page CSS Module - Light Theme with Red Executive Accents */
+
 .loansLayout {
   display: grid;
   grid-template-columns: 380px 1fr;
@@ -15,9 +16,9 @@
 
 /* Action Banner */
 .actionSuccessBanner {
-  background-color: #f0fdf4;
-  border: 1px solid #86efac;
-  color: #15803d;
+  background-color: #F0FDF4;
+  border: 1px solid #86EFAC;
+  color: #15803D;
   padding: 14px 18px;
   border-radius: 12px;
   font-size: 13.5px;
@@ -36,10 +37,10 @@
 }
 
 .filterTabs {
-  background-color: #ffffff;
+  background-color: #FFFFFF;
   border-radius: 12px;
   padding: 6px;
-  border: 1px solid #dcece0;
+  border: 1px solid #E5E7EB;
   display: flex;
   gap: 4px;
 }
@@ -53,7 +54,7 @@
   font-weight: 700;
   cursor: pointer;
   background-color: transparent;
-  color: #64748b;
+  color: #64748B;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -62,8 +63,8 @@
 }
 
 .filterTabBtnActive {
-  background-color: #15803d;
-  color: #ffffff;
+  background-color: #B91C1C;
+  color: #FFFFFF;
 }
 
 .tabBadge {
@@ -71,13 +72,13 @@
   padding: 1px 7px;
   border-radius: 10px;
   font-weight: 800;
-  background-color: #f1f5f9;
-  color: #64748b;
+  background-color: #F1F5F9;
+  color: #64748B;
 }
 
 .tabBadgeActive {
   background-color: rgba(255, 255, 255, 0.25);
-  color: #ffffff;
+  color: #FFFFFF;
 }
 
 /* Search Box */
@@ -90,7 +91,7 @@
   left: 14px;
   top: 50%;
   transform: translateY(-50%);
-  color: #94a3b8;
+  color: #94A3B8;
   pointer-events: none;
 }
 
@@ -98,17 +99,18 @@
   width: 100%;
   padding: 10px 14px 10px 40px;
   border-radius: 10px;
-  border: 1.5px solid #dcece0;
+  border: 1.5px solid #E5E7EB;
   font-size: 13px;
-  background-color: #ffffff;
+  background-color: #FFFFFF;
+  color: #111827;
   outline: none;
   box-sizing: border-box;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .searchInput:focus {
-  border-color: #16a34a;
-  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+  border-color: #B91C1C;
+  box-shadow: 0 0 0 3px rgba(185, 28, 28, 0.12);
 }
 
 /* Application Cards List */
@@ -119,24 +121,24 @@
 }
 
 .appCard {
-  background-color: #ffffff;
+  background-color: #FFFFFF;
   border-radius: 12px;
   padding: 16px;
   cursor: pointer;
-  border: 1px solid #dcece0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  border: 1px solid #E5E7EB;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   transition: all 0.18s ease;
 }
 
 .appCard:hover {
-  border-color: #86efac;
+  border-color: #FECACA;
   transform: translateY(-1px);
 }
 
 .appCardSelected {
-  border: 2px solid #16a34a;
-  background-color: #f6fbf7;
-  box-shadow: 0 4px 16px rgba(22, 163, 74, 0.12);
+  border: 2px solid #B91C1C;
+  background-color: #FEF2F2;
+  box-shadow: 0 4px 16px rgba(185, 28, 28, 0.08);
 }
 
 .appCardHeader {
@@ -150,13 +152,13 @@
 .borrowerName {
   font-size: 14.5px;
   font-weight: 800;
-  color: #0f172a;
+  color: #111827;
   margin: 0;
 }
 
 .policyBadge {
   font-size: 11px;
-  color: #64748b;
+  color: #64748B;
   font-family: monospace;
 }
 
@@ -165,17 +167,17 @@
   font-weight: 800;
   padding: 2px 7px;
   border-radius: 6px;
-  background-color: #fef3c7;
-  color: #b45309;
-  border: 1px solid #fde68a;
+  background-color: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
   display: inline-flex;
   align-items: center;
 }
 
 .reconsiderationBadgeFinal {
-  background-color: #fee2e2;
-  color: #b91c1c;
-  border-color: #fca5a5;
+  background-color: #FEE2E2;
+  color: #DC2626;
+  border-color: #FCA5A5;
 }
 
 .statusPill {
@@ -188,18 +190,21 @@
 }
 
 .statusPillApproved {
-  background-color: #dcfce7;
-  color: #15803d;
+  background-color: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #86EFAC;
 }
 
 .statusPillRejected {
-  background-color: #fee2e2;
-  color: #dc2626;
+  background-color: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FCA5A5;
 }
 
 .statusPillPending {
-  background-color: #fef3c7;
-  color: #b45309;
+  background-color: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FDE68A;
 }
 
 .appCardFooter {
@@ -209,26 +214,26 @@
   font-size: 12.5px;
   margin-top: 10px;
   padding-top: 8px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid #F1F5F9;
 }
 
 .emptyState {
   padding: 32px 20px;
   text-align: center;
-  background-color: #ffffff;
+  background-color: #FFFFFF;
   border-radius: 12px;
-  border: 1px dashed #cbd5e1;
-  color: #64748b;
+  border: 1px dashed #CBD5E1;
+  color: #64748B;
   font-size: 13px;
 }
 
 /* Right Column: Review Workspace */
 .detailCard {
-  background-color: #ffffff;
+  background-color: #FFFFFF;
   border-radius: 16px;
-  border: 1px solid #dcece0;
+  border: 1px solid #E5E7EB;
   padding: 28px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
 }
 
 @media (max-width: 640px) {
@@ -241,7 +246,7 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  border-bottom: 1px solid #f1f5f9;
+  border-bottom: 1px solid #F1F5F9;
   padding-bottom: 20px;
   margin-bottom: 24px;
   flex-wrap: wrap;
@@ -258,26 +263,27 @@
 .applicantTitle {
   font-size: 20px;
   font-weight: 800;
-  color: #0f172a;
+  color: #111827;
   margin: 0;
 }
 
 .subDetailText {
   font-size: 13px;
-  color: #64748b;
+  color: #64748B;
   margin-top: 4px;
 }
 
-/* Financial Highlights / 5 Cs Banner */
+/* Financial Highlights / 5 Cs Banner - Modern Red Executive Banner */
 .metricsGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 14px;
-  background-color: #14532d;
-  color: #ffffff;
+  background: linear-gradient(135deg, #7F1D1D 0%, #991B1B 50%, #B91C1C 100%);
+  color: #FFFFFF;
   border-radius: 14px;
   padding: 20px;
   margin-bottom: 24px;
+  box-shadow: 0 4px 14px rgba(185, 28, 28, 0.2);
 }
 
 .metricItem {
@@ -287,7 +293,7 @@
 
 .metricLabel {
   font-size: 11px;
-  color: #bbf7d0;
+  color: #FECACA;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   font-weight: 600;
@@ -296,24 +302,24 @@
 .metricValue {
   font-size: 18px;
   font-weight: 800;
-  color: #ffffff;
+  color: #FFFFFF;
   margin-top: 2px;
 }
 
 .metricValueAccent {
-  color: #86efac;
+  color: #FEF2F2;
 }
 
 .metricValueGold {
-  color: #fde047;
+  color: #FDE047;
 }
 
 /* Officer Justification Card */
 .officerNotesBox {
-  background-color: #f6fbf7;
+  background-color: #F8FAFC;
   padding: 18px;
   border-radius: 12px;
-  border: 1px solid #dcece0;
+  border: 1px solid #E2E8F0;
   margin-bottom: 24px;
 }
 
@@ -321,7 +327,7 @@
   font-size: 11px;
   font-weight: 800;
   text-transform: uppercase;
-  color: #15803d;
+  color: #B91C1C;
   display: block;
   margin-bottom: 4px;
 }
@@ -344,10 +350,10 @@
 
 /* Official Action Box */
 .decisionBox {
-  background-color: #ffffff;
+  background-color: #FFFFFF;
   border-radius: 14px;
   padding: 24px;
-  border: 2px solid #15803d;
+  border: 2px solid #B91C1C;
   margin-bottom: 24px;
 }
 
@@ -360,7 +366,7 @@
 .decisionBoxTitle {
   font-size: 16px;
   font-weight: 800;
-  color: #0f172a;
+  color: #111827;
   margin-bottom: 16px;
   display: flex;
   align-items: center;
@@ -369,8 +375,8 @@
 
 /* Locked Approval Banner */
 .lockedBanner {
-  background-color: #f0fdf4;
-  border: 1.5px solid #86efac;
+  background-color: #F0FDF4;
+  border: 1.5px solid #86EFAC;
   border-radius: 10px;
   padding: 16px;
   margin-bottom: 16px;
@@ -380,8 +386,8 @@
 }
 
 .signaturesContainer {
-  background-color: #f6fbf7;
-  border: 1px solid #dcece0;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
   border-radius: 10px;
   padding: 16px;
   margin-top: 12px;
@@ -400,8 +406,8 @@
 }
 
 .sigSpecimenSlot {
-  background-color: #ffffff;
-  border: 1px solid #bbf7d0;
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
   border-radius: 8px;
   padding: 8px;
   text-align: center;
@@ -426,8 +432,8 @@
 }
 
 .sigSlotSelectCard {
-  border: 1px dashed #cbd5e1;
-  background-color: #fafafa;
+  border: 1px dashed #CBD5E1;
+  background-color: #F8FAFC;
   border-radius: 10px;
   padding: 10px;
   cursor: pointer;
@@ -439,18 +445,18 @@
 }
 
 .sigSlotSelectCardActive {
-  border: 2px solid #16a34a;
-  background-color: #f0fdf4;
+  border: 2px solid #B91C1C;
+  background-color: #FEF2F2;
 }
 
 .sigSlotSelectCardDone {
-  border: 1.5px solid #86efac;
-  background-color: #ffffff;
+  border: 1.5px solid #86EFAC;
+  background-color: #FFFFFF;
 }
 
 .sigPadWrapper {
-  background-color: #ffffff;
-  border: 1px solid #dcece0;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
   border-radius: 10px;
   padding: 14px;
 }
@@ -458,8 +464,8 @@
 /* Action Buttons */
 .approveBtn {
   flex: 1;
-  background-color: #16a34a;
-  color: #ffffff;
+  background: linear-gradient(135deg, #15803D 0%, #16A34A 100%);
+  color: #FFFFFF;
   border: none;
   padding: 11px 16px;
   border-radius: 10px;
@@ -475,21 +481,21 @@
 }
 
 .approveBtn:hover:not(:disabled) {
-  background-color: #15803d;
+  background: linear-gradient(135deg, #166534 0%, #15803D 100%);
 }
 
 .approveBtn:disabled {
-  background-color: #cbd5e1;
-  color: #64748b;
+  background: #E2E8F0;
+  color: #94A3B8;
   cursor: not-allowed;
   box-shadow: none;
   opacity: 0.7;
 }
 
 .rejectBtn {
-  background-color: #fee2e2;
-  color: #dc2626;
-  border: 1px solid #fca5a5;
+  background-color: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FCA5A5;
   padding: 11px 16px;
   border-radius: 10px;
   font-weight: 700;
@@ -502,5 +508,5 @@
 }
 
 .rejectBtn:hover {
-  background-color: #fecaca;
+  background-color: #FECACA;
 }

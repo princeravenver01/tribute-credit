@@ -2,21 +2,9 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { 
-  Building2, 
-  ShieldCheck, 
-  Bell, 
-  User, 
-  LogOut, 
-  Menu,
-  ChevronRight,
-  Sparkles,
-  Lock,
-  Layers,
-  Activity
-} from 'lucide-react';
+import { ShieldCheck, Menu } from 'lucide-react';
 import { SyncStatusBar } from './SyncStatusBar';
-import styles from '@/components/officer/OfficerChrome.module.css';
+import styles from './AppHeader.module.css';
 
 interface AppHeaderProps {
   panelType: 'admin' | 'officer';
@@ -40,28 +28,19 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
   const isSuperAdmin = panelType === 'admin';
 
   return (
-    <header className={`no-print ${styles.officerHeader}`}>
-      {/* Decorative top accent gradient line */}
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: '3px',
-          background: 'linear-gradient(90deg, #14532d 0%, #15803d 55%, #16a34a 100%)'
-        }}
-      />
+    <header className={`no-print ${styles.headerBase} ${isSuperAdmin ? styles.headerAdmin : styles.headerAO}`}>
+      {/* Decorative top accent line */}
+      <div className={isSuperAdmin ? styles.topAccentAdmin : styles.topAccentAO} />
 
       {/* Main Top Navigation Row */}
-      <div className={styles.officerHeaderTopRow}>
-        {/* Left: Brand Identity & Verified Cooperative Status */}
-        <div className={styles.officerBrandGroup}>
+      <div className={isSuperAdmin ? styles.topRowAdmin : styles.topRowAO}>
+        {/* Left: Brand Identity & Portal Context */}
+        <div className={styles.brandGroup}>
           {onOpenMobileSidebar && (
             <button
               type="button"
               onClick={onOpenMobileSidebar}
-              className={`officer-menu-toggle-btn ${styles.officerMenuToggleBtn}`}
+              className={`officer-menu-toggle-btn ${isSuperAdmin ? styles.menuToggleBtnAdmin : styles.menuToggleBtnAO}`}
               aria-label="Open navigation menu"
             >
               <Menu size={20} />
@@ -70,65 +49,65 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
 
           <Link
             href={isSuperAdmin ? '/admin/dashboard' : '/officer/dashboard'}
-            className={styles.officerBrandLink}
+            className={styles.brandLink}
           >
-            {/* Elevated Logo Container */}
-            <div className={styles.officerLogoBox}>
+            {/* Logo Container */}
+            <div className={isSuperAdmin ? styles.logoBoxAdmin : styles.logoBoxAO}>
               <img
                 src="/tribute-credit-logo.png"
                 alt="Tribute Credit Cooperative"
-                className={styles.officerLogoImg}
+                className={styles.logoImg}
               />
             </div>
 
             {/* Typography Hierarchy */}
-            <div className={styles.officerBrandTextCol}>
-              <div className={styles.officerBrandTitleWrap}>
-                <span className={styles.officerCoopName}>
+            <div className={isSuperAdmin ? styles.brandTextColAdmin : styles.brandTextColAO}>
+              <div className={styles.brandTitleWrap}>
+                <span className={isSuperAdmin ? styles.coopNameAdmin : styles.coopNameAO}>
                   Tribute Credit Cooperative
                 </span>
 
                 {/* Role Pill Badge */}
-                <div className={isSuperAdmin ? styles.adminRoleBadge : styles.officerRoleBadge}>
-                  <span className={isSuperAdmin ? styles.adminRoleDot : styles.officerRoleDot} />
+                <div className={isSuperAdmin ? styles.roleBadgeAdmin : styles.roleBadgeAO}>
+                  <span className={isSuperAdmin ? styles.roleDotAdmin : styles.roleDotAO} />
                   {badgeLabel}
                 </div>
               </div>
 
-              <div className={styles.officerBrandMetaRow}>
-                <span className={styles.officerRegCode}>
+              <div className={isSuperAdmin ? styles.brandMetaRowAdmin : styles.brandMetaRowAO}>
+                <span className={isSuperAdmin ? styles.regCodeAdmin : styles.regCodeAO}>
                   CDA REG: NCR-COOP-88219
                 </span>
-                <span style={{ color: '#cbd5e1' }}>&bull;</span>
-                <span className={styles.officerVerifiedTag}>
-                  <ShieldCheck size={12} color="#15803d" /> Financial Services & Credit Operations
+                <span style={{ color: isSuperAdmin ? '#284237' : '#cbd5e1' }}>&bull;</span>
+                <span className={isSuperAdmin ? styles.verifiedTagAdmin : styles.verifiedTagAO}>
+                  <ShieldCheck size={12} color={isSuperAdmin ? '#4ade80' : '#15803d'} /> Financial Services & Credit Operations
                 </span>
               </div>
             </div>
           </Link>
         </div>
 
-        {/* Right: Actions, Sync Status, and User Pill */}
-        <div className={styles.officerHeaderRightGroup}>
+        {/* Right: Actions Slot, Sync Status, and User Identity Profile */}
+        <div className={styles.rightGroup}>
           <SyncStatusBar />
 
           {actions && (
-            <div className={styles.officerActionsSlot}>
+            <div className={styles.actionsSlot}>
               {actions}
             </div>
           )}
 
           {/* Profile Pill */}
-          <div className={styles.officerUserPill}>
-            <div className={isSuperAdmin ? styles.adminUserAvatar : styles.officerUserAvatar}>
+          <div className={isSuperAdmin ? styles.userPillAdmin : styles.userPillAO}>
+            <div className={isSuperAdmin ? styles.userAvatarAdmin : styles.userAvatarAO}>
               {userName.charAt(0)}
             </div>
 
             <div style={{ lineHeight: 1.25 }}>
-              <div className={styles.officerUserName}>
+              <div className={isSuperAdmin ? styles.userNameAdmin : styles.userNameAO}>
                 {userName}
               </div>
-              <div className={styles.officerUserRole}>
+              <div className={isSuperAdmin ? styles.userRoleAdmin : styles.userRoleAO}>
                 {isSuperAdmin ? 'Dual-Control Approver' : 'Certified Account Officer'}
               </div>
             </div>
@@ -136,17 +115,17 @@ export const AppHeader: React.FC<AppHeaderProps> = ({
         </div>
       </div>
 
-      {/* Sub-bar: Clean Page Focus Header */}
+      {/* Sub-bar: Clean Page Title & Context Header */}
       {(pageTitle || pageSubtitle) && (
-        <div className={styles.officerForestBanner}>
+        <div className={isSuperAdmin ? styles.subBannerAdmin : styles.subBannerAO}>
           <div>
             {pageTitle && (
-              <h1 className={styles.officerPageTitle}>
+              <h1 className={isSuperAdmin ? styles.pageTitleAdmin : styles.pageTitleAO}>
                 {pageTitle}
               </h1>
             )}
             {pageSubtitle && (
-              <p className={styles.officerPageSubtitle}>
+              <p className={isSuperAdmin ? styles.pageSubtitleAdmin : styles.pageSubtitleAO}>
                 {pageSubtitle}
               </p>
             )}

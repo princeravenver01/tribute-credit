@@ -21,6 +21,7 @@ import {
   Menu
 } from 'lucide-react';
 import styles from '@/components/officer/OfficerChrome.module.css';
+import adminStyles from '@/components/admin/AdminSidebar.module.css';
 
 interface SidebarProps {
   role: 'admin' | 'officer' | 'borrower' | 'disbursement';
@@ -132,26 +133,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {mobileOpen && (
           <div
             onClick={handleCloseMobile}
-            className={`no-print ${styles.backdrop}`}
+            className={`no-print ${adminStyles.adminBackdrop}`}
           />
         )}
 
-        <aside className={`officer-desktop-sidebar ${styles.sidebar} ${mobileOpen ? 'drawer-open' : ''}`}>
+        <aside className={`officer-desktop-sidebar ${adminStyles.adminSidebar} ${mobileOpen ? 'drawer-open' : ''}`}>
           {/* Top Brand Header */}
-          <div className={styles.sidebarBrandHeader}>
+          <div className={adminStyles.adminSidebarBrandHeader}>
             <Link
               href="/admin/dashboard"
               onClick={handleCloseMobile}
-              className={styles.sidebarBrandLink}
+              className={adminStyles.adminSidebarBrandLink}
             >
               <div>
-                <div className={styles.sidebarBrandTitleRow}>
-                  <span className={styles.sidebarBrandDot} />
-                  <span className={styles.sidebarBrandTitle}>
+                <div className={adminStyles.adminSidebarBrandTitleRow}>
+                  <span className={adminStyles.adminSidebarBrandDot} />
+                  <span className={adminStyles.adminSidebarBrandTitle}>
                     {roleLabel} Panel
                   </span>
                 </div>
-                <p className={styles.sidebarBrandSubtitle}>
+                <p className={adminStyles.adminSidebarBrandSubtitle}>
                   Navigation &amp; Governance
                 </p>
               </div>
@@ -160,7 +161,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               type="button"
               onClick={handleCloseMobile}
-              className={`officer-sidebar-close-btn ${styles.sidebarCloseBtn}`}
+              className={`officer-sidebar-close-btn ${adminStyles.adminSidebarCloseBtn}`}
               aria-label="Close navigation menu"
             >
               <X size={20} />
@@ -168,18 +169,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Admin Profile Card */}
-          <div className={styles.sidebarProfileSection}>
-            <div className={styles.sidebarProfileCard}>
-              <div className={styles.sidebarAvatar}>
+          <div className={adminStyles.adminSidebarProfileSection}>
+            <div className={adminStyles.adminSidebarProfileCard}>
+              <div className={adminStyles.adminSidebarAvatar}>
                 {userName.charAt(0)}
               </div>
-              <div className={styles.sidebarProfileMeta}>
-                <p className={styles.sidebarProfileName}>
+              <div className={adminStyles.adminSidebarProfileMeta}>
+                <p className={adminStyles.adminSidebarProfileName}>
                   {userName}
                 </p>
-                <div className={styles.sidebarProfileRoleRow}>
-                  <ShieldCheck size={12} color="#15803d" />
-                  <span className={styles.sidebarProfileRoleText}>
+                <div className={adminStyles.adminSidebarProfileRoleRow}>
+                  <ShieldCheck size={12} color="#B91C1C" />
+                  <span className={adminStyles.adminSidebarProfileRoleText}>
                     {roleLabel}
                   </span>
                 </div>
@@ -188,8 +189,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
 
           {/* Navigation Links */}
-          <nav className={styles.sidebarNav}>
-            <div className={styles.sidebarNavSectionLabel}>
+          <nav className={adminStyles.adminSidebarNav}>
+            <div className={adminStyles.adminSidebarNavSectionLabel}>
               Executive Console
             </div>
 
@@ -201,10 +202,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   key={item.href}
                   href={item.href}
                   onClick={handleCloseMobile}
-                  className={`${styles.sidebarNavLink} ${isActive ? styles.sidebarNavLinkActive : ''}`}
+                  className={`${adminStyles.adminSidebarNavLink} ${isActive ? adminStyles.adminSidebarNavLinkActive : ''}`}
                 >
-                  <div className={styles.sidebarNavLinkInner}>
-                    <Icon size={18} color={isActive ? '#ffffff' : '#15803d'} />
+                  <div className={adminStyles.adminSidebarNavLinkInner}>
+                    <Icon size={18} color={isActive ? '#B91C1C' : '#64748B'} />
                     <span>{item.name}</span>
                   </div>
                 </Link>
@@ -213,11 +214,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </nav>
 
           {/* Sign Out */}
-          <div className={styles.sidebarFooter}>
+          <div className={adminStyles.adminSidebarFooter}>
             <button
               type="button"
               onClick={handleSignOut}
-              className={styles.sidebarLogoutBtn}
+              className={adminStyles.adminSidebarLogoutBtn}
             >
               <LogOut size={17} />
               <span>Sign Out</span>
@@ -226,7 +227,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </aside>
 
         {/* Mobile Bottom Navigation Bar for Admin */}
-        <nav className={`officer-bottom-nav no-print ${styles.bottomNav}`}>
+        <nav className={`officer-bottom-nav no-print ${adminStyles.adminBottomNav}`}>
           {adminMobileNavItems.map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;
@@ -234,13 +235,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`${styles.mobileNavItem} ${item.isPrimary ? styles.mobileNavItemPrimary : ''} ${isActive ? styles.mobileNavItemActive : ''}`}
+                className={`${adminStyles.adminMobileNavItem} ${item.isPrimary ? adminStyles.adminMobileNavItemPrimary : ''} ${isActive ? adminStyles.adminMobileNavItemActive : ''}`}
               >
                 <Icon
                   size={20}
                   strokeWidth={isActive || item.isPrimary ? 2.4 : 2}
                 />
-                <span className={`${styles.mobileNavLabel} ${isActive || item.isPrimary ? styles.mobileNavLabelActive : ''}`}>
+                <span className={adminStyles.adminMobileNavLabel}>
                   {item.name}
                 </span>
               </Link>
@@ -250,10 +251,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <button
             type="button"
             onClick={handleOpenMobile}
-            className={styles.mobileMenuBtn}
+            className={adminStyles.adminMobileMenuBtn}
           >
             <Menu size={20} />
-            <span className={styles.mobileNavLabel}>More</span>
+            <span className={adminStyles.adminMobileNavLabel}>More</span>
           </button>
         </nav>
       </>

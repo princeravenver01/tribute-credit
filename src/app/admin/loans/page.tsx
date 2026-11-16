@@ -29,7 +29,7 @@ import {
   RotateCcw
 } from 'lucide-react';
 import { SignaturePad } from '@/components/common/SignaturePad';
-import theme from '@/components/officer/OfficerTheme.module.css';
+import theme from '@/components/admin/AdminTheme.module.css';
 import styles from './loans.module.css';
 
 export default function AdminLoanApprovalsPage() {
@@ -344,7 +344,7 @@ export default function AdminLoanApprovalsPage() {
   });
 
   return (
-    <div className={`${theme.themeRoot} ${theme.pageShell}`}>
+    <div className={`${theme.adminThemeRoot} ${theme.adminPageShell}`}>
       <Sidebar
         role="admin"
         userName="Administrator"
@@ -353,7 +353,7 @@ export default function AdminLoanApprovalsPage() {
         onOpenMobile={() => setMobileMenuOpen(true)}
       />
 
-      <main className={`officer-main-content ${theme.mainContent}`} style={{ flex: 1, padding: '24px 32px', overflowY: 'auto', paddingBottom: '90px' }}>
+      <main className={`officer-main-content ${theme.adminMainContent}`} style={{ flex: 1, padding: '24px 32px', overflowY: 'auto', paddingBottom: '90px' }}>
         <AppHeader
           panelType="admin"
           userName="Administrator"
@@ -384,9 +384,9 @@ export default function AdminLoanApprovalsPage() {
                   }
                 }}
                 style={{
-                  backgroundColor: '#fee2e2',
-                  color: '#dc2626',
-                  border: '1.5px solid #fca5a5',
+                  backgroundColor: '#FEF2F2',
+                  color: '#DC2626',
+                  border: '1.5px solid #FECACA',
                   padding: '8px 14px',
                   borderRadius: '8px',
                   fontWeight: '800',
@@ -401,12 +401,12 @@ export default function AdminLoanApprovalsPage() {
               <Link
                 href="/admin/dashboard"
                 style={{
-                  backgroundColor: '#ffffff',
-                  color: '#15803d',
+                  backgroundColor: '#FFFFFF',
+                  color: '#B91C1C',
                   textDecoration: 'none',
                   padding: '8px 14px',
                   borderRadius: '8px',
-                  border: '1px solid #dcece0',
+                  border: '1px solid #FECACA',
                   fontWeight: '700',
                   fontSize: '12px',
                   display: 'inline-flex',
@@ -561,7 +561,7 @@ export default function AdminLoanApprovalsPage() {
                     <h2 className={styles.applicantTitle}>
                       {selectedApp.borrowerName}
                     </h2>
-                    <span style={{ backgroundColor: '#f1f5f9', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', color: '#475569', fontWeight: '700', fontFamily: 'monospace' }}>
+                    <span style={{ backgroundColor: '#FEF2F2', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', color: '#B91C1C', fontWeight: '700', fontFamily: 'monospace', border: '1px solid #FECACA' }}>
                       {selectedApp.policyNo}
                     </span>
                     {(selectedApp.adjustmentCount || 0) > 0 && (
@@ -576,12 +576,13 @@ export default function AdminLoanApprovalsPage() {
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Current Governance State</span>
+                  <span style={{ fontSize: '11px', color: '#64748B', textTransform: 'uppercase', fontWeight: '700' }}>Current Governance State</span>
                   <div style={{
                     fontSize: '12px',
                     fontWeight: '800',
-                    color: selectedApp.status === 'admin_approved' ? '#15803d' : selectedApp.status === 'admin_rejected' ? '#dc2626' : '#b45309',
-                    backgroundColor: selectedApp.status === 'admin_approved' ? '#dcfce7' : selectedApp.status === 'admin_rejected' ? '#fee2e2' : '#fef3c7',
+                    color: selectedApp.status === 'admin_approved' ? '#15803D' : selectedApp.status === 'admin_rejected' ? '#DC2626' : '#B45309',
+                    backgroundColor: selectedApp.status === 'admin_approved' ? '#DCFCE7' : selectedApp.status === 'admin_rejected' ? '#FEE2E2' : '#FEF3C7',
+                    border: '1px solid ' + (selectedApp.status === 'admin_approved' ? '#86EFAC' : selectedApp.status === 'admin_rejected' ? '#FCA5A5' : '#FDE68A'),
                     padding: '5px 12px',
                     borderRadius: '8px',
                     marginTop: '4px'
@@ -646,16 +647,16 @@ export default function AdminLoanApprovalsPage() {
               {/* ADMIN DECISION BOX */}
               <div className={styles.decisionBox}>
                 <h3 className={styles.decisionBoxTitle}>
-                  <ShieldCheck size={20} color="#15803d" /> Admin Credit Committee Official Action
+                  <ShieldCheck size={20} color="#B91C1C" /> Admin Credit Committee Official Action
                 </h3>
 
                 {/* Locked State if Already Approved / Executed */}
                 {(selectedApp.status === 'admin_approved' || selectedApp.status === 'contract_ready' || selectedApp.status === 'disbursed') ? (
                   <div>
                     <div className={styles.lockedBanner}>
-                      <CheckCircle2 size={24} color="#15803d" />
+                      <CheckCircle2 size={24} color="#15803D" />
                       <div>
-                        <strong style={{ fontSize: '14px', color: '#15803d' }}>
+                        <strong style={{ fontSize: '14px', color: '#15803D' }}>
                           ✓ Application Formally Approved by Credit Committee (Locked)
                         </strong>
                         <p style={{ fontSize: '12.5px', color: '#334155', margin: '2px 0 0 0' }}>
@@ -668,22 +669,22 @@ export default function AdminLoanApprovalsPage() {
                     {selectedApp.adminSignatures && selectedApp.adminSignatures.length > 0 && (
                       <div className={styles.signaturesContainer}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-                          <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', margin: 0, textTransform: 'uppercase' }}>
+                          <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#111827', margin: 0, textTransform: 'uppercase' }}>
                             Admin Committee Signatures (3 Specimen with Auth IDs):
                           </h4>
-                          <span style={{ fontSize: '11px', color: '#15803d', fontWeight: '800' }}>✓ 3/3 Affixed & Timestamped</span>
+                          <span style={{ fontSize: '11px', color: '#15803D', fontWeight: '800' }}>✓ 3/3 Affixed &amp; Timestamped</span>
                         </div>
                         <div className={styles.signaturesGrid}>
                           {selectedApp.adminSignatures.map((sig, idx) => (
                             <div key={idx} className={styles.sigSpecimenSlot}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '7pt', fontWeight: '800', color: '#15803d' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '7pt', fontWeight: '800', color: '#B91C1C' }}>
                                 <span>Admin Sign #{idx + 1}</span>
-                                <span style={{ color: '#047857', fontFamily: 'monospace', fontSize: '6.5pt' }}>{sig.authId}</span>
+                                <span style={{ color: '#991B1B', fontFamily: 'monospace', fontSize: '6.5pt' }}>{sig.authId}</span>
                               </div>
                               <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px 0' }}>
                                 <img src={sig.signature} alt={`Admin Sig ${idx + 1}`} style={{ maxHeight: '38px', maxWidth: '95%', objectFit: 'contain' }} />
                               </div>
-                              <div style={{ fontSize: '6.5pt', color: '#15803d', borderTop: '1px dashed #bbf7d0', paddingTop: '2px' }}>
+                              <div style={{ fontSize: '6.5pt', color: '#64748B', borderTop: '1px dashed #E2E8F0', paddingTop: '2px' }}>
                                 {sig.timestamp}
                               </div>
                             </div>
@@ -695,33 +696,33 @@ export default function AdminLoanApprovalsPage() {
                     {/* Admin View of Executed Contract, Signatures, and Biometrics if available */}
                     {selectedApp.applicantSignature && (
                       <div style={{
-                        backgroundColor: '#f6fbf7',
-                        border: '1px solid #dcece0',
+                        backgroundColor: '#F8FAFC',
+                        border: '1px solid #E2E8F0',
                         borderRadius: '10px',
                         padding: '16px',
                         marginTop: '12px'
                       }}>
-                        <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#0f172a', marginBottom: '10px' }}>
-                          Executed Contract Documents & Member Verification:
+                        <h4 style={{ fontSize: '13px', fontWeight: '800', color: '#111827', marginBottom: '10px' }}>
+                          Executed Contract Documents &amp; Member Verification:
                         </h4>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
                           <div>
-                            <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Affixed Stylus Signature:</span>
-                            <div style={{ marginTop: '6px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '6px', backgroundColor: '#ffffff' }}>
+                            <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>Affixed Stylus Signature:</span>
+                            <div style={{ marginTop: '6px', border: '1px solid #CBD5E1', borderRadius: '8px', padding: '6px', backgroundColor: '#ffffff' }}>
                               <img src={selectedApp.applicantSignature} alt="Borrower Signature" style={{ height: '60px', display: 'block' }} />
                             </div>
                           </div>
                           {selectedApp.applicantFacePhoto && (
                             <div>
-                              <span style={{ fontSize: '11px', color: '#64748b', fontWeight: '700' }}>Biometric Face Photo:</span>
-                              <div style={{ marginTop: '6px', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '6px', backgroundColor: '#ffffff', display: 'inline-block' }}>
+                              <span style={{ fontSize: '11px', color: '#64748B', fontWeight: '700' }}>Biometric Face Photo:</span>
+                              <div style={{ marginTop: '6px', border: '1px solid #CBD5E1', borderRadius: '8px', padding: '6px', backgroundColor: '#ffffff', display: 'inline-block' }}>
                                 <img src={selectedApp.applicantFacePhoto} alt="Live Face Photo" style={{ height: '60px', borderRadius: '4px', display: 'block' }} />
                               </div>
                             </div>
                           )}
                         </div>
                         <div style={{ marginTop: '12px', fontSize: '12px', color: '#475569' }}>
-                          Disbursement Preference: <strong>{selectedApp.disbursementMode === 'online' ? `Online (${selectedApp.disbursementChannel} - ${selectedApp.disbursementAccountNumber})` : 'Cash (Cashier Window)'}</strong>
+                          Disbursement Preference: <strong style={{ color: '#111827' }}>{selectedApp.disbursementMode === 'online' ? `Online (${selectedApp.disbursementChannel} - ${selectedApp.disbursementAccountNumber})` : 'Cash (Cashier Window)'}</strong>
                         </div>
                       </div>
                     )}
@@ -730,7 +731,7 @@ export default function AdminLoanApprovalsPage() {
                   <div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px', marginBottom: '16px' }}>
                       <div>
-                        <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '4px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '4px' }}>
                           Final Approved Loan Principal (₱)
                         </label>
                         <input
@@ -743,15 +744,15 @@ export default function AdminLoanApprovalsPage() {
                             width: '100%',
                             padding: '10px 14px',
                             borderRadius: '10px',
-                            border: '1.5px solid #15803d',
+                            border: '1.5px solid #B91C1C',
                             fontWeight: '800',
                             fontSize: '17px',
-                            color: '#15803d',
+                            color: '#111827',
                             boxSizing: 'border-box',
                             outline: 'none'
                           }}
                         />
-                        <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '4px' }}>
+                        <span style={{ fontSize: '11px', color: '#64748B', display: 'block', marginTop: '4px' }}>
                           (Admin can accept AO amount or set higher / lower)
                         </span>
                       </div>
@@ -784,18 +785,18 @@ export default function AdminLoanApprovalsPage() {
 
                     {/* Admin Mandatory 3 Signatures with Auth IDs & Timestamps */}
                     <div style={{
-                      backgroundColor: '#f6fbf7',
-                      border: '1.5px solid #dcece0',
+                      backgroundColor: '#FEF2F2',
+                      border: '1.5px solid #FECACA',
                       borderRadius: '12px',
                       padding: '16px',
                       marginBottom: '18px'
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap', gap: '8px' }}>
                         <div>
-                          <span style={{ fontSize: '12.5px', fontWeight: '800', color: '#0f172a', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          <span style={{ fontSize: '12.5px', fontWeight: '800', color: '#111827', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                             Administrator Digital Signatures (3 Specimen Required)
                           </span>
-                          <span style={{ display: 'block', fontSize: '11px', color: '#64748b' }}>
+                          <span style={{ display: 'block', fontSize: '11px', color: '#64748B' }}>
                             Affix your 3 signature specimens as the authorized Administrator. Each signature generates a distinct Auth ID and timestamp.
                           </span>
                         </div>
@@ -804,9 +805,9 @@ export default function AdminLoanApprovalsPage() {
                           fontWeight: '800',
                           padding: '3px 10px',
                           borderRadius: '6px',
-                          backgroundColor: adminSignatures.length === 3 ? '#dcfce7' : '#fef3c7',
-                          color: adminSignatures.length === 3 ? '#15803d' : '#b45309',
-                          border: adminSignatures.length === 3 ? '1px solid #86efac' : '1px solid #fde68a'
+                          backgroundColor: adminSignatures.length === 3 ? '#DCFCE7' : '#FEF3C7',
+                          color: adminSignatures.length === 3 ? '#15803D' : '#B45309',
+                          border: adminSignatures.length === 3 ? '1px solid #86EFAC' : '1px solid #FDE68A'
                         }}>
                           {adminSignatures.length === 3 ? '✓ Complete (3/3 Signed)' : `Progress: ${adminSignatures.length}/3 Signed`}
                         </span>
@@ -825,13 +826,13 @@ export default function AdminLoanApprovalsPage() {
                               className={`${styles.sigSlotSelectCard} ${isCurrent ? styles.sigSlotSelectCardActive : sigObj ? styles.sigSlotSelectCardDone : ''}`}
                             >
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', fontWeight: '800' }}>
-                                <span style={{ color: isCurrent ? '#15803d' : '#0f172a' }}>
+                                <span style={{ color: isCurrent ? '#B91C1C' : '#111827' }}>
                                   Signature #{slotIdx + 1}
                                 </span>
                                 {sigObj ? (
-                                  <span style={{ color: '#16a34a', fontSize: '10px' }}>✓ Captured</span>
+                                  <span style={{ color: '#16A34A', fontSize: '10px' }}>✓ Captured</span>
                                 ) : (
-                                  <span style={{ color: '#94a3b8', fontSize: '10px' }}>Pending</span>
+                                  <span style={{ color: '#94A3B8', fontSize: '10px' }}>Pending</span>
                                 )}
                               </div>
 
@@ -839,15 +840,15 @@ export default function AdminLoanApprovalsPage() {
                                 {sigObj?.signature ? (
                                   <img src={sigObj.signature} alt={`Admin Sig ${slotIdx + 1}`} style={{ maxHeight: '40px', maxWidth: '95%', objectFit: 'contain' }} />
                                 ) : (
-                                  <span style={{ fontSize: '11px', color: '#94a3b8', fontStyle: 'italic' }}>
+                                  <span style={{ fontSize: '11px', color: '#94A3B8', fontStyle: 'italic' }}>
                                     Click to Sign #{slotIdx + 1}
                                   </span>
                                 )}
                               </div>
 
                               {sigObj && (
-                                <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '3px', fontSize: '8.5px', color: '#64748b' }}>
-                                  <span style={{ color: '#15803d', fontFamily: 'monospace', display: 'block', fontWeight: '700' }}>
+                                <div style={{ borderTop: '1px dashed #E2E8F0', paddingTop: '3px', fontSize: '8.5px', color: '#64748B' }}>
+                                  <span style={{ color: '#B91C1C', fontFamily: 'monospace', display: 'block', fontWeight: '700' }}>
                                     {sigObj.authId}
                                   </span>
                                   <span>{sigObj.timestamp}</span>
@@ -861,12 +862,12 @@ export default function AdminLoanApprovalsPage() {
                       {/* Interactive Signature Pad for Current Slot */}
                       <div className={styles.sigPadWrapper}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                          <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            <PenTool size={14} color="#15803d" />
+                          <span style={{ fontSize: '11.5px', fontWeight: '800', color: '#111827', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <PenTool size={14} color="#B91C1C" />
                             Sign for Signature #{activeAdminSigSlot + 1}
                           </span>
-                          <span style={{ fontSize: '10.5px', color: '#64748b' }}>
-                            Draw your signature using stylus or mouse & click Save
+                          <span style={{ fontSize: '10.5px', color: '#64748B' }}>
+                            Draw your signature using stylus or mouse &amp; click Save
                           </span>
                         </div>
 
@@ -879,7 +880,7 @@ export default function AdminLoanApprovalsPage() {
                     </div>
 
                     <div>
-                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '4px' }}>
+                      <label style={{ fontSize: '12px', fontWeight: '700', color: '#374151', display: 'block', marginBottom: '4px' }}>
                         Credit Committee Resolution Notes (Sent to Account Officer)
                       </label>
                       <textarea
@@ -891,7 +892,9 @@ export default function AdminLoanApprovalsPage() {
                           width: '100%',
                           padding: '10px 14px',
                           borderRadius: '10px',
-                          border: '1px solid #dcece0',
+                          border: '1px solid #D1D5DB',
+                          backgroundColor: '#FFFFFF',
+                          color: '#111827',
                           fontSize: '13px',
                           boxSizing: 'border-box',
                           outline: 'none'
@@ -903,7 +906,7 @@ export default function AdminLoanApprovalsPage() {
               </div>
             </div>
           ) : (
-            <div style={{ backgroundColor: '#ffffff', padding: '40px', borderRadius: '16px', border: '1px solid #dcece0', textAlign: 'center', color: '#94a3b8' }}>
+            <div style={{ backgroundColor: '#FFFFFF', padding: '40px', borderRadius: '16px', border: '1px solid #E5E7EB', textAlign: 'center', color: '#64748B' }}>
               Select an application from the left list to review and set final approval.
             </div>
           )}

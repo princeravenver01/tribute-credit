@@ -6,7 +6,7 @@ import { Sidebar } from '@/components/common/Sidebar';
 import { AppHeader } from '@/components/common/AppHeader';
 import { Users, FileCheck, DollarSign, AlertCircle, ArrowUpRight, TrendingUp } from 'lucide-react';
 import { getCreditAssessments, CreditAssessmentItem } from '@/lib/credit-assessment-store';
-import theme from '@/components/officer/OfficerTheme.module.css';
+import theme from '@/components/admin/AdminTheme.module.css';
 import styles from './dashboard.module.css';
 
 export default function AdminDashboardPage() {
@@ -63,8 +63,8 @@ export default function AdminDashboardPage() {
     .filter(a => a.status === 'pending_admin' || a.status === 'pending_assessment').length;
 
   const stats = [
-    { title: 'Total Disbursed', value: `₱ ${totalDisbursed.toLocaleString('en-PH')}`, change: 'Current portfolio', isUp: true, icon: DollarSign, color: '#15803d' },
-    { title: 'Active Borrowers', value: activeBorrowersCount.toString(), change: 'Members in portfolio', isUp: true, icon: Users, color: '#16a34a' },
+    { title: 'Total Disbursed', value: `₱ ${totalDisbursed.toLocaleString('en-PH')}`, change: 'Current portfolio', isUp: true, icon: DollarSign, color: '#B91C1C' },
+    { title: 'Active Borrowers', value: activeBorrowersCount.toString(), change: 'Members in portfolio', isUp: true, icon: Users, color: '#DC2626' },
     { title: 'Pending Applications', value: pendingApprovalsCount.toString(), change: 'Requires committee review', isUp: false, icon: FileCheck, color: '#d97706' },
     { title: 'Overdue Accounts', value: '0', change: 'Clean aging report', isUp: true, icon: AlertCircle, color: '#15803d' },
   ];
@@ -85,7 +85,7 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className={`${theme.themeRoot} ${theme.pageShell}`}>
+    <div className={`${theme.adminThemeRoot} ${theme.adminPageShell}`}>
       <Sidebar
         role="admin"
         userName="Administrator"
@@ -94,7 +94,7 @@ export default function AdminDashboardPage() {
         onOpenMobile={() => setMobileMenuOpen(true)}
       />
 
-      <main className={`officer-main-content ${theme.mainContent}`} style={{ flex: 1, padding: '24px 32px', overflowY: 'auto', paddingBottom: '90px' }}>
+      <main className={`officer-main-content ${theme.adminMainContent}`} style={{ flex: 1, padding: '24px 32px', overflowY: 'auto', paddingBottom: '90px' }}>
         <AppHeader
           panelType="admin"
           userName="Administrator"
