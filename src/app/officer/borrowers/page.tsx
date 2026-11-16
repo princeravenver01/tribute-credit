@@ -1378,6 +1378,341 @@ export default function CurrentBorrowersPage() {
         })()}
 
         {/* ============================================================== */}
+        {/* INTERACTIVE PAYMENT LEDGER MODAL (SCREEN PREVIEW & PRINT)      */}
+        {/* ============================================================== */}
+        {ledgerModalBorrower && (() => {
+          const b = ledgerModalBorrower;
+          const principal = b.finalContractAmount || b.adminApprovedAmount || b.requestedAmount;
+          const isRenewal = (b.loanCycle || 1) > 1;
+          const calc = calculateTributeLoan(principal, b.termMonths, b.productName, b.paymentMode, isRenewal);
+          const cbuInitial = calc.cbuAmount;
+          const releaseDate = b.disbursedAt 
+            ? new Date(b.disbursedAt).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
+            : new Date().toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
+
+          const aoSig = b.evaluatedByOfficer ? `${b.evaluatedByOfficer.replace(/\s+/g, '_').toUpperCase()}-AUTH0012220-A` : 'ROLANDO_ROBLES-AUTH0012220-A';
+          const mgrSig = 'DENNIS_YUAN-AUTH0002912-C';
+
+          const p: any = b.fullProfile || {};
+          const s1: any = p.step1 || {};
+          const facePhoto = b.applicantFacePhoto || p.applicantFacePhoto || s1.applicantFacePhoto;
+          const holdingPhoto = b.borrowerHoldingIdPhoto || p.borrowerHoldingIdPhoto;
+          const borrowerSigs = (b.borrowerSignatures && b.borrowerSignatures.length > 0)
+            ? b.borrowerSignatures
+            : (p.borrowerSignatures && p.borrowerSignatures.length > 0)
+            ? p.borrowerSignatures
+            : (b.applicantSignature || p.applicantSignature)
+            ? [
+                { signature: b.applicantSignature || p.applicantSignature, authId: 'AUTH-BRW-001-S1', timestamp: b.evaluatedAt || 'Nov 5, 2026 07:24 PM' },
+                { signature: b.applicantSignature || p.applicantSignature, authId: 'AUTH-BRW-001-S2', timestamp: b.evaluatedAt || 'Nov 5, 2026 07:25 PM' },
+                { signature: b.applicantSignature || p.applicantSignature, authId: 'AUTH-BRW-001-S3', timestamp: b.evaluatedAt || 'Nov 5, 2026 07:26 PM' },
+              ]
+            : undefined;
+          const primarySig = b.applicantSignature || p.applicantSignature || (borrowerSigs && borrowerSigs[0]?.signature);
+          const aoSigs = (b.officerSignatures && b.officerSignatures.length > 0)
+            ? b.officerSignatures
+            : (p.officerSignatures && p.officerSignatures.length > 0)
+            ? p.officerSignatures
+            : undefined;
+
+          const parsedApprovalDate = b.disbursedAt ? new Date(b.disbursedAt) : new Date();
+          const baseApprovalDate = isNaN(parsedApprovalDate.getTime()) ? new Date() : parsedApprovalDate;
+          const officialSched = generateCollectionScheduleDates(
+            baseApprovalDate,
+            b.termMonths || 3,
+            b.paymentMode || 'Weekly'
+          );
+
+          const samplePayments = (b.paymentLedgerRecords && b.paymentLedgerRecords.length > 0)
+            ? b.paymentLedgerRecords
+            : officialSched.map((item) => {
+                const interestPerInst = Math.round(calc.totalInterest / calc.numberOfInstallments);
+                return {
+                  installmentNo: item.installmentNo,
+                  paymentSchedule: item.dateStr,
+                  status: 'Pending' as const,
+                  principalAmount: principal,
+                  interest: interestPerInst,
+                };
+              });
+
+          const currentCbuBalance = b.savingsBalance !== undefined ? b.savingsBalance : cbuInitial;
+
+          const sampleCbu = (b.savingsLedgerRecords && b.savingsLedgerRecords.length > 0)
+            ? [
+                {
+                  paymentSchedule: releaseDate,
+                  datePaid: releaseDate,
+                  cbuIn: cbuInitial,
+                  cbuOut: 0,
+                  cbuBalance: cbuInitial,
+                  aoSignature: aoSig.replace('AUTH0012220-A', 'AUTH0012222-A')
+                },
+                ...b.savingsLedgerRecords.map(s => ({
+                  paymentSchedule: s.notes || (s.type === 'deposit' ? 'Member Deposit' : 'Member Withdrawal'),
+                  datePaid: s.date,
+                  cbuIn: s.type === 'deposit' ? s.amount : 0,
+                  cbuOut: s.type === 'withdraw' ? s.amount : 0,
+                  cbuBalance: s.runningBalance,
+                  aoSignature: (b.evaluatedByOfficer ? b.evaluatedByOfficer.replace(/\s+/g, '_').toUpperCase() : 'OFFICER_JUAN') + '-' + (s.referenceNo || 'REF-SAV')
+                }))
+              ]
+            : [
+                {
+                  paymentSchedule: releaseDate,
+                  datePaid: releaseDate,
+                  cbuIn: cbuInitial,
+                  cbuOut: 0,
+                  cbuBalance: cbuInitial,
+                  aoSignature: aoSig.replace('AUTH0012220-A', 'AUTH0012222-A')
+                }
+              ];
+
+          const passbookData: PassbookData = {
+            borrowerName: b.borrowerName,
+            cidNumber: b.cidNumber || b.mcid || s1.cooperativeId || b.policyNo || 'TCID-A-00001',
+            loanReference: b.applicationId || 'TC-LN-A-00001',
+            mcidNumber: b.mcid || b.cidNumber || s1.cooperativeId || 'TCID-A-00001',
+            spouseName: b.spouseName || 'N/A',
+            permanentAddress: b.location,
+            membershipDate: b.membershipDate || releaseDate,
+            dateIssued: releaseDate,
+            issuedByName: b.evaluatedByOfficer || 'OFFICER JUAN DE LA CRUZ',
+            issuedByDesignation: 'Account Officer (AO-001)',
+            specimenSignature: primarySig,
+            specimenSignatures: borrowerSigs,
+            aoSignatures: aoSigs,
+            memberFacePhoto: facePhoto,
+            holdingIdPhoto: holdingPhoto,
+            dateReleased: releaseDate,
+            loanType: b.productName.replace(' Loan', ''),
+            loanAmount: principal,
+            termMonths: b.termMonths || 3,
+            paymentMode: b.paymentMode || 'Weekly',
+            disbursementType: b.disbursementMode === 'cash' ? 'Cash' : (b.disbursementChannel || 'Cash'),
+            cycle: b.loanCycle || 1,
+            aoSignatureName: aoSig,
+            managerSignatureName: mgrSig,
+            cbuInitialDeposit: cbuInitial,
+            cbuBalance: currentCbuBalance,
+            paymentRecords: samplePayments,
+            cbuRecords: sampleCbu
+          };
+
+          return (
+            <div className={`no-print ${styles.modalBackdrop}`}>
+              <div className={`${styles.modalDialog} ${styles.modalDialogPassbook}`}>
+                <div className={styles.modalHeader}>
+                  <div className={styles.modalHeaderTitleGroup}>
+                    <div className={styles.modalHeaderIcon}>
+                      <FileSpreadsheet size={20} color="#15803d" />
+                    </div>
+                    <div>
+                      <h3 className={styles.modalTitle}>
+                        Official Loan Payment Ledger (Field Copy)
+                      </h3>
+                      <span className={styles.modalSubtitle}>
+                        {b.borrowerName} &bull; Policy: <strong style={{ color: '#15803d', fontFamily: 'monospace' }}>{b.policyNo}</strong> &bull; Repayment Schedule & Payments
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLedgerModalBorrower(null);
+                        setPassbookModalBorrower(b);
+                      }}
+                      className={styles.btnSavings}
+                      style={{ padding: '8px 14px', fontSize: '12px' }}
+                      title="View & Print Full Passbook"
+                    >
+                      <BookOpen size={14} /> View Passbook
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handlePrintLedger(b)}
+                      className={styles.btnConfirm}
+                      style={{ padding: '8px 16px', fontSize: '12px' }}
+                    >
+                      <Printer size={14} /> Print Payment Ledger
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLedgerModalBorrower(null)}
+                      className={styles.modalCloseBtn}
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className={styles.modalPassbookBody}>
+                  <LoanPaymentLedger data={passbookData} />
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ============================================================== */}
+        {/* INTERACTIVE BORROWER DETAILS MODAL (SCREEN & DOSSIER PRINT)   */}
+        {/* ============================================================== */}
+        {detailsModalBorrower && (() => {
+          const b = detailsModalBorrower;
+          const principal = b.finalContractAmount || b.adminApprovedAmount || b.requestedAmount;
+          const isRenewal = (b.loanCycle || 1) > 1;
+          const calc = calculateTributeLoan(principal, b.termMonths, b.productName, b.paymentMode, isRenewal);
+          const p: any = b.fullProfile || {};
+          const s1: any = p.step1 || {};
+          const s2: any = p.step2 || {};
+          const s3: any = p.step3 || {};
+          const s4: any = p.step4 || {};
+          const s5: any = p.step5 || {};
+          const mcid = b.mcid || b.cidNumber || s1.cooperativeId || 'TCID-A-00001';
+          const facePhoto = b.applicantFacePhoto || p.applicantFacePhoto || s1.applicantFacePhoto;
+
+          return (
+            <div className={`no-print ${styles.modalBackdrop}`}>
+              <div className={`${styles.modalDialog} ${styles.modalDialogPassbook}`}>
+                <div className={styles.modalHeader}>
+                  <div className={styles.modalHeaderTitleGroup}>
+                    <div className={styles.modalHeaderIcon}>
+                      <Eye size={20} color="#15803d" />
+                    </div>
+                    <div>
+                      <h3 className={styles.modalTitle}>
+                        Borrower Dossier & Comprehensive Record
+                      </h3>
+                      <span className={styles.modalSubtitle}>
+                        {b.borrowerName} &bull; MCID: <strong style={{ color: '#15803d', fontFamily: 'monospace' }}>{mcid}</strong> &bull; Policy: <strong style={{ color: '#15803d', fontFamily: 'monospace' }}>{b.policyNo}</strong>
+                      </span>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <button
+                      type="button"
+                      onClick={() => handlePrintDocument('details', b)}
+                      className={styles.btnConfirm}
+                      style={{ padding: '8px 16px', fontSize: '12px' }}
+                    >
+                      <Printer size={14} /> Print Official Dossier
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDetailsModalBorrower(null)}
+                      className={styles.modalCloseBtn}
+                    >
+                      <X size={20} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className={styles.modalPassbookBody} style={{ padding: '20px' }}>
+                  <div style={{ backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #dcece0', padding: '20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+                    
+                    {/* Header Strip with Member Bio */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0', paddingBottom: '16px' }}>
+                      {facePhoto ? (
+                        <img
+                          src={facePhoto}
+                          alt={b.borrowerName}
+                          style={{ width: '64px', height: '64px', borderRadius: '10px', objectFit: 'cover', border: '2px solid #86efac' }}
+                        />
+                      ) : (
+                        <div style={{ width: '64px', height: '64px', borderRadius: '10px', backgroundColor: '#dcfce7', color: '#15803d', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: '800' }}>
+                          {b.borrowerName.charAt(0)}
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: '220px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <h4 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>{b.borrowerName}</h4>
+                          <span style={{ backgroundColor: '#dcfce7', color: '#15803d', padding: '2px 8px', borderRadius: '999px', fontSize: '11px', fontWeight: '800' }}>
+                            Cycle {b.loanCycle || 1}
+                          </span>
+                        </div>
+                        <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
+                          {b.location || 'Commonwealth Ave, Quezon City'} &bull; {b.contactNumber || 'N/A'}
+                        </p>
+                      </div>
+
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ display: 'block', fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Approved Principal</span>
+                        <strong style={{ fontSize: '18px', color: '#15803d' }}>₱ {principal.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong>
+                      </div>
+                    </div>
+
+                    {/* Loan Terms Summary Grid */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+                      <div style={{ backgroundColor: '#f8fbf9', border: '1px solid #dcece0', borderRadius: '10px', padding: '12px' }}>
+                        <span style={{ display: 'block', fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Product & Term</span>
+                        <strong style={{ fontSize: '14px', color: '#0f172a' }}>{b.productName} ({b.termMonths} Months)</strong>
+                      </div>
+                      <div style={{ backgroundColor: '#f8fbf9', border: '1px solid #dcece0', borderRadius: '10px', padding: '12px' }}>
+                        <span style={{ display: 'block', fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Payment Mode & Due</span>
+                        <strong style={{ fontSize: '14px', color: '#0f172a' }}>₱ {calc.installmentPerFrequency.toLocaleString('en-PH', { minimumFractionDigits: 2 })} / {b.paymentMode.toLowerCase()}</strong>
+                      </div>
+                      <div style={{ backgroundColor: '#f8fbf9', border: '1px solid #dcece0', borderRadius: '10px', padding: '12px' }}>
+                        <span style={{ display: 'block', fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>Total Contractual</span>
+                        <strong style={{ fontSize: '14px', color: '#0f172a' }}>₱ {calc.contractualBalance.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong>
+                      </div>
+                      <div style={{ backgroundColor: '#f8fbf9', border: '1px solid #dcece0', borderRadius: '10px', padding: '12px' }}>
+                        <span style={{ display: 'block', fontSize: '11px', color: '#64748b', textTransform: 'uppercase', fontWeight: '700' }}>CBU / Retention</span>
+                        <strong style={{ fontSize: '14px', color: '#15803d' }}>₱ {calc.cbuAmount.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong>
+                      </div>
+                    </div>
+
+                    {/* Member & Business Background */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '14px' }}>
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+                        <h5 style={{ margin: '0 0 10px 0', fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>Personal & Demographic Info</h5>
+                        <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <div><span style={{ color: '#64748b' }}>Date of Birth:</span> <strong>{s1.birthDate || (b as any).birthDate || 'N/A'}</strong></div>
+                          <div><span style={{ color: '#64748b' }}>Civil Status:</span> <strong>{s1.civilStatus || (b as any).civilStatus || 'Married'}</strong></div>
+                          <div><span style={{ color: '#64748b' }}>Spouse Name:</span> <strong>{b.spouseName || s1.spouseName || 'N/A'}</strong></div>
+                          <div><span style={{ color: '#64748b' }}>Valid ID / Reg:</span> <strong>{s1.idType || 'PhilSys National ID'} ({s1.idNumber || 'N/A'})</strong></div>
+                        </div>
+                      </div>
+
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+                        <h5 style={{ margin: '0 0 10px 0', fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>Business & Income Activity</h5>
+                        <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <div><span style={{ color: '#64748b' }}>Business Name:</span> <strong>{s2.businessName || (b as any).businessName || 'Micro Retail Enterprise'}</strong></div>
+                          <div><span style={{ color: '#64748b' }}>Type of Business:</span> <strong>{s2.businessType || (b as any).businessType || 'Sari-sari Store / Retail'}</strong></div>
+                          <div><span style={{ color: '#64748b' }}>Years in Operation:</span> <strong>{s2.yearsInBusiness || (b as any).yearsInBusiness || '3'} years</strong></div>
+                          <div><span style={{ color: '#64748b' }}>Estimated Monthly Net:</span> <strong style={{ color: '#15803d' }}>₱ {(b.monthlyNetIncome || s2.monthlyNetIncome || 25000).toLocaleString('en-PH')}</strong></div>
+                        </div>
+                      </div>
+
+                      <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+                        <h5 style={{ margin: '0 0 10px 0', fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>Co-Maker / Guarantor Info</h5>
+                        <div style={{ fontSize: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                          <div><span style={{ color: '#64748b' }}>Co-Maker Name:</span> <strong>{s4.coMakerName || (b as any).coMakerName || 'Elena Santos'}</strong></div>
+                          <div><span style={{ color: '#64748b' }}>Relationship:</span> <strong>{s4.coMakerRelationship || (b as any).coMakerRelationship || 'Sister / Neighbor'}</strong></div>
+                          <div><span style={{ color: '#64748b' }}>Co-Maker Contact:</span> <strong>{s4.coMakerContact || (b as any).coMakerContact || '0917-889-4412'}</strong></div>
+                          <div><span style={{ color: '#64748b' }}>Co-Maker Source of Income:</span> <strong>{s4.coMakerIncomeSource || (b as any).coMakerIncomeSource || 'Employed / Self-Employed'}</strong></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* CI & Risk Notes */}
+                    <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+                      <h5 style={{ margin: '0 0 6px 0', fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>Underwriting & CI Notes</h5>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#475569', fontStyle: 'italic' }}>
+                        {b.officerNotes || 'Borrower underwent complete Credit Investigation, character reference verification, and capacity evaluation. Verified member in good standing with positive neighborhood repayment standing.'}
+                      </p>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {/* ============================================================== */}
         {/* PAY LOAN / COLLECTION MODAL                                    */}
         {/* ============================================================== */}
         {payLoanModalBorrower && (() => {

@@ -280,7 +280,7 @@ export default function CreditAssessmentsPage() {
         )}
 
         {/* 2-Column Responsive Split Layout (List + Interactive Scorecard) */}
-        <div className={`step-form-grid ${styles.assessmentLayout}`}>
+        <div className={styles.assessmentLayout}>
 
           {/* LEFT: Applications List to Assess */}
           <div className={styles.queueColumn}>

@@ -259,7 +259,7 @@
   border-top: 1px solid #dcece0 !important;
   align-items: center;
   justify-content: space-around;
-  padding: 6px 8px calc(env(safe-area-inset-bottom, 0px) + 8px) 8px !important;
+  padding: 6px 4px calc(env(safe-area-inset-bottom, 0px) + 6px) 4px !important;
   z-index: 9990;
   box-shadow: 0 -4px 20px rgba(20, 83, 45, 0.08) !important;
   gap: 2px;
@@ -270,14 +270,14 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   color: #526b5c;
   text-decoration: none;
-  padding: 6px 8px;
-  border-radius: 12px;
+  padding: 4px 2px;
+  border-radius: 10px;
   background-color: transparent;
   transition: all 0.15s ease;
-  min-width: 52px;
+  min-width: 0;
   min-height: 44px;
   flex: 1;
 }
@@ -299,10 +299,14 @@
 }
 
 .mobileNavLabel {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 600;
   line-height: 1.1;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  text-align: center;
 }
 
 .mobileNavLabelActive {
@@ -314,16 +318,27 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 2px;
   color: #526b5c;
   background: none;
   border: none;
-  padding: 6px 8px;
-  border-radius: 12px;
+  padding: 4px 2px;
+  border-radius: 10px;
   cursor: pointer;
-  min-width: 52px;
+  min-width: 0;
   min-height: 44px;
   flex: 1;
+}
+
+@media (max-width: 390px) {
+  .mobileNavLabel {
+    font-size: 9px;
+    letter-spacing: -0.2px;
+  }
+  .mobileNavItem,
+  .mobileMenuBtn {
+    padding: 3px 1px;
+  }
 }
 
 .mobileMenuBtn:hover {

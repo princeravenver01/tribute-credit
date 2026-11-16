@@ -3,15 +3,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  LayoutDashboard,
-  UserPlus,
-  BadgeCheck,
-  FileSpreadsheet,
-  Users2,
-  Menu
-} from 'lucide-react';
+import { Menu } from 'lucide-react';
 import styles from './OfficerChrome.module.css';
+import { OFFICER_NAV_ITEMS } from './officer-nav-items';
 
 interface OfficerMobileNavProps {
   onOpenSidebar: () => void;
@@ -20,13 +14,7 @@ interface OfficerMobileNavProps {
 export const OfficerMobileNav: React.FC<OfficerMobileNavProps> = ({ onOpenSidebar }) => {
   const pathname = usePathname();
 
-  const items = [
-    { name: 'Dashboard', href: '/officer/dashboard', icon: LayoutDashboard },
-    { name: 'Onboard', href: '/officer/borrowers/new', icon: UserPlus },
-    { name: 'Assess', href: '/officer/credit-assessments', icon: BadgeCheck },
-    { name: 'Vault', href: '/officer/queue', icon: FileSpreadsheet },
-    { name: 'Borrowers', href: '/officer/borrowers', icon: Users2 },
-  ];
+  const items = OFFICER_NAV_ITEMS;
 
   return (
     <nav

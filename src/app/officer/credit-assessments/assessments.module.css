@@ -513,9 +513,18 @@
   color: #526b5c;
 }
 
-@media (max-width: 1023px) {
+@media (max-width: 1024px) {
   .assessmentLayout {
     grid-template-columns: 1fr;
+    width: 100%;
+  }
+
+  .queueColumn {
+    width: 100%;
+  }
+
+  .applicantList {
+    max-height: 480px;
   }
 }
 

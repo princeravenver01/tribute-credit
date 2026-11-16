@@ -4,16 +4,12 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard,
-  UserPlus,
-  FileSpreadsheet,
-  Users2,
-  BadgeCheck,
   LogOut,
   X,
   ShieldCheck,
 } from 'lucide-react';
 import styles from './OfficerChrome.module.css';
+import { OFFICER_NAV_ITEMS } from './officer-nav-items';
 
 interface OfficerSidebarProps {
   userName?: string;
@@ -28,13 +24,7 @@ export const OfficerSidebar: React.FC<OfficerSidebarProps> = ({
 }) => {
   const pathname = usePathname();
 
-  const navigationItems = [
-    { name: 'Dashboard', href: '/officer/dashboard', icon: LayoutDashboard },
-    { name: 'New Borrower', href: '/officer/borrowers/new', icon: UserPlus },
-    { name: 'Applications', href: '/officer/queue', icon: FileSpreadsheet, badge: 'Draft Vault' },
-    { name: 'Current Borrowers', href: '/officer/borrowers', icon: Users2 },
-    { name: 'Credit Assessments', href: '/officer/credit-assessments', icon: BadgeCheck },
-  ];
+  const navigationItems = OFFICER_NAV_ITEMS;
 
   return (
     <>
