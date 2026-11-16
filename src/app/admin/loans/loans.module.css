@@ -1,0 +1,506 @@
+/* Loans Page CSS Module - Tribute Credit Admin Panel */
+.loansLayout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 1024px) {
+  .loansLayout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* Action Banner */
+.actionSuccessBanner {
+  background-color: #f0fdf4;
+  border: 1px solid #86efac;
+  color: #15803d;
+  padding: 14px 18px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 600;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Left Column: Filter and Card list */
+.leftColumn {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.filterTabs {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 6px;
+  border: 1px solid #dcece0;
+  display: flex;
+  gap: 4px;
+}
+
+.filterTabBtn {
+  flex: 1;
+  padding: 8px 4px;
+  border-radius: 8px;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  background-color: transparent;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transition: all 0.15s ease;
+}
+
+.filterTabBtnActive {
+  background-color: #15803d;
+  color: #ffffff;
+}
+
+.tabBadge {
+  font-size: 10px;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-weight: 800;
+  background-color: #f1f5f9;
+  color: #64748b;
+}
+
+.tabBadgeActive {
+  background-color: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Search Box */
+.searchWrapper {
+  position: relative;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 10px 14px 10px 40px;
+  border-radius: 10px;
+  border: 1.5px solid #dcece0;
+  font-size: 13px;
+  background-color: #ffffff;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.searchInput:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+/* Application Cards List */
+.cardsList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.appCard {
+  background-color: #ffffff;
+  border-radius: 12px;
+  padding: 16px;
+  cursor: pointer;
+  border: 1px solid #dcece0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: all 0.18s ease;
+}
+
+.appCard:hover {
+  border-color: #86efac;
+  transform: translateY(-1px);
+}
+
+.appCardSelected {
+  border: 2px solid #16a34a;
+  background-color: #f6fbf7;
+  box-shadow: 0 4px 16px rgba(22, 163, 74, 0.12);
+}
+
+.appCardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+  gap: 8px;
+}
+
+.borrowerName {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.policyBadge {
+  font-size: 11px;
+  color: #64748b;
+  font-family: monospace;
+}
+
+.reconsiderationBadge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  display: inline-flex;
+  align-items: center;
+}
+
+.reconsiderationBadgeFinal {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border-color: #fca5a5;
+}
+
+.statusPill {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.statusPillApproved {
+  background-color: #dcfce7;
+  color: #15803d;
+}
+
+.statusPillRejected {
+  background-color: #fee2e2;
+  color: #dc2626;
+}
+
+.statusPillPending {
+  background-color: #fef3c7;
+  color: #b45309;
+}
+
+.appCardFooter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.emptyState {
+  padding: 32px 20px;
+  text-align: center;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+  color: #64748b;
+  font-size: 13px;
+}
+
+/* Right Column: Review Workspace */
+.detailCard {
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1px solid #dcece0;
+  padding: 28px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.02);
+}
+
+@media (max-width: 640px) {
+  .detailCard {
+    padding: 18px;
+  }
+}
+
+.detailHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 20px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.titleArea {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.applicantTitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+}
+
+.subDetailText {
+  font-size: 13px;
+  color: #64748b;
+  margin-top: 4px;
+}
+
+/* Financial Highlights / 5 Cs Banner */
+.metricsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  background-color: #14532d;
+  color: #ffffff;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.metricItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.metricLabel {
+  font-size: 11px;
+  color: #bbf7d0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 600;
+}
+
+.metricValue {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  margin-top: 2px;
+}
+
+.metricValueAccent {
+  color: #86efac;
+}
+
+.metricValueGold {
+  color: #fde047;
+}
+
+/* Officer Justification Card */
+.officerNotesBox {
+  background-color: #f6fbf7;
+  padding: 18px;
+  border-radius: 12px;
+  border: 1px solid #dcece0;
+  margin-bottom: 24px;
+}
+
+.officerNotesLabel {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #15803d;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.officerNotesQuote {
+  font-size: 13px;
+  color: #334155;
+  font-style: italic;
+  margin: 0;
+}
+
+.fiveCsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 11.5px;
+  color: #475569;
+}
+
+/* Official Action Box */
+.decisionBox {
+  background-color: #ffffff;
+  border-radius: 14px;
+  padding: 24px;
+  border: 2px solid #15803d;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 640px) {
+  .decisionBox {
+    padding: 16px;
+  }
+}
+
+.decisionBoxTitle {
+  font-size: 16px;
+  font-weight: 800;
+  color: #0f172a;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Locked Approval Banner */
+.lockedBanner {
+  background-color: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: 10px;
+  padding: 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.signaturesContainer {
+  background-color: #f6fbf7;
+  border: 1px solid #dcece0;
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 12px;
+}
+
+.signaturesGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 640px) {
+  .signaturesGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sigSpecimenSlot {
+  background-color: #ffffff;
+  border: 1px solid #bbf7d0;
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  min-height: 84px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Active Signatures Capture Flow */
+.sigSlotsSelectGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 640px) {
+  .sigSlotsSelectGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sigSlotSelectCard {
+  border: 1px dashed #cbd5e1;
+  background-color: #fafafa;
+  border-radius: 10px;
+  padding: 10px;
+  cursor: pointer;
+  min-height: 95px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.15s ease;
+}
+
+.sigSlotSelectCardActive {
+  border: 2px solid #16a34a;
+  background-color: #f0fdf4;
+}
+
+.sigSlotSelectCardDone {
+  border: 1.5px solid #86efac;
+  background-color: #ffffff;
+}
+
+.sigPadWrapper {
+  background-color: #ffffff;
+  border: 1px solid #dcece0;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+/* Action Buttons */
+.approveBtn {
+  flex: 1;
+  background-color: #16a34a;
+  color: #ffffff;
+  border: none;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+  transition: all 0.2s ease;
+}
+
+.approveBtn:hover:not(:disabled) {
+  background-color: #15803d;
+}
+
+.approveBtn:disabled {
+  background-color: #cbd5e1;
+  color: #64748b;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.7;
+}
+
+.rejectBtn {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fca5a5;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: background-color 0.15s ease;
+}
+
+.rejectBtn:hover {
+  background-color: #fecaca;
+}

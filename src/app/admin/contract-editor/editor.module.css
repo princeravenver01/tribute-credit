@@ -1,0 +1,306 @@
+/* Contract Editor CSS Module - Tribute Credit Admin Panel */
+.editorLayout {
+  display: grid;
+  grid-template-columns: 2.5fr 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .editorLayout {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+/* Master Status Banner */
+.statusBanner {
+  background-color: #14532d;
+  color: #ffffff;
+  border-radius: 14px;
+  padding: 18px 24px;
+  margin-bottom: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  box-shadow: 0 4px 14px rgba(20, 83, 45, 0.15);
+}
+
+.statusBannerTitle {
+  font-size: 16px;
+  font-weight: 800;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #ffffff;
+}
+
+.statusBannerSubtitle {
+  font-size: 12px;
+  color: #bbf7d0;
+  margin: 4px 0 0 0;
+}
+
+.statusBannerPill {
+  font-size: 11px;
+  color: #dcfce7;
+  background-color: rgba(255, 255, 255, 0.15);
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+/* Tab Navigation */
+.tabsBar {
+  display: flex;
+  gap: 10px;
+  border-bottom: 2px solid #dcece0;
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.tabBtn {
+  padding: 10px 20px;
+  border: none;
+  background: none;
+  border-bottom: 3px solid transparent;
+  color: #64748b;
+  font-weight: 800;
+  font-size: 13.5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.tabBtnActive {
+  border-bottom: 3px solid #16a34a;
+  color: #15803d;
+}
+
+/* Cards & Section Boxes */
+.cardBox {
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #dcece0;
+  padding: 20px;
+}
+
+.cardBoxHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  gap: 8px;
+}
+
+.cardTitle {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.subLabel {
+  font-size: 11px;
+  color: #15803d;
+  font-weight: 700;
+}
+
+.formLabel {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #475569;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.textInput {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #dcece0;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.textInput:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.12);
+}
+
+.sectionTitleInput {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid #dcece0;
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.sectionTitleInput:focus {
+  border-color: #16a34a;
+}
+
+/* Side Rail Release Version Box */
+.versionReleaseBox {
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1.5px solid #16a34a;
+  padding: 20px;
+}
+
+.versionTagLabel {
+  font-size: 11px;
+  font-weight: 800;
+  color: #15803d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.versionInput {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1.5px solid #16a34a;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 8px 0 12px 0;
+  box-sizing: border-box;
+  outline: none;
+}
+
+.versionInput:focus {
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+/* Dynamic Tags Guide Box */
+.dynamicTagsBox {
+  background-color: #f6fbf7;
+  border-radius: 12px;
+  border: 1px solid #dcece0;
+  padding: 18px;
+}
+
+.dynamicTagPill {
+  background-color: #ffffff;
+  padding: 5px 8px;
+  border-radius: 4px;
+  border: 1px solid #dcece0;
+  color: #15803d;
+  font-weight: 700;
+}
+
+/* Live Formal Contract Canvas */
+.previewCanvas {
+  background-color: #ffffff;
+  border-radius: 16px;
+  border: 1.5px solid #14532d;
+  padding: 32px;
+  max-width: 880px;
+  margin: 0 auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+}
+
+@media (max-width: 640px) {
+  .previewCanvas {
+    padding: 18px;
+  }
+}
+
+.previewTopBar {
+  display: flex;
+  justify-content: space-between;
+  border-bottom: 2.5px solid #14532d;
+  padding-bottom: 14px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.previewHeaderTitle {
+  font-size: 13pt;
+  font-weight: 900;
+  margin: 0;
+  text-transform: uppercase;
+  color: #0f172a;
+}
+
+.previewVersionBadge {
+  font-size: 7pt;
+  font-weight: 800;
+  background-color: #14532d;
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+
+.previewBannerBox {
+  background-color: #14532d;
+  color: #ffffff;
+  text-align: center;
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 18px;
+}
+
+.previewBodyCard {
+  border: 1px solid #dcece0;
+  border-radius: 8px;
+  padding: 18px;
+  background-color: #f6fbf7;
+  font-size: 8.5pt;
+  line-height: 1.55;
+  color: #334155;
+}
+
+/* History Tab Card */
+.historyItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 18px;
+  border-radius: 10px;
+  border: 1px solid #dcece0;
+  background-color: #f6fbf7;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.historyVersionPill {
+  font-size: 12px;
+  font-weight: 900;
+  color: #15803d;
+  background-color: #dcfce7;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.historyRollbackBtn {
+  background-color: #ffffff;
+  border: 1px solid #86efac;
+  color: #15803d;
+  padding: 7px 14px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.historyRollbackBtn:hover {
+  background-color: #f0fdf4;
+  border-color: #16a34a;
+}
