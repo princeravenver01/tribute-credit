@@ -12,6 +12,29 @@
   transition: opacity 0.2s ease;
 }
 
+@media (min-width: 993px) {
+  .backdrop {
+    display: none !important;
+  }
+
+  .sidebar {
+    transition: width 0.28s cubic-bezier(0.16, 1, 0.3, 1), transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-width 0.28s ease;
+  }
+
+  /* When collapsed on desktop via hamburger toggle */
+  .sidebar.drawer-open {
+    width: 0 !important;
+    min-width: 0 !important;
+    margin-left: -280px !important;
+    transform: translateX(-100%) !important;
+    border-right-width: 0 !important;
+    overflow: hidden !important;
+    box-shadow: none !important;
+    visibility: hidden;
+    pointer-events: none;
+  }
+}
+
 .sidebar {
   width: 280px;
   background-color: #ffffff !important;

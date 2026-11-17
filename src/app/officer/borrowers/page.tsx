@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { OfficerSidebar } from '@/components/officer/OfficerSidebar';
 import { OfficerMobileNav } from '@/components/officer/OfficerMobileNav';
@@ -62,6 +62,7 @@ export default function CurrentBorrowersPage() {
   const [ledgerModalBorrower, setLedgerModalBorrower] = useState<CreditAssessmentItem | null>(null);
   const [passbookViewTab, setPassbookViewTab] = useState<'all' | 'inside' | 'ledger'>('all');
   const [detailsModalBorrower, setDetailsModalBorrower] = useState<CreditAssessmentItem | null>(null);
+  const handledDeepLinkRef = useRef(false);
 
   // Pay Loan Modal State
   const [payLoanModalBorrower, setPayLoanModalBorrower] = useState<CreditAssessmentItem | null>(null);
@@ -141,6 +142,53 @@ export default function CurrentBorrowersPage() {
   };
 
   useEffect(() => {
+    // Check if viewPassbook or viewDetails was passed in query parameter
+    const checkDeepLink = (mergedList: CreditAssessmentItem[]) => {
+      if (typeof window === 'undefined' || handledDeepLinkRef.current) return;
+      const params = new URLSearchParams(window.location.search);
+      const passbookId = params.get('viewPassbook');
+      const detailsId = params.get('viewDetails') || params.get('id');
+
+      if (passbookId) {
+        const target = mergedList.find(b => 
+          b.id === passbookId || 
+          b.applicationId === passbookId || 
+          b.policyNo === passbookId || 
+          (b.mcid && b.mcid === passbookId) ||
+          (b.borrowerName && b.borrowerName.toLowerCase() === passbookId.toLowerCase())
+        );
+        if (target) {
+          handledDeepLinkRef.current = true;
+          setSelectedBorrowerForLedger(target);
+          setPassbookModalBorrower(target);
+          try {
+            params.delete('viewPassbook');
+            const newQuery = params.toString();
+            const newUrl = window.location.pathname + (newQuery ? `?${newQuery}` : '');
+            window.history.replaceState(null, '', newUrl);
+          } catch (e) {}
+        }
+      } else if (detailsId) {
+        const target = mergedList.find(b => 
+          b.id === detailsId || 
+          b.applicationId === detailsId || 
+          b.policyNo === detailsId || 
+          (b.mcid && b.mcid === detailsId)
+        );
+        if (target) {
+          handledDeepLinkRef.current = true;
+          setDetailsModalBorrower(target);
+          try {
+            params.delete('viewDetails');
+            params.delete('id');
+            const newQuery = params.toString();
+            const newUrl = window.location.pathname + (newQuery ? `?${newQuery}` : '');
+            window.history.replaceState(null, '', newUrl);
+          } catch (e) {}
+        }
+      }
+    };
+
     const loadBorrowers = async () => {
       let list = getCreditAssessments();
 
@@ -167,27 +215,10 @@ export default function CurrentBorrowersPage() {
       } catch (e) {}
 
       setBorrowers([...list]);
+      checkDeepLink(list);
     };
 
     loadBorrowers();
-
-    // Check if viewDetails was passed in query parameter (e.g. from Applications queue)
-    if (typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search);
-      const viewId = params.get('viewDetails') || params.get('id');
-      if (viewId) {
-        // Query server/store to find borrower and auto-open details modal
-        const findAndOpen = () => {
-          const all = getCreditAssessments();
-          const target = all.find(b => b.id === viewId || b.applicationId === viewId || b.policyNo === viewId || (b.mcid && b.mcid === viewId));
-          if (target) {
-            setDetailsModalBorrower(target);
-          }
-        };
-        findAndOpen();
-        setTimeout(findAndOpen, 300);
-      }
-    }
 
     window.addEventListener('storage', loadBorrowers);
     const poller = setInterval(loadBorrowers, 2000);
@@ -254,7 +285,7 @@ export default function CurrentBorrowersPage() {
           badgeLabel="Active Loan Ledger"
           pageTitle="Current Borrowers & Repayment Dues"
           pageSubtitle="Live repayment schedules, CBU balances, and official passbook ledger generation."
-          onOpenMobileSidebar={() => setMobileMenuOpen(true)}
+          onOpenMobileSidebar={() => setMobileMenuOpen(prev => !prev)}
           actions={
             <Link
               href="/officer/borrowers/new"
@@ -1362,6 +1393,7 @@ export default function CurrentBorrowersPage() {
                       type="button"
                       onClick={() => setPassbookModalBorrower(null)}
                       className={styles.modalCloseBtn}
+                      aria-label="Close passbook"
                     >
                       <X size={20} />
                     </button>
@@ -1542,6 +1574,7 @@ export default function CurrentBorrowersPage() {
                       type="button"
                       onClick={() => setLedgerModalBorrower(null)}
                       className={styles.modalCloseBtn}
+                      aria-label="Close ledger"
                     >
                       <X size={20} />
                     </button>
@@ -1604,6 +1637,7 @@ export default function CurrentBorrowersPage() {
                       type="button"
                       onClick={() => setDetailsModalBorrower(null)}
                       className={styles.modalCloseBtn}
+                      aria-label="Close details"
                     >
                       <X size={20} />
                     </button>
@@ -1835,6 +1869,7 @@ export default function CurrentBorrowersPage() {
                     type="button"
                     onClick={() => setPayLoanModalBorrower(null)}
                     className={styles.modalCloseBtn}
+                    aria-label="Close pay loan"
                   >
                     <X size={20} />
                   </button>
@@ -2087,6 +2122,7 @@ export default function CurrentBorrowersPage() {
                     type="button"
                     onClick={() => setSavingsModalBorrower(null)}
                     className={styles.modalCloseBtn}
+                    aria-label="Close savings"
                   >
                     <X size={20} />
                   </button>
@@ -2387,6 +2423,7 @@ export default function CurrentBorrowersPage() {
                     type="button"
                     onClick={() => setRenewalModalBorrower(null)}
                     className={styles.modalCloseBtn}
+                    aria-label="Close loan renewal"
                   >
                     <X size={20} />
                   </button>

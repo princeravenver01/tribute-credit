@@ -240,7 +240,7 @@ export default function CreditAssessmentsPage() {
           badgeLabel="Credit Underwriting Desk"
           pageTitle="Credit Assessments & Risk Scoring"
           pageSubtitle="5 Cs analysis, capacity validation, and dual-control adjustment workflow."
-          onOpenMobileSidebar={() => setMobileMenuOpen(true)}
+          onOpenMobileSidebar={() => setMobileMenuOpen(prev => !prev)}
           actions={
             <>
               <button

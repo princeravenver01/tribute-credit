@@ -1330,7 +1330,7 @@ export default function NewBorrowerRegistrationPage() {
           badgeLabel="Onboarding Desk"
           pageTitle="New Borrower Onboarding"
           pageSubtitle="Live demographic, livelihood, asset & credit profiling wizard (Form Ref: NBR-2026)."
-          onOpenMobileSidebar={() => setMobileMenuOpen(true)}
+          onOpenMobileSidebar={() => setMobileMenuOpen(prev => !prev)}
           actions={
             <div className={styles.headerActions}>
               <span className={styles.autoSavedBadge}>

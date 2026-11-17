@@ -219,7 +219,7 @@ export default function ApplicationsPage() {
           badgeLabel="Applications Registry"
           pageTitle="Loan Applications & Draft Vault"
           pageSubtitle={`Archived member loan files, live underwriting pipeline, and draft records (${applications.length} In Pipeline).`}
-          onOpenMobileSidebar={() => setMobileMenuOpen(true)}
+          onOpenMobileSidebar={() => setMobileMenuOpen(prev => !prev)}
           actions={
             <Link
               href="/officer/borrowers/new"

@@ -113,6 +113,7 @@ export default function OfficerDashboardPage() {
 
   const queue = assessments.map(a => ({
     id: a.applicationId || a.id,
+    borrowerId: a.id || a.applicationId,
     member: a.borrowerName,
     product: a.productName || 'Regular Loan',
     amount: `₱ ${(a.officerAdjustedAmount || a.aiPreApprovedAmount || a.requestedAmount || 0).toLocaleString('en-PH')}`,
@@ -143,7 +144,7 @@ export default function OfficerDashboardPage() {
           badgeLabel="Field Underwriting Desk"
           pageTitle="Account Officer Loan Desk"
           pageSubtitle="Live field underwriting, member loan approvals tracking, and cash collection monitoring."
-          onOpenMobileSidebar={() => setMobileMenuOpen(true)}
+          onOpenMobileSidebar={() => setMobileMenuOpen(prev => !prev)}
           actions={
             <Link
               href="/officer/borrowers/new"
@@ -268,7 +269,7 @@ export default function OfficerDashboardPage() {
                           Updated: {item.date}
                         </span>
                         <Link
-                          href="/officer/borrowers/new"
+                          href={`/officer/borrowers?viewPassbook=${encodeURIComponent(item.borrowerId || item.id)}`}
                           className={styles.cardActionLink}
                         >
                           <Eye size={14} /> View File
@@ -320,7 +321,7 @@ export default function OfficerDashboardPage() {
                         </td>
                         <td className={styles.tableTdRight}>
                           <Link
-                            href="/officer/borrowers/new"
+                            href={`/officer/borrowers?viewPassbook=${encodeURIComponent(item.borrowerId || item.id)}`}
                             className={styles.cardActionLink}
                           >
                             <Eye size={13} /> View File
