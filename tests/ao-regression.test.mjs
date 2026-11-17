@@ -455,9 +455,73 @@ test('Issue 12: New Borrower Step 6 has no Submit to Admin or AO adjustment UI a
 
   // 5. Origin of pending_admin in Credit Assessments: handleSaveAssessment(true) sets status: 'pending_admin'
   assert.equal(
-    /handleSaveAssessment\s*=\s*\([^)]*submitToAdmin[^)]*\)\s*=>[\s\S]*status:\s*submitToAdmin\s*\?\s*['"]pending_admin['"]/.test(caContent),
+    /handleSaveAssessment\s*=\s*(?:async\s*)?\([^)]*submitToAdmin[^)]*\)\s*=>[\s\S]*status:\s*submitToAdmin\s*\?\s*['"]pending_admin['"]/.test(caContent),
     true,
     'Credit assessments page handleSaveAssessment must be the mechanism that transitions record to pending_admin upon endorsement'
+  );
+});
+
+test('Issue 13: Credit Assessments endorsement reliability, async transactional UI, poll downgrade protection, and API DB mapping', () => {
+  const caPagePath = path.join(projectRoot, 'src/app/officer/credit-assessments/page.tsx');
+  const apiRoutePath = path.join(projectRoot, 'src/app/api/assessments/route.ts');
+
+  const caContent = fs.readFileSync(caPagePath, 'utf-8');
+  const apiContent = fs.readFileSync(apiRoutePath, 'utf-8');
+
+  // 1. GET /api/assessments must differentiate DB 'pending' => 'pending_assessment' and 'under_review' => 'pending_admin'
+  const mapsDbPendingToAssessment = /row\.status\s*===\s*['"]pending['"]\s*\?\s*['"]pending_assessment['"]/.test(apiContent);
+  const mapsDbUnderReviewToAdmin = /row\.status\s*===\s*['"]under_review['"]\s*\?\s*['"]pending_admin['"]/.test(apiContent);
+
+  assert.equal(
+    mapsDbPendingToAssessment,
+    true,
+    'GET /api/assessments must map DB status pending to pending_assessment'
+  );
+  assert.equal(
+    mapsDbUnderReviewToAdmin,
+    true,
+    'GET /api/assessments must map DB status under_review to pending_admin'
+  );
+
+  // 2. In credit-assessments/page.tsx, handleSaveAssessment must be async and await persistence
+  const isSaveAsync = /handleSaveAssessment\s*=\s*async\s*\([^)]*submitToAdmin/.test(caContent);
+  assert.equal(
+    isSaveAsync,
+    true,
+    'handleSaveAssessment in credit-assessments page must be async'
+  );
+
+  // 3. UI must have an isSubmitting / isEndorsing state that disables button and shows "Endorsing..."
+  const hasSubmittingState = /isEndorsing|isSubmitting/.test(caContent);
+  const showsEndorsingText = /Endorsing\.\.\./.test(caContent);
+  assert.equal(
+    hasSubmittingState && showsEndorsingText,
+    true,
+    'Credit assessments page must provide an in-flight endorsing indicator'
+  );
+
+  // 4. Polling/refresh draft integration must NOT downgrade an assessment that is already pending_admin, admin_approved, etc.
+  const hasDowngradeProtection = /draft\.isSubmittedToAdmin\s*\?\s*['"]pending_admin['"]\s*:\s*['"]pending_assessment['"]/.test(caContent);
+  assert.equal(
+    hasDowngradeProtection,
+    false,
+    'Draft integration in refreshAssessments must not downgrade existing pending_admin assessments'
+  );
+
+  // 5. When endorsing, if the item matches local draft, local draft is updated to isSubmittedToAdmin = true
+  const updatesDraftOnEndorse = /tribute_new_borrower_draft/.test(caContent) && /isSubmittedToAdmin\s*=\s*true/.test(caContent);
+  assert.equal(
+    updatesDraftOnEndorse,
+    true,
+    'Endorsing in Credit Assessments must synchronize the local draft isSubmittedToAdmin flag to true'
+  );
+
+  // 6. When already pending_admin or later, the endorsement button must be hidden or disabled
+  const handlesEndorsedStatusUi = /selectedAssessment\.status\s*===\s*['"]pending_admin['"]/.test(caContent);
+  assert.equal(
+    handlesEndorsedStatusUi,
+    true,
+    'Endorsement button or status UI must specifically handle already endorsed pending_admin status'
   );
 });
 

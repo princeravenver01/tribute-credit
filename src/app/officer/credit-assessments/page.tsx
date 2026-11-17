@@ -54,6 +54,8 @@ export default function CreditAssessmentsPage() {
   const [officerNote, setOfficerNote] = useState<string>('');
   const [recommendation, setRecommendation] = useState<'recommend_approve' | 'recommend_adjust' | 'recommend_reject'>('recommend_approve');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [saveErrorMsg, setSaveErrorMsg] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const handledDeepLinkRef = useRef(false);
 
   useEffect(() => {
@@ -77,11 +79,22 @@ export default function CreditAssessmentsPage() {
               (fullName && a.borrowerName.toLowerCase() === fullName.toLowerCase())
             );
 
-            const determinedStatus: CreditAssessmentItem['status'] = 
-              draft.isContractFinalized ? 'contract_ready' :
-              draft.adminSimulationStatus === 'approved' ? 'admin_approved' :
-              draft.adminSimulationStatus === 'rejected' ? 'admin_rejected' :
-              draft.isSubmittedToAdmin ? 'pending_admin' : 'pending_assessment';
+            // Downgrade protection: only infer status from draft if existing assessment is not already further in pipeline
+            const existingItem = existingIndex >= 0 ? list[existingIndex] : null;
+            const hasAdvancedStatus = existingItem && (
+              existingItem.status === 'pending_admin' ||
+              existingItem.status === 'admin_approved' ||
+              existingItem.status === 'admin_rejected' ||
+              existingItem.status === 'contract_ready' ||
+              existingItem.status === 'disbursed'
+            );
+
+            const determinedStatus: CreditAssessmentItem['status'] = hasAdvancedStatus
+              ? existingItem.status
+              : draft.isContractFinalized ? 'contract_ready'
+              : draft.adminSimulationStatus === 'approved' ? 'admin_approved'
+              : draft.adminSimulationStatus === 'rejected' ? 'admin_rejected'
+              : (draft.isSubmittedToAdmin ? 'pending_admin' : (existingItem?.status || 'pending_assessment'));
 
             if (existingIndex >= 0) {
               list[existingIndex] = {
@@ -201,8 +214,12 @@ export default function CreditAssessmentsPage() {
   };
 
   // Save changes & optionally endorse to Admin
-  const handleSaveAssessment = (submitToAdmin: boolean = false) => {
-    if (!selectedAssessment || !editingScorecard) return;
+  const handleSaveAssessment = async (submitToAdmin: boolean = false) => {
+    if (!selectedAssessment || !editingScorecard || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setSaveErrorMsg('');
+    setSaveSuccessMsg('');
 
     const updatedItem: CreditAssessmentItem = {
       ...selectedAssessment,
@@ -214,15 +231,61 @@ export default function CreditAssessmentsPage() {
       status: submitToAdmin ? 'pending_admin' : selectedAssessment.status
     };
 
-    const updatedList = saveCreditAssessment(updatedItem);
-    setAssessments(updatedList);
-    setSelectedAssessment(updatedItem);
+    try {
+      // 1. Await persistence to server API
+      const res = await fetch('/api/assessments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedItem),
+      });
 
-    setSaveSuccessMsg(submitToAdmin 
-      ? '✓ Assessment endorsed to Admin Approval Queue!' 
-      : '✓ Credit assessment score & notes saved successfully.');
-    
-    setTimeout(() => setSaveSuccessMsg(''), 4000);
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}: Failed to persist assessment`);
+      }
+
+      // 2. Persist locally to storage
+      const updatedList = saveCreditAssessment(updatedItem);
+      setAssessments(updatedList);
+      setSelectedAssessment(updatedItem);
+
+      // 3. Synchronize local draft if it matches this application so polling doesn't regress it
+      try {
+        const draftRaw = localStorage.getItem('tribute_new_borrower_draft');
+        if (draftRaw) {
+          const draft = JSON.parse(draftRaw);
+          const fullName = `${draft.step1?.firstName || ''} ${draft.step1?.middleName || ''} ${draft.step1?.lastName || ''}`.trim();
+          const matchesDraft = 
+            (draft.applicationId && (draft.applicationId === updatedItem.applicationId || draft.applicationId === updatedItem.id)) ||
+            (updatedItem.id && updatedItem.id === `CA-${(draft.applicationId || '').replace('NBR-', '')}`) ||
+            (draft.step1?.tgswsPolicyNumber && draft.step1.tgswsPolicyNumber !== 'LCAP-' && draft.step1.tgswsPolicyNumber === updatedItem.policyNo) ||
+            (fullName && updatedItem.borrowerName.toLowerCase() === fullName.toLowerCase());
+
+          if (matchesDraft) {
+            draft.officerAdjustedAmount = officerAmount;
+            draft.officerAdjustmentNote = officerNote;
+            if (submitToAdmin) {
+              draft.isSubmittedToAdmin = true;
+              draft.adminSimulationStatus = 'pending';
+            }
+            localStorage.setItem('tribute_new_borrower_draft', JSON.stringify(draft));
+          }
+        }
+      } catch (err) {
+        console.error('Error synchronizing draft upon endorsement:', err);
+      }
+
+      setSaveSuccessMsg(submitToAdmin 
+        ? '✓ Assessment endorsed to Admin Approval Queue!' 
+        : '✓ Credit assessment score & notes saved successfully.');
+      
+      setTimeout(() => setSaveSuccessMsg(''), 4000);
+    } catch (err: any) {
+      console.error('Error saving/endorsing assessment:', err);
+      setSaveErrorMsg(err.message || 'Failed to submit assessment to Admin. Please retry.');
+      setTimeout(() => setSaveErrorMsg(''), 5000);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Simulate Admin Decision right from officer test bench
@@ -713,35 +776,85 @@ export default function CreditAssessmentsPage() {
                 </div>
               </div>
 
-              {/* Action Buttons Footer */}
-              <div className={styles.actionFooter}>
-                <button
-                  type="button"
-                  onClick={() => handleSaveAssessment(false)}
-                  className={styles.saveDraftBtn}
-                >
-                  Save Assessment Draft
-                </button>
+                {/* Action Feedback Messages */}
+                {saveSuccessMsg && (
+                  <div style={{
+                    backgroundColor: '#dcfce7',
+                    border: '1px solid #86efac',
+                    color: '#15803d',
+                    padding: '10px 16px',
+                    borderRadius: '8px',
+                    marginBottom: '16px',
+                    fontSize: '13px',
+                    fontWeight: '700'
+                  }}>
+                    {saveSuccessMsg}
+                  </div>
+                )}
+                {saveErrorMsg && (
+                  <div style={{
+                    backgroundColor: '#fee2e2',
+                    border: '1px solid #fecaca',
+                    color: '#dc2626',
+                    padding: '10px 16px',
+                    borderRadius: '8px',
+                    marginBottom: '16px',
+                    fontSize: '13px',
+                    fontWeight: '700'
+                  }}>
+                    ✗ {saveErrorMsg}
+                  </div>
+                )}
 
-                <div className={styles.primaryActionGroup}>
+                <div className={styles.actionFooter}>
                   <button
                     type="button"
-                    onClick={() => handleSaveAssessment(true)}
-                    className={styles.endorseAdminBtn}
+                    disabled={isSubmitting}
+                    onClick={() => handleSaveAssessment(false)}
+                    className={styles.saveDraftBtn}
+                    style={{ opacity: isSubmitting ? 0.6 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
                   >
-                    <Building size={16} /> Submit & Endorse to Admin
+                    Save Assessment Draft
                   </button>
 
-                  {selectedAssessment.status === 'admin_approved' && (
-                    <Link
-                      href="/officer/borrowers/new"
-                      className={styles.proceedContractLink}
-                    >
-                      Proceed to Step 7 Contract <ChevronRight size={16} />
-                    </Link>
-                  )}
+                  <div className={styles.primaryActionGroup}>
+                    {selectedAssessment.status === 'pending_admin' ? (
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: '#e0f2fe',
+                        border: '1px solid #bae6fd',
+                        color: '#0369a1',
+                        padding: '10px 18px',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: '800'
+                      }}>
+                        <Building size={16} /> Endorsed • Awaiting Admin Committee
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={isSubmitting || selectedAssessment.status === 'admin_approved' || selectedAssessment.status === 'contract_ready' || selectedAssessment.status === 'disbursed'}
+                        onClick={() => handleSaveAssessment(true)}
+                        className={styles.endorseAdminBtn}
+                        style={{ opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
+                      >
+                        <Building size={16} /> {isSubmitting ? 'Endorsing...' : 'Submit & Endorse to Admin'}
+                      </button>
+                    )}
+
+                    {selectedAssessment.status === 'admin_approved' && (
+                      <Link
+                        href="/officer/borrowers/new"
+                        className={styles.proceedContractLink}
+                      >
+                        Proceed to Step 7 Contract <ChevronRight size={16} />
+                      </Link>
+                    )}
+                  </div>
                 </div>
-              </div>
             </div>
           ) : (
             <div className={styles.emptyWorksheet}>
