@@ -403,3 +403,61 @@ test('Issue 11: Pre-approval creates pending_assessment and excludes from Admin 
   );
 });
 
+test('Issue 12: New Borrower Step 6 has no Submit to Admin or AO adjustment UI and has assessment deep-link CTA; pending_admin originates only in CA endorsement', () => {
+  const newBorrowerPath = path.join(projectRoot, 'src/app/officer/borrowers/new/page.tsx');
+  const creditAssessmentsPath = path.join(projectRoot, 'src/app/officer/credit-assessments/page.tsx');
+
+  const newBorrowerContent = fs.readFileSync(newBorrowerPath, 'utf-8');
+  const caContent = fs.readFileSync(creditAssessmentsPath, 'utf-8');
+
+  // 1. Step 6 must NOT render "Account Officer Amount Adjustment"
+  assert.equal(
+    /Account Officer Amount Adjustment/.test(newBorrowerContent),
+    false,
+    'New Borrower Step 6 must not contain Account Officer Amount Adjustment controls'
+  );
+
+  // 2. Step 6 must NOT render "Admin Governance Status"
+  assert.equal(
+    /Admin Governance Status:/.test(newBorrowerContent),
+    false,
+    'New Borrower Step 6 must not contain Admin Governance Status block'
+  );
+
+  // 3. Step 6 must NOT contain "Submit to Admin" or handleSubmitToAdmin
+  assert.equal(
+    /Submit to Admin/.test(newBorrowerContent),
+    false,
+    'New Borrower Step 6 must not contain Submit to Admin button'
+  );
+  assert.equal(
+    /handleSubmitToAdmin/.test(newBorrowerContent),
+    false,
+    'New Borrower page must not wire handleSubmitToAdmin directly to Admin queue'
+  );
+
+  // 4. Step 6 must have "Ready for AO Credit Assessment" and "Continue to Credit Assessment" linking to /officer/credit-assessments?assessId=
+  assert.equal(
+    /Ready for AO Credit Assessment/.test(newBorrowerContent),
+    true,
+    'New Borrower Step 6 must show "Ready for AO Credit Assessment" status for pending_assessment'
+  );
+  assert.equal(
+    /Continue to Credit Assessment/.test(newBorrowerContent),
+    true,
+    'New Borrower Step 6 must provide "Continue to Credit Assessment" primary CTA'
+  );
+  assert.equal(
+    /\/officer\/credit-assessments\?assessId=/.test(newBorrowerContent),
+    true,
+    'New Borrower Step 6 CTA must navigate to /officer/credit-assessments with encoded assessId'
+  );
+
+  // 5. Origin of pending_admin in Credit Assessments: handleSaveAssessment(true) sets status: 'pending_admin'
+  assert.equal(
+    /handleSaveAssessment\s*=\s*\([^)]*submitToAdmin[^)]*\)\s*=>[\s\S]*status:\s*submitToAdmin\s*\?\s*['"]pending_admin['"]/.test(caContent),
+    true,
+    'Credit assessments page handleSaveAssessment must be the mechanism that transitions record to pending_admin upon endorsement'
+  );
+});
+

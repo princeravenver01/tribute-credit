@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { OfficerSidebar } from '@/components/officer/OfficerSidebar';
 import { OfficerMobileNav } from '@/components/officer/OfficerMobileNav';
 import { SyncStatusBar } from '@/components/common/SyncStatusBar';
@@ -48,6 +49,9 @@ import {
   DollarSign,
   Scale,
   FileCheck2,
+  FileCheck,
+  Eye,
+  BadgeCheck,
   FileText,
   ShieldCheck,
   Calculator,
@@ -134,6 +138,7 @@ interface AttachmentRecord {
 }
 
 export default function NewBorrowerRegistrationPage() {
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   // Current Step: 1 to 7 (plus Verification intermission after Step 6)
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5 | 6 | 7>(1);
@@ -1021,125 +1026,20 @@ export default function NewBorrowerRegistrationPage() {
     }
   };
 
+  // Handler to navigate to Credit Assessments workbench
+  const handleContinueToCreditAssessment = () => {
+    const currentAppId = applicationId || `NBR-${Date.now().toString().slice(-6)}`;
+    const assessId = `CA-${currentAppId.replace('NBR-', '')}`;
+    syncToCreditAssessmentStore();
+    router.push(`/officer/credit-assessments?assessId=${encodeURIComponent(assessId)}`);
+  };
+
   // Sync automatically when reaching or viewing Step 6 if not yet submitted
   useEffect(() => {
     if (currentStep >= 6 && isDraftLoaded && !isSubmittedToAdmin) {
       syncToCreditAssessmentStore();
     }
   }, [currentStep, isDraftLoaded, isSubmittedToAdmin, officerAdjustedAmount]);
-
-  // Explicit user submission to Admin Credit Committee (handles initial submit & post-approval reconsiderations up to 3 times)
-  const handleSubmitToAdmin = (isReconsideration = false) => {
-    if (isReconsideration && adjustmentCount >= 3) {
-      setErrorMsg('Maximum reconsideration limit reached (3 of 3 adjustments). The Admin decision is final.');
-      return;
-    }
-
-    const nextCount = isReconsideration ? adjustmentCount + 1 : adjustmentCount;
-    setIsSubmittingToAdmin(true);
-
-    const borrowerFullName = `${step1.firstName || ''} ${step1.middleName || ''} ${step1.lastName || ''}`.trim() || 'Applicant';
-    const currentAppId = applicationId || `NBR-${Date.now().toString().slice(-6)}`;
-    const aiPreApprove = aiResult?.preApprovedAmount || step5.requestedAmount;
-
-    const payload: CreditAssessmentItem = {
-      id: `CA-${currentAppId.replace('NBR-', '')}`,
-      applicationId: currentAppId,
-      borrowerName: borrowerFullName,
-      policyNo: step1.tgswsPolicyNumber || 'LCAP-',
-      contactNumber: `${step2.countryCode || '+63'} ${step2.mobileNumber || ''}`,
-      location: `${step2.barangay || ''}, ${step2.city || ''}, ${step2.province || ''}`,
-      livelihood: step4.occupation || 'Self-Employed Micro-Enterprise',
-      yearsInBusiness: Number(step4.yearsInLivelihood) || 3,
-      monthlyNetIncome: Number(step4.monthlyNetIncome) || 20000,
-      existingDebts: totals.totalMonthlyDebtDues || 0,
-      netDisposableIncome: totals.netDisposableMonthlyIncome || 15000,
-      requestedAmount: Number(step5.requestedAmount) || 10000,
-      productName: step5.loanProduct || 'Regular Loan',
-      termMonths: Number(step5.termMonths) || 3,
-      paymentMode: step5.repaymentFrequency,
-      aiPreApprovedAmount: aiPreApprove,
-      aiRiskRating: aiResult?.riskRating || 'Class A (Low Risk)',
-      aiDsr: aiResult?.debtServiceRatio || 30,
-      aiConfidenceScore: 94.2,
-      aiRecommendationNote: aiResult?.recommendationNote || 'Evaluated during intake interview.',
-      fiveCs: {
-        characterScore: 18,
-        characterNotes: `Barangay residency verified. Policy no: ${step1.tgswsPolicyNumber}`,
-        capacityScore: 21,
-        capacityNotes: `DSR evaluated. Net disposable is ₱${totals.netDisposableMonthlyIncome.toLocaleString('en-PH')}`,
-        capitalScore: 16,
-        capitalNotes: `Declared assets value: ₱${totals.totalAssetsValue.toLocaleString('en-PH')}`,
-        collateralScore: 14,
-        collateralNotes: assets.length > 0 ? `${assets.length} collateral item(s) declared` : 'Personal guarantee / co-maker',
-        conditionsScore: 13,
-        conditionsNotes: `Operating in ${step2.city || 'Metro Manila'}`,
-        totalScore: 82,
-        riskGrade: calculate5CsGrade(82),
-      },
-      officerAdjustedAmount: officerAdjustedAmount || aiPreApprove,
-      officerRecommendation: 'recommend_adjust',
-      officerNotes: officerAdjustmentNote || officerAssessmentNotes || 'Reconsideration request submitted by Account Officer.',
-      evaluatedByOfficer: 'Officer Juan (AO-001)',
-      evaluatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      status: 'pending_admin',
-      adminApprovedAmount: undefined,
-      adjustmentCount: nextCount,
-      maxAdjustmentsReached: nextCount >= 3,
-      mcid: step1.cooperativeId || 'TCID-A-00001',
-      cidNumber: step1.cooperativeId || 'TCID-A-00001',
-      fullProfile: {
-        step1,
-        step2,
-        govIds,
-        dependants,
-        step4,
-        assets,
-        otherIncomes,
-        liabilities,
-        step5,
-        attachments,
-      },
-    };
-
-    saveCreditAssessment(payload);
-
-    try {
-      fetch('/api/assessments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      }).catch(() => {});
-    } catch (e) {}
-
-    setAdminSimulationStatus('pending');
-    setIsSubmittedToAdmin(true);
-    setAdjustmentCount(nextCount);
-
-    setTimeout(() => {
-      setIsSubmittingToAdmin(false);
-      setSuccessMsg(
-        isReconsideration
-          ? `✓ Reconsideration request (${nextCount}/3) sent to Admin Credit Committee! Status returned to Pending Admin Review.`
-          : '✓ Application, AI Risk Analysis, and 5 Cs Scorecard successfully submitted to Admin Credit Committee queue!'
-      );
-
-      // Update draft
-      try {
-        const raw = localStorage.getItem('tribute_new_borrower_draft');
-        if (raw) {
-          const d = JSON.parse(raw);
-          d.isSubmittedToAdmin = true;
-          d.adminSimulationStatus = 'pending';
-          d.adminApprovedAmount = undefined;
-          d.adjustmentCount = nextCount;
-          d.officerAdjustedAmount = officerAdjustedAmount;
-          d.officerAdjustmentNote = officerAdjustmentNote;
-          localStorage.setItem('tribute_new_borrower_draft', JSON.stringify(d));
-        }
-      } catch (e) {}
-    }, 600);
-  };
 
   // Current Working Loan Amount for calculation (Officer Adjusted or Admin Approved)
   const activePrincipalAmount = useMemo(() => {
@@ -2945,7 +2845,7 @@ export default function NewBorrowerRegistrationPage() {
               </div>
             )}
 
-            {/* AI Evaluation Completed Result & Officer/Admin Amount Adjustments */}
+            {/* AI Evaluation Completed Result & Credit Assessment Hand-off */}
             {aiResult && (
               <div style={{
                 backgroundColor: '#f0fdf4',
@@ -2978,199 +2878,148 @@ export default function NewBorrowerRegistrationPage() {
                   🤖 <strong>AI Note:</strong> {aiResult.recommendationNote}
                 </p>
 
-                {/* Officer Amount Adjustment (Higher or Lower) */}
-                <div style={{
-                  backgroundColor: '#ffffff',
-                  borderRadius: '12px',
-                  padding: '20px',
-                  border: '1px solid #e2e8f0',
-                  marginBottom: '20px'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                    <Sliders size={18} color="#0284c7" />
-                    <h4 style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a' }}>
-                      Account Officer Amount Adjustment
-                    </h4>
-                    <span style={{ fontSize: '11px', color: '#64748b' }}>(Can adjust higher or lower than AI pre-approved)</span>
-                  </div>
+                {/* Workflow Status Banner & Mandatory 5 Cs Assessment CTA */}
+                {(() => {
+                  const currentAppId = applicationId || `NBR-${Date.now().toString().slice(-6)}`;
+                  const assessId = `CA-${currentAppId.replace('NBR-', '')}`;
+                  const isApproved = adminSimulationStatus === 'approved';
+                  const isPendingAdmin = isSubmittedToAdmin || adminSimulationStatus === 'pending';
+                  const isRejected = adminSimulationStatus === 'rejected';
 
-                  <div className="step-form-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '16px' }}>
-                    <div>
-                      <label style={smallLabelStyle}>Adjusted Amount (₱)</label>
-                      <input
-                        type="number"
-                        min="1000"
-                        step="500"
-                        value={officerAdjustedAmount}
-                        onChange={(e) => setOfficerAdjustedAmount(Number(e.target.value) || 0)}
-                        style={{ ...inputStyle, fontWeight: '800', color: '#0284c7' }}
-                      />
-                    </div>
-                    <div>
-                      <label style={smallLabelStyle}>Adjustment Reason / Recommendation for Admin</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Borrower showed supplemental sari-sari ledger during CI..."
-                        value={officerAdjustmentNote}
-                        onChange={(e) => setOfficerAdjustmentNote(e.target.value)}
-                        style={inputStyle}
-                      />
-                    </div>
-                  </div>
-                </div>
+                  return (
+                    <div style={{
+                      backgroundColor: isApproved ? '#f0fdf4' : isRejected ? '#fef2f2' : isPendingAdmin ? '#f0f9ff' : '#fffbeb',
+                      borderRadius: '14px',
+                      padding: '22px',
+                      border: isApproved ? '1.5px solid #86efac' : isRejected ? '1.5px solid #fecaca' : isPendingAdmin ? '1.5px solid #bae6fd' : '1.5px solid #fde68a',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '16px'
+                    }}>
+                      <div style={{ maxWidth: '640px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                          {isApproved ? (
+                            <CheckCircle size={18} color="#15803d" />
+                          ) : isRejected ? (
+                            <AlertCircle size={18} color="#dc2626" />
+                          ) : isPendingAdmin ? (
+                            <Building size={18} color="#0284c7" />
+                          ) : (
+                            <FileCheck size={18} color="#b45309" />
+                          )}
+                          <strong style={{ fontSize: '14px', color: '#0f172a' }}>
+                            {isApproved
+                              ? 'Application Status: Approved by Committee'
+                              : isRejected
+                              ? 'Application Status: Disapproved'
+                              : isPendingAdmin
+                              ? 'Application Status: In Admin Committee Queue'
+                              : 'Ready for AO Credit Assessment'}
+                          </strong>
+                        </div>
+                        <p style={{ fontSize: '12.5px', color: '#475569', margin: 0, lineHeight: '1.5' }}>
+                          {isApproved ? (
+                            <>Credit Committee has officially approved this loan at <strong>₱{adminApprovedAmount.toLocaleString('en-PH')}</strong>. You may now proceed directly to Step 7 Contract Execution.</>
+                          ) : isRejected ? (
+                            <>This loan application has been disapproved by the Credit Committee. Review notes or contact administration.</>
+                          ) : isPendingAdmin ? (
+                            <>Application was endorsed by Account Officer and is currently under review by the Admin Credit Committee. Amount adjustments and endorsements are locked.</>
+                          ) : (
+                            <>AI verification is complete. The application must now be evaluated on the 5 Cs Credit Assessment desk (Character, Capacity, Capital, Collateral, Conditions) before it can be submitted to Admin.</>
+                          )}
+                        </p>
+                      </div>
 
-                {/* Admin Approval Simulation Stage */}
-                <div style={{
-                  backgroundColor: adminSimulationStatus === 'approved' ? '#f0fdf4' : '#fffbeb',
-                  borderRadius: '12px',
-                  padding: '18px',
-                  border: adminSimulationStatus === 'approved' ? '1.5px solid #86efac' : '1.5px solid #fde68a',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '12px'
-                }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Building size={16} color={adminSimulationStatus === 'approved' ? '#15803d' : '#b45309'} />
-                      <strong style={{ fontSize: '13.5px', color: '#0f172a' }}>Admin Governance Status:</strong>
-                      <span style={{
-                        fontSize: '11px',
-                        padding: '3px 8px',
-                        borderRadius: '6px',
-                        fontWeight: '700',
-                        backgroundColor: adminSimulationStatus === 'approved' ? '#dcfce7' : isSubmittedToAdmin ? '#e0f2fe' : '#fef3c7',
-                        color: adminSimulationStatus === 'approved' ? '#15803d' : isSubmittedToAdmin ? '#0369a1' : '#b45309'
-                      }}>
-                        {adminSimulationStatus === 'approved' 
-                          ? `Approved by Admin (₱${adminApprovedAmount.toLocaleString('en-PH')})` 
-                          : isSubmittedToAdmin
-                            ? 'Submitted & Pending Committee Decision'
-                            : 'Pending Admin Decision'}
-                      </span>
-                    </div>
-                    <p style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>
-                      {adminSimulationStatus === 'approved'
-                        ? 'Credit Committee has approved and locked this amount. Officer can now execute contract.'
-                        : isSubmittedToAdmin
-                          ? '✓ Successfully submitted to Admin Credit Committee review queue. Waiting for Committee approval.'
-                          : 'Submit assessment recommendations to Admin for official committee approval.'}
-                    </p>
-                  </div>
-
-                  {adminSimulationStatus === 'pending' ? (
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-                      <button
-                        type="button"
-                        disabled={isSubmittingToAdmin || isSubmittedToAdmin}
-                        onClick={() => handleSubmitToAdmin(false)}
-                        title={isSubmittedToAdmin ? "Application has already been submitted to Admin. Awaiting committee review." : "Submit to Admin Credit Committee"}
-                        style={{
-                          backgroundColor: isSubmittedToAdmin ? '#15803d' : '#0284c7',
-                          color: '#ffffff',
-                          border: 'none',
-                          padding: '10px 20px',
-                          borderRadius: '8px',
-                          fontWeight: '800',
-                          fontSize: '13px',
-                          cursor: (isSubmittingToAdmin || isSubmittedToAdmin) ? 'not-allowed' : 'pointer',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '8px',
-                          boxShadow: isSubmittedToAdmin ? 'none' : '0 4px 12px rgba(2, 132, 199, 0.25)',
-                          transition: 'all 0.2s ease',
-                          opacity: isSubmittingToAdmin ? 0.7 : isSubmittedToAdmin ? 0.95 : 1
-                        }}
-                      >
-                        {isSubmittingToAdmin ? (
+                      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                        {isApproved ? (
                           <>
-                            <div style={{ width: '14px', height: '14px', border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                            <span>Submitting...</span>
+                            <Link
+                              href={`/officer/credit-assessments?assessId=${encodeURIComponent(assessId)}`}
+                              style={{
+                                backgroundColor: '#ffffff',
+                                color: '#0f172a',
+                                border: '1.5px solid #cbd5e1',
+                                padding: '10px 18px',
+                                borderRadius: '8px',
+                                fontWeight: '700',
+                                fontSize: '13px',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                textDecoration: 'none'
+                              }}
+                            >
+                              <Eye size={15} /> View Credit Assessment
+                            </Link>
+                            <button
+                              type="button"
+                              onClick={() => setCurrentStep(7)}
+                              style={{
+                                backgroundColor: '#16a34a',
+                                color: '#fff',
+                                border: 'none',
+                                padding: '10px 22px',
+                                borderRadius: '8px',
+                                fontWeight: '800',
+                                fontSize: '13px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '6px',
+                                cursor: 'pointer',
+                                boxShadow: '0 4px 14px rgba(22, 163, 74, 0.3)'
+                              }}
+                            >
+                              Proceed to Step 7: Contract Execution <ChevronRight size={16} />
+                            </button>
                           </>
-                        ) : isSubmittedToAdmin ? (
-                          <>
-                            <CheckCircle size={16} />
-                            <span>Submitted to Admin (Queue Active)</span>
-                          </>
+                        ) : isPendingAdmin ? (
+                          <Link
+                            href={`/officer/credit-assessments?assessId=${encodeURIComponent(assessId)}`}
+                            style={{
+                              backgroundColor: '#0284c7',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '10px 20px',
+                              borderRadius: '8px',
+                              fontWeight: '800',
+                              fontSize: '13px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              textDecoration: 'none',
+                              boxShadow: '0 4px 12px rgba(2, 132, 199, 0.25)'
+                            }}
+                          >
+                            <Eye size={15} /> View Credit Assessment
+                          </Link>
                         ) : (
-                          <>
-                            <Building size={16} />
-                            <span>Submit to Admin</span>
-                          </>
+                          <button
+                            type="button"
+                            onClick={handleContinueToCreditAssessment}
+                            style={{
+                              backgroundColor: '#16a34a',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '11px 22px',
+                              borderRadius: '8px',
+                              fontWeight: '800',
+                              fontSize: '13.5px',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '8px',
+                              cursor: 'pointer',
+                              boxShadow: '0 4px 14px rgba(22, 163, 74, 0.3)'
+                            }}
+                          >
+                            <BadgeCheck size={17} /> Continue to Credit Assessment <ChevronRight size={16} />
+                          </button>
                         )}
-                      </button>
+                      </div>
                     </div>
-                  ) : (
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                      {/* Allow AO reconsideration if adjusted amount differs or notes provided, up to 3 times */}
-                      {adjustmentCount < 3 ? (
-                        <button
-                          type="button"
-                          disabled={isSubmittingToAdmin}
-                          onClick={() => {
-                            if (!officerAdjustmentNote.trim()) {
-                              alert('Please provide an "Adjustment Reason / Recommendation for Admin" before requesting reconsideration.');
-                              return;
-                            }
-                            if (confirm(`Submit new amount (₱${officerAdjustedAmount.toLocaleString('en-PH')}) back to Admin for reconsideration? (Used ${adjustmentCount + 1} of 3 allowable adjustments)`)) {
-                              handleSubmitToAdmin(true);
-                            }
-                          }}
-                          style={{
-                            backgroundColor: '#f59e0b',
-                            color: '#ffffff',
-                            border: 'none',
-                            padding: '10px 18px',
-                            borderRadius: '8px',
-                            fontWeight: '800',
-                            fontSize: '13px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            cursor: isSubmittingToAdmin ? 'not-allowed' : 'pointer',
-                            boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25)'
-                          }}
-                        >
-                          <Sliders size={16} /> Request Admin Reconsideration ({3 - adjustmentCount} left)
-                        </button>
-                      ) : (
-                        <span style={{
-                          fontSize: '11.5px',
-                          fontWeight: '800',
-                          color: '#dc2626',
-                          backgroundColor: '#fee2e2',
-                          border: '1px solid #fecaca',
-                          padding: '6px 12px',
-                          borderRadius: '8px'
-                        }}>
-                          🔒 Reconsideration limit reached (3/3 used). Admin decision is final.
-                        </span>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={() => setCurrentStep(7)}
-                        style={{
-                          backgroundColor: '#16a34a',
-                          color: '#fff',
-                          border: 'none',
-                          padding: '10px 22px',
-                          borderRadius: '8px',
-                          fontWeight: '800',
-                          fontSize: '13px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          cursor: 'pointer',
-                          boxShadow: '0 4px 14px rgba(22, 163, 74, 0.3)'
-                        }}
-                      >
-                        Proceed to Step 7: Contract Execution <ChevronRight size={16} />
-                      </button>
-                    </div>
-                  )}
-                </div>
+                  );
+                })()}
               </div>
             )}
 
