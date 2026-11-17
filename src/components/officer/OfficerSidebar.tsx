@@ -7,6 +7,7 @@ import {
   LogOut,
   X,
   ShieldCheck,
+  Settings,
 } from 'lucide-react';
 import styles from './OfficerChrome.module.css';
 import { OFFICER_NAV_ITEMS } from './officer-nav-items';
@@ -25,6 +26,7 @@ export const OfficerSidebar: React.FC<OfficerSidebarProps> = ({
   const pathname = usePathname();
 
   const navigationItems = OFFICER_NAV_ITEMS;
+  const isSettingsActive = pathname === '/officer/settings' || pathname.startsWith('/officer/settings/');
 
   return (
     <>
@@ -37,7 +39,7 @@ export const OfficerSidebar: React.FC<OfficerSidebarProps> = ({
       )}
 
       {/* Sidebar Container using CSS classes for zero hydration mismatch */}
-      <aside className={`officer-desktop-sidebar ${styles.sidebar} ${isMobileOpen ? 'drawer-open' : ''}`}>
+      <aside className={`officer-desktop-sidebar ${styles.sidebar} ${isMobileOpen ? `drawer-open ${styles.sidebarCollapsed}` : ''}`}>
         {/* Brand Header with Tribute Grace Logo */}
         <div className={styles.sidebarBrandHeader}>
           <Link
@@ -124,8 +126,17 @@ export const OfficerSidebar: React.FC<OfficerSidebarProps> = ({
           })}
         </nav>
 
-        {/* Footer Logout */}
+        {/* Footer Account Settings & Logout */}
         <div className={styles.sidebarFooter}>
+          <Link
+            href="/officer/settings"
+            onClick={onCloseMobile}
+            className={`${styles.sidebarSettingsLink} ${isSettingsActive ? styles.sidebarSettingsLinkActive : ''}`}
+          >
+            <Settings size={16} color={isSettingsActive ? '#15803d' : '#475569'} />
+            <span>Account Settings</span>
+          </Link>
+
           <button
             type="button"
             onClick={async () => {
@@ -136,7 +147,7 @@ export const OfficerSidebar: React.FC<OfficerSidebarProps> = ({
             }}
             className={styles.sidebarLogoutBtn}
           >
-            <LogOut size={17} />
+            <LogOut size={16} />
             <span>Sign Out Desk</span>
           </button>
         </div>
