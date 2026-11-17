@@ -21,6 +21,7 @@ import {
   UserCheck,
   PlusCircle,
   FileEdit,
+  BadgeCheck,
   Building2,
   Calendar,
   DollarSign,
@@ -32,6 +33,8 @@ import styles from './queue.module.css';
 
 export interface BorrowerApplicationItem {
   id: string;
+  assessmentId?: string;
+  applicationId?: string;
   applicantName: string;
   productName: string;
   requestedAmount: number;
@@ -40,6 +43,7 @@ export interface BorrowerApplicationItem {
   paymentMode: string;
   currentStep: number;
   status: 'draft' | 'pending_ai' | 'pending_admin' | 'approved' | 'rejected' | 'completed';
+  assessmentStatus?: 'pending_assessment' | 'pending_admin' | 'admin_approved' | 'admin_rejected' | 'contract_ready' | 'disbursed';
   updatedAt: string;
   policyNo?: string;
 }
@@ -113,6 +117,8 @@ export default function ApplicationsPage() {
         assessments.forEach(a => {
           list.push({
             id: a.applicationId || a.id,
+            assessmentId: a.id,
+            applicationId: a.applicationId,
             applicantName: a.borrowerName,
             productName: a.productName || 'Regular Loan',
             requestedAmount: a.requestedAmount,
@@ -121,6 +127,7 @@ export default function ApplicationsPage() {
             paymentMode: a.paymentMode || 'Daily',
             currentStep: a.status === 'contract_ready' || a.status === 'disbursed' ? 7 : a.status === 'admin_approved' ? 6 : 5,
             status: a.status === 'admin_approved' || a.status === 'contract_ready' || a.status === 'disbursed' ? 'approved' : a.status === 'admin_rejected' ? 'rejected' : 'pending_admin',
+            assessmentStatus: a.status,
             updatedAt: a.evaluatedAt || 'Recent',
             policyNo: a.policyNo || 'LCAP-',
           });
@@ -329,22 +336,33 @@ export default function ApplicationsPage() {
                           <Trash2 size={13} />
                         </button>
                       </>
-                    ) : item.status === 'approved' || item.status === 'completed' ? (
-                      <button
-                        type="button"
-                        onClick={() => router.push(`/officer/borrowers?viewDetails=${encodeURIComponent(item.id)}`)}
-                        className={styles.viewBorrowerBtn}
-                      >
-                        <UserCheck size={14} /> View Borrower
-                      </button>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={() => router.push(`/officer/borrowers/new?id=${encodeURIComponent(item.id)}`)}
-                        className={styles.reviewBtn}
-                      >
-                        <Eye size={13} /> Review
-                      </button>
+                      <>
+                        {item.assessmentStatus === 'pending_assessment' ? (
+                          <Link
+                            href={`/officer/credit-assessments?assessId=${encodeURIComponent(item.assessmentId || item.id)}`}
+                            className={styles.assessBtn}
+                          >
+                            <BadgeCheck size={14} /> Start Credit Assessment
+                          </Link>
+                        ) : (
+                          <Link
+                            href={`/officer/credit-assessments?assessId=${encodeURIComponent(item.assessmentId || item.id)}`}
+                            className={styles.viewAssessBtn}
+                          >
+                            <BadgeCheck size={14} /> View Credit Assessment
+                          </Link>
+                        )}
+                        {(item.status === 'approved' || item.status === 'completed') && (
+                          <button
+                            type="button"
+                            onClick={() => router.push(`/officer/borrowers?viewDetails=${encodeURIComponent(item.id)}`)}
+                            className={styles.viewBorrowerBtn}
+                          >
+                            <UserCheck size={14} /> View Borrower
+                          </button>
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -431,22 +449,33 @@ export default function ApplicationsPage() {
                                 <Trash2 size={13} />
                               </button>
                             </>
-                          ) : item.status === 'approved' || item.status === 'completed' ? (
-                            <button
-                              type="button"
-                              onClick={() => router.push(`/officer/borrowers?viewDetails=${encodeURIComponent(item.id)}`)}
-                              className={styles.viewBorrowerBtn}
-                            >
-                              <UserCheck size={14} /> View Borrower
-                            </button>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => router.push(`/officer/borrowers/new?id=${encodeURIComponent(item.id)}`)}
-                              className={styles.reviewBtn}
-                            >
-                              <Eye size={13} /> Review
-                            </button>
+                            <>
+                              {item.assessmentStatus === 'pending_assessment' ? (
+                                <Link
+                                  href={`/officer/credit-assessments?assessId=${encodeURIComponent(item.assessmentId || item.id)}`}
+                                  className={styles.assessBtn}
+                                >
+                                  <BadgeCheck size={14} /> Start Credit Assessment
+                                </Link>
+                              ) : (
+                                <Link
+                                  href={`/officer/credit-assessments?assessId=${encodeURIComponent(item.assessmentId || item.id)}`}
+                                  className={styles.viewAssessBtn}
+                                >
+                                  <BadgeCheck size={14} /> View Credit Assessment
+                                </Link>
+                              )}
+                              {(item.status === 'approved' || item.status === 'completed') && (
+                                <button
+                                  type="button"
+                                  onClick={() => router.push(`/officer/borrowers?viewDetails=${encodeURIComponent(item.id)}`)}
+                                  className={styles.viewBorrowerBtn}
+                                >
+                                  <UserCheck size={14} /> View Borrower
+                                </button>
+                              )}
+                            </>
                           )}
                         </div>
                       </td>

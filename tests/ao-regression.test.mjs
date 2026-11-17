@@ -307,3 +307,46 @@ test('Issue 9: Helper tests for profile sanitization and password validation log
   });
   assert.equal(success.valid, true);
 });
+
+test('Issue 10: Queue submitted applications link directly to Credit Assessments with stable ID', () => {
+  const queuePagePath = path.join(projectRoot, 'src/app/officer/queue/page.tsx');
+  const queueContent = fs.readFileSync(queuePagePath, 'utf-8');
+
+  // Must have actions linking to /officer/credit-assessments?assessId=... or similar
+  const hasCreditAssessmentLink = /href=\{[`'"]\/officer\/credit-assessments\?assessId=\$\{[^}]+[`'"]\}/.test(queueContent) ||
+    /\/officer\/credit-assessments\?assessId=/.test(queueContent);
+  assert.equal(hasCreditAssessmentLink, true, 'Queue page must have link to /officer/credit-assessments with assessId');
+
+  // Must have "Start Credit Assessment" for unassessed/pending records
+  assert.equal(
+    /Start Credit Assessment/.test(queueContent),
+    true,
+    'Queue page must render "Start Credit Assessment" button for pending_assessment'
+  );
+
+  // Must have "View Credit Assessment" for already assessed/in-progress records
+  assert.equal(
+    /View Credit Assessment/.test(queueContent),
+    true,
+    'Queue page must render "View Credit Assessment" button for assessed records'
+  );
+
+  // Credit assessments page must consume the query parameter and resolve applicant after merge
+  const caPagePath = path.join(projectRoot, 'src/app/officer/credit-assessments/page.tsx');
+  const caContent = fs.readFileSync(caPagePath, 'utf-8');
+
+  assert.equal(
+    /assessId/.test(caContent),
+    true,
+    'Credit assessments page must consume assessId parameter'
+  );
+
+  // Must have guard against endless override on 1.5s poller
+  const hasGuardAgainstPollOverride = /handledDeepLink|deepLinkHandled|replaceState/.test(caContent);
+  assert.equal(
+    hasGuardAgainstPollOverride,
+    true,
+    'Credit assessments page must guard against poller overriding manual selection'
+  );
+});
+

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { OfficerSidebar } from '@/components/officer/OfficerSidebar';
@@ -54,6 +54,7 @@ export default function CreditAssessmentsPage() {
   const [officerNote, setOfficerNote] = useState<string>('');
   const [recommendation, setRecommendation] = useState<'recommend_approve' | 'recommend_adjust' | 'recommend_reject'>('recommend_approve');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const handledDeepLinkRef = useRef(false);
 
   useEffect(() => {
     const refreshAssessments = async () => {
@@ -120,6 +121,34 @@ export default function CreditAssessmentsPage() {
       } catch (e) {}
 
       setAssessments([...list]);
+
+      // Check deep link parameter once after local + server records are merged
+      if (typeof window !== 'undefined' && !handledDeepLinkRef.current) {
+        const params = new URLSearchParams(window.location.search);
+        const assessId = params.get('assessId') || params.get('id');
+        if (assessId) {
+          const target = list.find(a => 
+            a.id === assessId || 
+            a.applicationId === assessId || 
+            (a.policyNo && a.policyNo !== 'LCAP-' && a.policyNo === assessId) ||
+            (a.borrowerName && a.borrowerName.toLowerCase() === assessId.toLowerCase())
+          );
+          if (target) {
+            handledDeepLinkRef.current = true;
+            setSelectedAssessment(target);
+            initScorecardForm(target);
+            try {
+              params.delete('assessId');
+              params.delete('id');
+              const newQuery = params.toString();
+              const newUrl = window.location.pathname + (newQuery ? `?${newQuery}` : '');
+              window.history.replaceState(null, '', newUrl);
+            } catch (e) {}
+            return;
+          }
+        }
+      }
+
       setSelectedAssessment(prev => {
         if (!prev) {
           if (list.length > 0) {
