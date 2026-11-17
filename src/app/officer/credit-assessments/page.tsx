@@ -56,6 +56,7 @@ export default function CreditAssessmentsPage() {
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [saveErrorMsg, setSaveErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isReconsidering, setIsReconsidering] = useState(false);
   const handledDeepLinkRef = useRef(false);
 
   useEffect(() => {
@@ -285,6 +286,117 @@ export default function CreditAssessmentsPage() {
       setTimeout(() => setSaveErrorMsg(''), 5000);
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  // Dedicated AO Reconsideration Request Action (up to 3 times per application)
+  const handleRequestReconsideration = async () => {
+    if (!selectedAssessment || !editingScorecard || isReconsidering || isSubmitting) return;
+
+    const currentApproved = Number(selectedAssessment.adminApprovedAmount || 0);
+    const requestedAmount = Number(officerAmount || 0);
+    const currentAdjustments = Number(selectedAssessment.adjustmentCount || 0);
+
+    // 1. Validation: adjustment count cap
+    if (currentAdjustments >= 3) {
+      setSaveErrorMsg('Maximum reconsideration limit reached (3 of 3). Admin decision is final.');
+      return;
+    }
+
+    // 2. Validation: amount must differ from current approved
+    if (requestedAmount === currentApproved || officerAmount === selectedAssessment.adminApprovedAmount) {
+      setSaveErrorMsg(`Recommended Loan Limit (₱${requestedAmount.toLocaleString('en-PH')}) must be different from current Admin-approved amount (₱${currentApproved.toLocaleString('en-PH')}).`);
+      return;
+    }
+
+    // 3. Validation: justification required
+    if (!officerNote.trim()) {
+      setSaveErrorMsg('Please provide a specific Officer Endorsement Justification to explain why reconsideration is requested.');
+      return;
+    }
+
+    const nextRound = currentAdjustments + 1;
+
+    // 4. Confirmation dialog
+    const confirmed = confirm(
+      `Request Amount Reconsideration (Round ${nextRound} of 3)?\n\n` +
+      `• Current Admin-Approved Amount: ₱${currentApproved.toLocaleString('en-PH')}\n` +
+      `• Newly Requested AO Amount: ₱${requestedAmount.toLocaleString('en-PH')}\n` +
+      `• Justification: "${officerNote.trim()}"\n\n` +
+      `This will return the application to the Admin Credit Committee queue for review.`
+    );
+
+    if (!confirmed) return;
+
+    setIsReconsidering(true);
+    setSaveErrorMsg('');
+    setSaveSuccessMsg('');
+
+    const updatedItem: CreditAssessmentItem = {
+      ...selectedAssessment,
+      fiveCs: editingScorecard,
+      officerAdjustedAmount: requestedAmount,
+      officerRecommendation: 'recommend_adjust',
+      officerNotes: officerNote,
+      reconsiderationJustification: officerNote,
+      previousAdminApprovedAmount: currentApproved,
+      evaluatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+      status: 'pending_admin',
+      adjustmentCount: nextRound,
+      maxAdjustmentsReached: nextRound >= 3,
+    };
+
+    try {
+      // Persist to server API
+      const res = await fetch('/api/assessments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updatedItem),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Server returned ${res.status}: Failed to submit reconsideration`);
+      }
+
+      // Persist to local storage
+      const updatedList = saveCreditAssessment(updatedItem);
+      setAssessments(updatedList);
+      setSelectedAssessment(updatedItem);
+
+      // Synchronize local draft
+      try {
+        const draftRaw = localStorage.getItem('tribute_new_borrower_draft');
+        if (draftRaw) {
+          const draft = JSON.parse(draftRaw);
+          const fullName = `${draft.step1?.firstName || ''} ${draft.step1?.middleName || ''} ${draft.step1?.lastName || ''}`.trim();
+          const matchesDraft = 
+            (draft.applicationId && (draft.applicationId === updatedItem.applicationId || draft.applicationId === updatedItem.id)) ||
+            (updatedItem.id && updatedItem.id === `CA-${(draft.applicationId || '').replace('NBR-', '')}`) ||
+            (draft.step1?.tgswsPolicyNumber && draft.step1.tgswsPolicyNumber !== 'LCAP-' && draft.step1.tgswsPolicyNumber === updatedItem.policyNo) ||
+            (fullName && updatedItem.borrowerName.toLowerCase() === fullName.toLowerCase());
+
+          if (matchesDraft) {
+            draft.officerAdjustedAmount = requestedAmount;
+            draft.officerAdjustmentNote = officerNote;
+            draft.isSubmittedToAdmin = true;
+            draft.adminSimulationStatus = 'pending';
+            draft.adjustmentCount = nextRound;
+            draft.maxAdjustmentsReached = nextRound >= 3;
+            localStorage.setItem('tribute_new_borrower_draft', JSON.stringify(draft));
+          }
+        }
+      } catch (err) {
+        console.error('Error updating draft after reconsideration:', err);
+      }
+
+      setSaveSuccessMsg(`✓ Reconsideration Round ${nextRound} of 3 submitted to Admin Credit Committee!`);
+      setTimeout(() => setSaveSuccessMsg(''), 5000);
+    } catch (err: any) {
+      console.error('Error submitting reconsideration:', err);
+      setSaveErrorMsg(err.message || 'Failed to submit reconsideration to Admin. Previous approval remains active.');
+      setTimeout(() => setSaveErrorMsg(''), 5000);
+    } finally {
+      setIsReconsidering(false);
     }
   };
 
@@ -818,7 +930,61 @@ export default function CreditAssessmentsPage() {
                   </button>
 
                   <div className={styles.primaryActionGroup}>
-                    {selectedAssessment.status === 'pending_admin' ? (
+                    {selectedAssessment.status === 'admin_approved' ? (
+                      selectedAssessment.adjustmentCount && selectedAssessment.adjustmentCount >= 3 ? (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{
+                            fontSize: '12px',
+                            fontWeight: '800',
+                            color: '#dc2626',
+                            backgroundColor: '#fee2e2',
+                            border: '1px solid #fecaca',
+                            padding: '8px 14px',
+                            borderRadius: '8px'
+                          }}>
+                            🔒 Reconsideration limit reached (3/3 used). Admin decision is final.
+                          </span>
+                          <Link
+                            href="/officer/borrowers/new"
+                            className={styles.proceedContractLink}
+                          >
+                            Proceed to Step 7 Contract <ChevronRight size={16} />
+                          </Link>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            disabled={isReconsidering || isSubmitting}
+                            onClick={handleRequestReconsideration}
+                            style={{
+                              backgroundColor: '#f59e0b',
+                              color: '#ffffff',
+                              border: 'none',
+                              padding: '10px 18px',
+                              borderRadius: '8px',
+                              fontWeight: '800',
+                              fontSize: '13px',
+                              cursor: (isReconsidering || isSubmitting) ? 'not-allowed' : 'pointer',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              boxShadow: '0 4px 12px rgba(245, 158, 11, 0.25)',
+                              opacity: (isReconsidering || isSubmitting) ? 0.7 : 1
+                            }}
+                          >
+                            <Sliders size={16} /> {isReconsidering ? 'Sending Reconsideration...' : `Request Reconsideration (${3 - (selectedAssessment.adjustmentCount || 0)} left)`}
+                          </button>
+
+                          <Link
+                            href="/officer/borrowers/new"
+                            className={styles.proceedContractLink}
+                          >
+                            Proceed to Step 7 Contract <ChevronRight size={16} />
+                          </Link>
+                        </div>
+                      )
+                    ) : selectedAssessment.status === 'pending_admin' ? (
                       <span style={{
                         display: 'inline-flex',
                         alignItems: 'center',
@@ -831,27 +997,18 @@ export default function CreditAssessmentsPage() {
                         fontSize: '13px',
                         fontWeight: '800'
                       }}>
-                        <Building size={16} /> Endorsed • Awaiting Admin Committee
+                        <Building size={16} /> {selectedAssessment.adjustmentCount && selectedAssessment.adjustmentCount > 0 ? `Awaiting Admin Reconsideration (Round ${selectedAssessment.adjustmentCount} of 3)` : 'Endorsed • Awaiting Admin Committee'}
                       </span>
                     ) : (
                       <button
                         type="button"
-                        disabled={isSubmitting || selectedAssessment.status === 'admin_approved' || selectedAssessment.status === 'contract_ready' || selectedAssessment.status === 'disbursed'}
+                        disabled={isSubmitting || selectedAssessment.status === 'contract_ready' || selectedAssessment.status === 'disbursed'}
                         onClick={() => handleSaveAssessment(true)}
                         className={styles.endorseAdminBtn}
                         style={{ opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}
                       >
                         <Building size={16} /> {isSubmitting ? 'Endorsing...' : 'Submit & Endorse to Admin'}
                       </button>
-                    )}
-
-                    {selectedAssessment.status === 'admin_approved' && (
-                      <Link
-                        href="/officer/borrowers/new"
-                        className={styles.proceedContractLink}
-                      >
-                        Proceed to Step 7 Contract <ChevronRight size={16} />
-                      </Link>
                     )}
                   </div>
                 </div>

@@ -613,7 +613,9 @@ export default function AdminLoanApprovalsPage() {
                   </p>
                 </div>
                 <div className={styles.metricItem}>
-                  <span className={styles.metricLabel}>AO Endorsed Amount</span>
+                  <span className={styles.metricLabel}>
+                    {(selectedApp.adjustmentCount || 0) > 0 ? 'AO Requested Amount' : 'AO Endorsed Amount'}
+                  </span>
                   <p className={`${styles.metricValue} ${styles.metricValueAccent}`}>
                     ₱ {(Number(selectedApp.officerAdjustedAmount || selectedApp.aiPreApprovedAmount || selectedApp.requestedAmount) || 0).toLocaleString('en-PH')}
                   </p>
@@ -625,6 +627,60 @@ export default function AdminLoanApprovalsPage() {
                   </p>
                 </div>
               </div>
+
+              {/* Reconsideration Comparison Banner (when application has prior round) */}
+              {(selectedApp.adjustmentCount || 0) > 0 && (
+                <div style={{
+                  backgroundColor: '#FFFBEB',
+                  border: '1.5px solid #FDE68A',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  marginBottom: '16px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '16px' }}>⚡</span>
+                      <strong style={{ fontSize: '13.5px', color: '#92400E' }}>
+                        Reconsideration Round {selectedApp.adjustmentCount} of 3
+                      </strong>
+                    </div>
+                    <span style={{
+                      fontSize: '11px',
+                      fontWeight: '800',
+                      backgroundColor: '#FEF3C7',
+                      color: '#B45309',
+                      padding: '3px 8px',
+                      borderRadius: '6px'
+                    }}>
+                      Requires Committee Amount Review
+                    </span>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px', marginBottom: '12px' }}>
+                    <div style={{ backgroundColor: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #FCD34D' }}>
+                      <span style={{ fontSize: '11px', color: '#78350F', display: 'block', fontWeight: '700' }}>Previous Approved Amount</span>
+                      <strong style={{ fontSize: '15px', color: '#B45309' }}>
+                        ₱ {(Number(selectedApp.previousAdminApprovedAmount || selectedApp.adminApprovedAmount || 0)).toLocaleString('en-PH')}
+                      </strong>
+                    </div>
+                    <div style={{ backgroundColor: '#ffffff', padding: '10px 14px', borderRadius: '8px', border: '1px solid #FCD34D' }}>
+                      <span style={{ fontSize: '11px', color: '#78350F', display: 'block', fontWeight: '700' }}>AO Requested Amount</span>
+                      <strong style={{ fontSize: '15px', color: '#0369A1' }}>
+                        ₱ {(Number(selectedApp.officerAdjustedAmount || 0)).toLocaleString('en-PH')}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '11px', color: '#78350F', fontWeight: '700', display: 'block', marginBottom: '2px' }}>
+                      AO Reconsideration Justification:
+                    </span>
+                    <p style={{ fontSize: '12.5px', color: '#451A03', margin: 0, fontStyle: 'italic', backgroundColor: '#FEF9C3', padding: '8px 12px', borderRadius: '6px' }}>
+                      &ldquo;{selectedApp.reconsiderationJustification || selectedApp.officerNotes || 'Reconsideration requested by Account Officer.'}&rdquo;
+                    </p>
+                  </div>
+                </div>
+              )}
 
               {/* Account Officer CI Notes */}
               <div className={styles.officerNotesBox}>

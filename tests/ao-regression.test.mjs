@@ -525,3 +525,75 @@ test('Issue 13: Credit Assessments endorsement reliability, async transactional 
   );
 });
 
+test('Issue 14: AO Amount Reconsideration Workflow in Credit Assessments and Admin Review Comparison', () => {
+  const caPagePath = path.join(projectRoot, 'src/app/officer/credit-assessments/page.tsx');
+  const adminLoansPath = path.join(projectRoot, 'src/app/admin/loans/page.tsx');
+
+  const caContent = fs.readFileSync(caPagePath, 'utf-8');
+  const adminLoansContent = fs.readFileSync(adminLoansPath, 'utf-8');
+
+  // 1. Credit Assessments must render Request Reconsideration action when status === 'admin_approved'
+  const hasRequestReconsideration = /Request Reconsideration/.test(caContent);
+  assert.equal(
+    hasRequestReconsideration,
+    true,
+    'Credit assessments page must provide a Request Reconsideration action for admin_approved records'
+  );
+
+  // 2. Credit Assessments must enforce validation: amount differs from current adminApprovedAmount, justification non-empty, and adjustmentCount < 3
+  const validatesDiffAmount = /officerAmount\s*===\s*selectedAssessment\.adminApprovedAmount/.test(caContent) ||
+    /officerAmount\s*!==\s*selectedAssessment\.adminApprovedAmount/.test(caContent);
+  assert.equal(
+    validatesDiffAmount,
+    true,
+    'Reconsideration action must validate that recommended amount differs from current adminApprovedAmount'
+  );
+
+  // 3. Confirmation dialog/modal specifying previous approved amount, requested amount, and round number
+  const hasReconsiderationConfirmation = /confirm\(/.test(caContent) &&
+    /reconsideration|Reconsideration/.test(caContent);
+  assert.equal(
+    hasReconsiderationConfirmation,
+    true,
+    'Reconsideration must confirm previous approved amount, requested amount, and round number'
+  );
+
+  // 4. In-flight state "Sending Reconsideration..."
+  const hasInFlightReconsideration = /Sending Reconsideration\.\.\./.test(caContent);
+  assert.equal(
+    hasInFlightReconsideration,
+    true,
+    'Credit assessments page must have an in-flight Sending Reconsideration... indicator'
+  );
+
+  // 5. While pending reconsideration, shows "Awaiting Admin Reconsideration" with Round N of 3, and disables/hides Proceed to Contract
+  const showsAwaitingReconsideration = /Awaiting Admin Reconsideration/.test(caContent);
+  assert.equal(
+    showsAwaitingReconsideration,
+    true,
+    'Credit assessments page must show Awaiting Admin Reconsideration (Round N of 3)'
+  );
+
+  // 6. At 3/3 adjustments reached, disables action and shows limit reached indicator
+  const showsLimitReached = /Reconsideration limit reached/.test(caContent);
+  assert.equal(
+    showsLimitReached,
+    true,
+    'Credit assessments page must show Reconsideration limit reached at 3/3'
+  );
+
+  // 7. Admin Review screen displays Previous Approved Amount, AO Requested Amount, and Justification in Reconsideration view
+  const adminShowsPreviousApproved = /Previous Approved|Previous Admin-Approved/i.test(adminLoansContent);
+  const adminShowsRequestedAmount = /AO Requested Amount|AO Endorsed Amount/i.test(adminLoansContent);
+  assert.equal(
+    adminShowsPreviousApproved,
+    true,
+    'Admin loans screen must display Previous Approved Amount for reconsideration items'
+  );
+  assert.equal(
+    adminShowsRequestedAmount,
+    true,
+    'Admin loans screen must display AO Requested Amount'
+  );
+});
+

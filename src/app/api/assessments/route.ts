@@ -31,6 +31,8 @@ interface AssessmentRecord {
   evaluatedAt: string;
   status: string;
   adminApprovedAmount?: number;
+  previousAdminApprovedAmount?: number;
+  reconsiderationJustification?: string;
   adminNotes?: string;
   adminActionAt?: string;
   adjustmentCount?: number;
