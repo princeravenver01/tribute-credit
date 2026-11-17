@@ -60,7 +60,7 @@ export default function AdminDashboardPage() {
     .filter(a => a.status === 'disbursed' || a.status === 'contract_ready').length;
 
   const pendingApprovalsCount = assessments
-    .filter(a => a.status === 'pending_admin' || a.status === 'pending_assessment').length;
+    .filter(a => a.status === 'pending_admin').length;
 
   const stats = [
     { title: 'Total Disbursed', value: `₱ ${totalDisbursed.toLocaleString('en-PH')}`, change: 'Current portfolio', isUp: true, icon: DollarSign, color: '#B91C1C' },

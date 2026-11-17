@@ -939,7 +939,7 @@ export default function NewBorrowerRegistrationPage() {
 
       const effectiveStatus = (existingMatched && (existingMatched.status === 'admin_approved' || existingMatched.status === 'contract_ready' || existingMatched.status === 'disbursed'))
         ? existingMatched.status
-        : (adminSimulationStatus === 'approved' ? 'admin_approved' : adminSimulationStatus === 'rejected' ? 'admin_rejected' : 'pending_admin');
+        : (adminSimulationStatus === 'approved' ? 'admin_approved' : adminSimulationStatus === 'rejected' ? 'admin_rejected' : (existingMatched?.status === 'pending_admin' || isSubmittedToAdmin ? 'pending_admin' : 'pending_assessment'));
 
       const effectiveApprovedAmount = existingMatched?.adminApprovedAmount || adminApprovedAmount || undefined;
 

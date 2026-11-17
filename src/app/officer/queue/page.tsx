@@ -126,7 +126,13 @@ export default function ApplicationsPage() {
             termMonths: a.termMonths || 3,
             paymentMode: a.paymentMode || 'Daily',
             currentStep: a.status === 'contract_ready' || a.status === 'disbursed' ? 7 : a.status === 'admin_approved' ? 6 : 5,
-            status: a.status === 'admin_approved' || a.status === 'contract_ready' || a.status === 'disbursed' ? 'approved' : a.status === 'admin_rejected' ? 'rejected' : 'pending_admin',
+            status: a.status === 'admin_approved' || a.status === 'contract_ready' || a.status === 'disbursed'
+              ? 'approved'
+              : a.status === 'admin_rejected'
+              ? 'rejected'
+              : a.status === 'pending_assessment'
+              ? 'pending_ai'
+              : 'pending_admin',
             assessmentStatus: a.status,
             updatedAt: a.evaluatedAt || 'Recent',
             policyNo: a.policyNo || 'LCAP-',

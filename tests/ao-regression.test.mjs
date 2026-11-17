@@ -350,3 +350,56 @@ test('Issue 10: Queue submitted applications link directly to Credit Assessments
   );
 });
 
+test('Issue 11: Pre-approval creates pending_assessment and excludes from Admin queue until AO endorses', () => {
+  const newBorrowerPath = path.join(projectRoot, 'src/app/officer/borrowers/new/page.tsx');
+  const adminLoansPath = path.join(projectRoot, 'src/app/admin/loans/page.tsx');
+  const adminDashboardPath = path.join(projectRoot, 'src/app/admin/dashboard/page.tsx');
+  const queuePath = path.join(projectRoot, 'src/app/officer/queue/page.tsx');
+
+  const newBorrowerContent = fs.readFileSync(newBorrowerPath, 'utf-8');
+  const adminLoansContent = fs.readFileSync(adminLoansPath, 'utf-8');
+  const adminDashboardContent = fs.readFileSync(adminDashboardPath, 'utf-8');
+  const queueContent = fs.readFileSync(queuePath, 'utf-8');
+
+  // 1. In new/page.tsx, syncToCreditAssessmentStore should NOT default to pending_admin without isSubmittedToAdmin or prior admin status
+  const defaultsToPendingAssessment = /isSubmittedToAdmin\s*\?\s*['"]pending_admin['"]\s*:\s*['"]pending_assessment['"]/.test(newBorrowerContent);
+  assert.equal(
+    defaultsToPendingAssessment,
+    true,
+    'syncToCreditAssessmentStore must set pending_assessment for pre-approved applications until AO endorses/submits to admin'
+  );
+
+  // 2. In admin/loans/page.tsx, draft injection into admin queue must require isSubmittedToAdmin (not just aiResult or currentStep >= 6)
+  const draftRequiresSubmission = /draft\.isSubmittedToAdmin/.test(adminLoansContent) &&
+    !/draft\.isSubmittedToAdmin\s*\|\|\s*draft\.aiResult\s*\|\|\s*draft\.currentStep\s*>=\s*6/.test(adminLoansContent);
+  assert.equal(
+    draftRequiresSubmission,
+    true,
+    'Admin loans page must not load local draft into admin queue solely because aiResult or currentStep >= 6 exists'
+  );
+
+  // 3. In admin/loans/page.tsx, pending approvals count and pending filter must only include pending_admin (NOT pending_assessment)
+  const includesPendingAssessmentInAdminLoans = /a\.status\s*===\s*['"]pending_admin['"]\s*\|\|\s*a\.status\s*===\s*['"]pending_assessment['"]/.test(adminLoansContent);
+  assert.equal(
+    includesPendingAssessmentInAdminLoans,
+    false,
+    'Admin loans queue and counts must not include pending_assessment records'
+  );
+
+  // 4. In admin/dashboard/page.tsx, pending approvals count must only count pending_admin (NOT pending_assessment)
+  const includesPendingAssessmentInAdminDashboard = /a\.status\s*===\s*['"]pending_admin['"]\s*\|\|\s*a\.status\s*===\s*['"]pending_assessment['"]/.test(adminDashboardContent);
+  assert.equal(
+    includesPendingAssessmentInAdminDashboard,
+    false,
+    'Admin dashboard pending count must not include pending_assessment records'
+  );
+
+  // 5. In officer queue/page.tsx, mapping of pending_assessment should be pending_assessment or pending_ai, not pending_admin
+  const mapsPendingAssessmentToAdmin = /a\.status\s*===\s*['"]pending_assessment['"]\s*\?\s*['"]pending_admin['"]/.test(queueContent);
+  assert.equal(
+    mapsPendingAssessmentToAdmin,
+    false,
+    'Officer queue must not map pending_assessment to pending_admin'
+  );
+});
+

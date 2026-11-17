@@ -59,7 +59,7 @@ export default function AdminLoanApprovalsPage() {
           const draft = JSON.parse(draftRaw);
           const fullName = `${draft.step1?.firstName || ''} ${draft.step1?.middleName || ''} ${draft.step1?.lastName || ''}`.trim() || 'Active Onboarding Applicant';
           
-          if (draft.isSubmittedToAdmin || draft.aiResult || draft.currentStep >= 6) {
+          if (draft.isSubmittedToAdmin) {
             const appId = draft.applicationId || 'NBR-ACTIVE';
             const caId = `CA-${appId.replace('NBR-', '')}`;
             const existingIndex = list.findIndex(a => 
@@ -325,7 +325,7 @@ export default function AdminLoanApprovalsPage() {
     setTimeout(() => setActionSuccessMsg(''), 5000);
   };
 
-  const pendingCount = assessments.filter(a => a.status === 'pending_admin' || a.status === 'pending_assessment').length;
+  const pendingCount = assessments.filter(a => a.status === 'pending_admin').length;
   const approvedCount = assessments.filter(a => a.status === 'admin_approved' || a.status === 'contract_ready' || a.status === 'disbursed').length;
   const rejectedCount = assessments.filter(a => a.status === 'admin_rejected').length;
   const totalCount = assessments.length;
@@ -337,7 +337,7 @@ export default function AdminLoanApprovalsPage() {
       a.policyNo.toLowerCase().includes(searchQuery.toLowerCase());
 
     if (!matchesSearch) return false;
-    if (filterTab === 'pending') return a.status === 'pending_admin' || a.status === 'pending_assessment';
+    if (filterTab === 'pending') return a.status === 'pending_admin';
     if (filterTab === 'approved') return a.status === 'admin_approved' || a.status === 'contract_ready' || a.status === 'disbursed';
     if (filterTab === 'rejected') return a.status === 'admin_rejected';
     return true;
