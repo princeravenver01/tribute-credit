@@ -550,8 +550,7 @@ test('Issue 14: AO Amount Reconsideration Workflow in Credit Assessments and Adm
   );
 
   // 3. Confirmation dialog/modal specifying previous approved amount, requested amount, and round number
-  const hasReconsiderationConfirmation = /confirm\(/.test(caContent) &&
-    /reconsideration|Reconsideration/.test(caContent);
+  const hasReconsiderationConfirmation = /confirmReconsideration|Confirm Reconsideration/i.test(caContent);
   assert.equal(
     hasReconsiderationConfirmation,
     true,
@@ -594,6 +593,77 @@ test('Issue 14: AO Amount Reconsideration Workflow in Credit Assessments and Adm
     adminShowsRequestedAmount,
     true,
     'Admin loans screen must display AO Requested Amount'
+  );
+});
+
+test('Issue 15: In-app Reconsideration Confirmation Modal replaces browser confirm popup', () => {
+  const caPagePath = path.join(projectRoot, 'src/app/officer/credit-assessments/page.tsx');
+  const caContent = fs.readFileSync(caPagePath, 'utf-8');
+
+  // 1. Must NOT use native window.confirm() or confirm() for reconsideration
+  const reconsiderationCodeBlock = caContent.slice(
+    caContent.indexOf('handleOpenReconsiderationModal'),
+    caContent.indexOf('handleSimulateAdminAction')
+  );
+  const usesNativeConfirmForReconsideration = /(?:window\.)?confirm\s*\(/.test(reconsiderationCodeBlock);
+  assert.equal(
+    usesNativeConfirmForReconsideration,
+    false,
+    'Credit assessments page must not use native confirm() dialog for reconsideration'
+  );
+
+  // 2. Must render in-app modal with accessible dialog attributes (role="dialog", aria-modal="true")
+  const hasDialogRole = /role=["']dialog["']/.test(caContent);
+  const hasAriaModal = /aria-modal=["']true["']/.test(caContent);
+  assert.equal(
+    hasDialogRole && hasAriaModal,
+    true,
+    'Reconsideration modal must include role="dialog" and aria-modal="true"'
+  );
+
+  // 3. Modal header title & subtitle
+  assert.equal(
+    /Confirm Reconsideration Request/.test(caContent),
+    true,
+    'Modal must have "Confirm Reconsideration Request" title'
+  );
+
+  // 4. Modal actions: "Keep Editing" and "Send for Reconsideration"
+  assert.equal(
+    /Keep Editing/.test(caContent),
+    true,
+    'Modal must provide "Keep Editing" secondary dismissal action'
+  );
+  assert.equal(
+    /Send for Reconsideration/.test(caContent),
+    true,
+    'Modal must provide "Send for Reconsideration" primary action'
+  );
+
+  // 5. Upper-right close X button with accessible label
+  const hasCloseXWithAria = /aria-label=["']Close reconsideration modal["']|aria-label=["']Close modal["']/.test(caContent) ||
+    /aria-label=["']Close["']/.test(caContent);
+  assert.equal(
+    hasCloseXWithAria,
+    true,
+    'Modal must contain a top-right close X button with accessible aria-label'
+  );
+
+  // 6. Comparison row / display: Current Admin-Approved Amount and AO Requested Amount
+  const hasComparisonAmounts = /Current Admin-Approved Amount/.test(caContent) &&
+    /AO Requested Amount/.test(caContent);
+  assert.equal(
+    hasComparisonAmounts,
+    true,
+    'Modal must display comparison row between Current Admin-Approved Amount and AO Requested Amount'
+  );
+
+  // 7. Restrained warning note that contract execution is paused while awaiting Admin
+  const hasPausedWarning = /pauses until Admin decides|paused while awaiting Admin|paused until Admin/i.test(caContent);
+  assert.equal(
+    hasPausedWarning,
+    true,
+    'Modal must provide warning that contract processing pauses until Admin decides'
   );
 });
 

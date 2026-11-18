@@ -35,7 +35,9 @@ import {
   Printer,
   ChevronDown,
   Info,
-  DollarSign
+  DollarSign,
+  X,
+  ArrowRight
 } from 'lucide-react';
 import theme from '@/components/officer/OfficerTheme.module.css';
 import styles from './assessments.module.css';
@@ -57,6 +59,10 @@ export default function CreditAssessmentsPage() {
   const [saveErrorMsg, setSaveErrorMsg] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isReconsidering, setIsReconsidering] = useState(false);
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+  const [modalErrorMsg, setModalErrorMsg] = useState('');
+  const triggerBtnRef = useRef<HTMLButtonElement | null>(null);
+  const modalRef = useRef<HTMLDivElement | null>(null);
   const handledDeepLinkRef = useRef(false);
 
   useEffect(() => {
@@ -289,8 +295,8 @@ export default function CreditAssessmentsPage() {
     }
   };
 
-  // Dedicated AO Reconsideration Request Action (up to 3 times per application)
-  const handleRequestReconsideration = async () => {
+  // Validation and opening of In-App Confirmation Modal
+  const handleOpenReconsiderationModal = () => {
     if (!selectedAssessment || !editingScorecard || isReconsidering || isSubmitting) return;
 
     const currentApproved = Number(selectedAssessment.adminApprovedAmount || 0);
@@ -315,21 +321,70 @@ export default function CreditAssessmentsPage() {
       return;
     }
 
+    setSaveErrorMsg('');
+    setModalErrorMsg('');
+    setIsConfirmModalOpen(true);
+  };
+
+  const handleCloseReconsiderationModal = () => {
+    if (isReconsidering) return;
+    setIsConfirmModalOpen(false);
+    setModalErrorMsg('');
+    if (triggerBtnRef.current) {
+      triggerBtnRef.current.focus();
+    }
+  };
+
+  // Keyboard accessibility: Escape closes modal before submission
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isConfirmModalOpen && !isReconsidering) {
+        handleCloseReconsiderationModal();
+      }
+    };
+    if (isConfirmModalOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isConfirmModalOpen, isReconsidering]);
+
+  // Focus trap / initial focus on modal open
+  useEffect(() => {
+    if (isConfirmModalOpen && modalRef.current) {
+      modalRef.current.focus();
+    }
+  }, [isConfirmModalOpen]);
+
+  // Dedicated AO Reconsideration Request Action (up to 3 times per application)
+  const handleConfirmReconsiderationSubmit = async () => {
+    if (!selectedAssessment || !editingScorecard || isReconsidering || isSubmitting) return;
+
+    const currentApproved = Number(selectedAssessment.adminApprovedAmount || 0);
+    const requestedAmount = Number(officerAmount || 0);
+    const currentAdjustments = Number(selectedAssessment.adjustmentCount || 0);
+
+    if (currentAdjustments >= 3) {
+      setModalErrorMsg('Maximum reconsideration limit reached (3 of 3). Admin decision is final.');
+      return;
+    }
+
+    if (requestedAmount === currentApproved || officerAmount === selectedAssessment.adminApprovedAmount) {
+      setModalErrorMsg(`Recommended Loan Limit (₱${requestedAmount.toLocaleString('en-PH')}) must be different from current Admin-approved amount (₱${currentApproved.toLocaleString('en-PH')}).`);
+      return;
+    }
+
+    if (!officerNote.trim()) {
+      setModalErrorMsg('Please provide a specific Officer Endorsement Justification to explain why reconsideration is requested.');
+      return;
+    }
+
     const nextRound = currentAdjustments + 1;
-
-    // 4. Confirmation dialog
-    const confirmed = confirm(
-      `Request Amount Reconsideration (Round ${nextRound} of 3)?\n\n` +
-      `• Current Admin-Approved Amount: ₱${currentApproved.toLocaleString('en-PH')}\n` +
-      `• Newly Requested AO Amount: ₱${requestedAmount.toLocaleString('en-PH')}\n` +
-      `• Justification: "${officerNote.trim()}"\n\n` +
-      `This will return the application to the Admin Credit Committee queue for review.`
-    );
-
-    if (!confirmed) return;
 
     setIsReconsidering(true);
     setSaveErrorMsg('');
+    setModalErrorMsg('');
     setSaveSuccessMsg('');
 
     const updatedItem: CreditAssessmentItem = {
@@ -389,11 +444,17 @@ export default function CreditAssessmentsPage() {
         console.error('Error updating draft after reconsideration:', err);
       }
 
+      setIsConfirmModalOpen(false);
       setSaveSuccessMsg(`✓ Reconsideration Round ${nextRound} of 3 submitted to Admin Credit Committee!`);
       setTimeout(() => setSaveSuccessMsg(''), 5000);
+      if (triggerBtnRef.current) {
+        triggerBtnRef.current.focus();
+      }
     } catch (err: any) {
       console.error('Error submitting reconsideration:', err);
-      setSaveErrorMsg(err.message || 'Failed to submit reconsideration to Admin. Previous approval remains active.');
+      const errMsg = err.message || 'Failed to submit reconsideration to Admin. Previous approval remains active.';
+      setModalErrorMsg(errMsg);
+      setSaveErrorMsg(errMsg);
       setTimeout(() => setSaveErrorMsg(''), 5000);
     } finally {
       setIsReconsidering(false);
@@ -954,9 +1015,10 @@ export default function CreditAssessmentsPage() {
                       ) : (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                           <button
+                            ref={triggerBtnRef}
                             type="button"
                             disabled={isReconsidering || isSubmitting}
-                            onClick={handleRequestReconsideration}
+                            onClick={handleOpenReconsiderationModal}
                             style={{
                               backgroundColor: '#f59e0b',
                               color: '#ffffff',
@@ -973,7 +1035,7 @@ export default function CreditAssessmentsPage() {
                               opacity: (isReconsidering || isSubmitting) ? 0.7 : 1
                             }}
                           >
-                            <Sliders size={16} /> {isReconsidering ? 'Sending Reconsideration...' : `Request Reconsideration (${3 - (selectedAssessment.adjustmentCount || 0)} left)`}
+                            <Sliders size={16} /> Request Reconsideration ({3 - (selectedAssessment.adjustmentCount || 0)} left)
                           </button>
 
                           <Link
@@ -1021,6 +1083,138 @@ export default function CreditAssessmentsPage() {
 
         </div>
       </main>
+
+      {/* Modern In-App Reconsideration Confirmation Modal */}
+      {isConfirmModalOpen && selectedAssessment && (
+        <div
+          className={styles.modalOverlay}
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !isReconsidering) {
+              handleCloseReconsiderationModal();
+            }
+          }}
+        >
+          <div
+            ref={modalRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reconsideration-modal-title"
+            aria-describedby="reconsideration-modal-desc"
+            className={styles.modalCard}
+          >
+            {/* Modal Header */}
+            <div className={styles.modalHeader}>
+              <div className={styles.modalHeaderLeft}>
+                <div className={styles.modalIconWrapper}>
+                  <Sliders size={20} />
+                </div>
+                <div className={styles.modalTitleArea}>
+                  <div className={styles.modalTitleRow}>
+                    <h3 id="reconsideration-modal-title" className={styles.modalTitle}>
+                      Confirm Reconsideration Request
+                    </h3>
+                    <span className={styles.modalRoundBadge}>
+                      Round {Number(selectedAssessment.adjustmentCount || 0) + 1} of 3
+                    </span>
+                  </div>
+                  <p id="reconsideration-modal-desc" className={styles.modalSubtitle}>
+                    This will return the loan application to the Admin Credit Committee for decision reconsideration.
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseReconsiderationModal}
+                disabled={isReconsidering}
+                aria-label="Close reconsideration modal"
+                className={styles.modalCloseBtn}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className={styles.modalBody}>
+              {/* Comparison Row: Admin Approved vs AO Requested */}
+              <div className={styles.modalComparisonRow}>
+                <div className={styles.modalAmountCard}>
+                  <span className={styles.modalAmountLabel}>Current Admin-Approved Amount</span>
+                  <div className={styles.modalAmountValApproved}>
+                    ₱ {(Number(selectedAssessment.adminApprovedAmount || 0)).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+
+                <div className={styles.modalComparisonArrow}>
+                  <ArrowRight size={18} />
+                </div>
+
+                <div className={styles.modalAmountCard}>
+                  <span className={styles.modalAmountLabel}>AO Requested Amount</span>
+                  <div className={styles.modalAmountValRequested}>
+                    ₱ {(Number(officerAmount || 0)).toLocaleString('en-PH', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Justification Block */}
+              <div className={styles.modalJustificationBox}>
+                <span className={styles.modalJustificationLabel}>
+                  Officer Endorsement Justification:
+                </span>
+                <p className={styles.modalJustificationText}>
+                  &ldquo;{officerNote.trim()}&rdquo;
+                </p>
+              </div>
+
+              {/* Warning note */}
+              <div className={styles.modalPauseWarning}>
+                <AlertCircle size={16} color="#b45309" style={{ flexShrink: 0, marginTop: '2px' }} />
+                <p className={styles.modalPauseWarningText}>
+                  Note: Contract generation and disbursement processing pauses until Admin decides on this reconsideration request.
+                </p>
+              </div>
+
+              {/* Error banner inside modal if API fails */}
+              {modalErrorMsg && (
+                <div className={styles.modalErrorBanner}>
+                  ✗ {modalErrorMsg}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className={styles.modalFooter}>
+              <button
+                type="button"
+                disabled={isReconsidering}
+                onClick={handleCloseReconsiderationModal}
+                className={styles.modalSecondaryBtn}
+              >
+                Keep Editing
+              </button>
+              <button
+                type="button"
+                disabled={isReconsidering}
+                onClick={handleConfirmReconsiderationSubmit}
+                className={styles.modalPrimaryBtn}
+              >
+                {isReconsidering ? (
+                  <>
+                    <div style={{ width: '14px', height: '14px', border: '2px solid #fff', borderTopColor: 'transparent', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                    <span>Sending Reconsideration...</span>
+                  </>
+                ) : (
+                  <>
+                    <Building size={16} />
+                    <span>Send for Reconsideration</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <OfficerMobileNav onOpenSidebar={() => setMobileMenuOpen(true)} />
     </div>
