@@ -707,4 +707,15 @@ test('Issue 16: Official Document Signatures and Authorization integrity in Pass
   assert.equal(/AUTH-BRW-00\$\{idx \+ 1\}-AUTO/.test(borrowersNewContent), false, 'AUTH-BRW-AUTO fallback must be removed');
 });
 
+test('Issue 17: Credit Assessments header must not expose destructive clear-all action', () => {
+  const assessmentsPath = path.join(projectRoot, 'src/app/officer/credit-assessments/page.tsx');
+  const assessmentsContent = fs.readFileSync(assessmentsPath, 'utf-8');
+
+  assert.equal(
+    /Clear All Records|Clear all borrower and assessment records|Reset everything back to a completely blank database/.test(assessmentsContent),
+    false,
+    'Credit Assessments must not render or retain the destructive clear-all records action'
+  );
+});
+
 

@@ -507,32 +507,12 @@ export default function CreditAssessmentsPage() {
           pageSubtitle="5 Cs analysis, capacity validation, and dual-control adjustment workflow."
           onOpenMobileSidebar={() => setMobileMenuOpen(prev => !prev)}
           actions={
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  if (confirm('🚨 Reset everything back to a completely blank database? (All borrowers, assessments, and active drafts will be cleared. Login accounts will remain intact).')) {
-                    localStorage.removeItem('tribute_credit_assessments_db');
-                    localStorage.removeItem('tribute_new_borrower_draft');
-                    sessionStorage.clear();
-                    try {
-                      window.dispatchEvent(new Event('storage'));
-                    } catch (e) {}
-                    window.location.reload();
-                  }
-                }}
-                className={styles.clearRecordsBtn}
-                title="Clear all borrower and assessment records"
-              >
-                🗑️ Clear All Records
-              </button>
-              <Link
-                href="/officer/borrowers/new"
-                className={styles.primaryHeaderAction}
-              >
-                <UserCheck size={15} /> New Assessment Intake
-              </Link>
-            </>
+            <Link
+              href="/officer/borrowers/new"
+              className={styles.primaryHeaderAction}
+            >
+              <UserCheck size={15} /> New Assessment Intake
+            </Link>
           }
         />
 

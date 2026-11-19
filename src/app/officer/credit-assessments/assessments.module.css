@@ -1,22 +1,3 @@
-.clearRecordsBtn {
-  background-color: #fef2f2;
-  color: #b91c1c;
-  border: 1.5px solid #fecaca;
-  min-height: 40px;
-  padding: 8px 14px;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 12.5px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-}
-
-.clearRecordsBtn:hover {
-  background-color: #fee2e2;
-}
-
 .primaryHeaderAction {
   background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
   color: #ffffff;
