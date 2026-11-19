@@ -15,7 +15,7 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     const load = async () => {
-      let list = getCreditAssessments();
+      const list = getCreditAssessments();
 
       try {
         const res = await fetch('/api/assessments');
@@ -37,7 +37,7 @@ export default function AdminDashboardPage() {
             }
           }
         }
-      } catch (e) {}
+      } catch {}
 
       setAssessments([...list]);
     };
@@ -128,35 +128,42 @@ export default function AdminDashboardPage() {
                 <div className={styles.statValue}>
                   {s.value}
                 </div>
-                <span className={s.isUp ? styles.statChangeUp : styles.statChangeWarn}>
-                  {s.change}
-                </span>
+                <div className={styles.statMetaRow}>
+                  <span className={s.isUp ? styles.statMetaTrend : styles.statMetaWarn}>
+                    {s.change}
+                  </span>
+                </div>
               </div>
             );
           })}
         </div>
 
         {/* Recent Applications Board */}
-        <div className={styles.boardCard}>
-          <div className={styles.boardHeader}>
-            <h2 className={styles.boardTitle}>
-              Recent Cooperative Loan Applications
-            </h2>
-            <span className={styles.boardSubtitle}>
-              {recentApplications.length} Active Records
-            </span>
+        <div className={styles.tableCard}>
+          <div className={styles.tableHeaderRow}>
+            <div>
+              <h2 className={styles.tableTitle}>
+                Recent Cooperative Loan Applications
+              </h2>
+              <p className={styles.tableSub}>
+                {recentApplications.length} Active Records
+              </p>
+            </div>
+            <Link href="/admin/loans" className={styles.viewAllLink}>
+              View All Loans <ArrowUpRight size={14} />
+            </Link>
           </div>
 
-          <div className={styles.tableWrap}>
-            <table className={styles.table}>
+          <div className={styles.desktopTableWrap}>
+            <table className={styles.dataTable}>
               <thead>
-                <tr className={styles.theadRow}>
-                  <th className={styles.th}>Loan ID</th>
-                  <th className={styles.th}>Borrower</th>
-                  <th className={styles.th}>Product</th>
-                  <th className={styles.th}>Amount</th>
-                  <th className={styles.th}>Status</th>
-                  <th className={styles.th}>Action</th>
+                <tr>
+                  <th>Loan ID</th>
+                  <th>Borrower</th>
+                  <th>Product</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -168,22 +175,22 @@ export default function AdminDashboardPage() {
                   </tr>
                 ) : (
                   recentApplications.map((app) => (
-                    <tr key={app.id} className={styles.tr}>
-                      <td className={`${styles.td} ${styles.loanId}`}>{app.id}</td>
-                      <td className={`${styles.td} ${styles.borrowerName}`}>{app.borrower}</td>
-                      <td className={`${styles.td} ${styles.productCell}`}>{app.product}</td>
-                      <td className={`${styles.td} ${styles.amountCell}`}>{app.amount}</td>
-                      <td className={styles.td}>
+                    <tr key={app.id}>
+                      <td className={styles.appIdCell}>{app.id}</td>
+                      <td className={styles.borrowerCell}>{app.borrower}</td>
+                      <td>{app.product}</td>
+                      <td className={styles.amountCell}>{app.amount}</td>
+                      <td>
                         <span className={getStatusClass(app.status)}>
                           {app.status}
                         </span>
                       </td>
-                      <td className={styles.td}>
+                      <td>
                         <Link
                           href="/admin/loans"
-                          className={styles.reviewLink}
+                          className={styles.actionLink}
                         >
-                          Review
+                          Review <ArrowUpRight size={14} />
                         </Link>
                       </td>
                     </tr>
@@ -193,33 +200,33 @@ export default function AdminDashboardPage() {
             </table>
           </div>
 
-          {/* Mobile Application Cards (< 768px) */}
-          <div className={styles.mobileList}>
+          {/* Mobile Application Cards (<= 768px) */}
+          <div className={styles.mobileCardsWrap}>
             {recentApplications.length === 0 ? (
               <div className={styles.emptyState}>
                 No loan applications in record yet. New applications from the onboarding desk will appear here dynamically.
               </div>
             ) : (
               recentApplications.map((app) => (
-                <div key={`mob-${app.id}`} className={styles.mobileItem}>
-                  <div className={styles.mobileItemHeader}>
+                <div key={`mob-${app.id}`} className={styles.mobileAppCard}>
+                  <div className={styles.mobileAppHeader}>
                     <div>
-                      <div className={styles.borrowerName}>{app.borrower}</div>
-                      <span className={styles.loanId}>{app.id}</span>
+                      <div className={styles.mobileAppBorrower}>{app.borrower}</div>
+                      <span className={styles.mobileAppId}>{app.id}</span>
                     </div>
                     <span className={getStatusClass(app.status)}>
                       {app.status}
                     </span>
                   </div>
-                  <div className={styles.mobileItemMeta}>
+                  <div className={styles.mobileAppDetails}>
                     <span>{app.product}</span>
                     <strong className={styles.amountCell}>{app.amount}</strong>
                   </div>
                   <Link
                     href="/admin/loans"
-                    className={`${styles.reviewLink} ${styles.mobileReviewBtn}`}
+                    className={styles.mobileActionBtn}
                   >
-                    Review Application
+                    Review Application <ArrowUpRight size={14} />
                   </Link>
                 </div>
               ))
