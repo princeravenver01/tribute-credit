@@ -1,3 +1,5 @@
+import type { DisbursementAuditRecord } from './disbursement-workflow';
+
 // Credit Assessment Store and 5 Cs Scoring Model for Tribute Grace
 // Connects Step 6 Onboarding, Dedicated Credit Assessments Desk, and Admin Approvals
 
@@ -51,7 +53,14 @@ export interface CreditAssessmentItem {
   evaluatedAt: string;
 
   // Governance Pipeline
-  status: 'pending_assessment' | 'pending_admin' | 'admin_approved' | 'admin_rejected' | 'contract_ready' | 'disbursed';
+  status:
+    | 'pending_assessment'
+    | 'pending_admin'
+    | 'admin_approved'
+    | 'admin_rejected'
+    | 'contract_ready'
+    | 'pending_ao_disbursement'
+    | 'disbursed';
   adminApprovedAmount?: number;
   previousAdminApprovedAmount?: number;
   reconsiderationJustification?: string;
@@ -106,6 +115,10 @@ export interface CreditAssessmentItem {
   cidNumber?: string;
   loanCycle?: number;
   branchManagerName?: string;
+
+  // Two-Stage Sequential Disbursement Audit (Immutable per stage)
+  adminDisbursementRelease?: DisbursementAuditRecord;
+  aoDisbursementConfirmation?: DisbursementAuditRecord;
 
   // Disbursement Officer Execution
   disbursedAt?: string;

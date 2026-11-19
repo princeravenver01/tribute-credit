@@ -711,6 +711,9 @@ export const AdminBorrowerDetailsModal: React.FC<AdminBorrowerDetailsModalProps>
                     />
                     <FieldRow label="Channel" value={vm.governance.disbursementChannel} />
                     <FieldRow label="Account Number" value={vm.governance.disbursementAccountNumber} />
+                    <FieldRow label="Admin Release Auth ID" value={vm.governance.adminDisbursementRelease?.authId} fallback="Pending Admin release" />
+                    <FieldRow label="Admin Released At" value={vm.governance.adminDisbursementRelease?.timestamp} fallback="Pending Admin release" />
+                    <FieldRow label="AO Confirmation Auth ID" value={vm.governance.aoDisbursementConfirmation?.authId} fallback="Pending AO confirmation" />
                     <FieldRow label="Disbursed At" value={vm.governance.disbursedAt} fallback="Not disbursed" />
                     <FieldRow label="Disbursed By" value={vm.governance.disbursedBy} fallback="Not disbursed" />
                     <FieldRow label="Voucher / Ref No." value={vm.governance.disbursementReferenceNo} fallback="None" />
@@ -808,6 +811,54 @@ export const AdminBorrowerDetailsModal: React.FC<AdminBorrowerDetailsModalProps>
                 signatures={vm.signatures.officerSignatures}
                 slotPrefix="AO Sign"
               />
+
+              {(vm.governance.adminDisbursementRelease || vm.governance.aoDisbursementConfirmation) && (
+                <div className={styles.sectionCard}>
+                  <h4 className={styles.sectionTitle}>Two-Stage Disbursement Audit Proofs</h4>
+                  <div className={styles.mediaGrid}>
+                    {vm.governance.adminDisbursementRelease && (
+                      <div className={styles.mediaCard}>
+                        <span className={styles.fieldLabel}>
+                          Stage 1: Admin Release ({vm.governance.adminDisbursementRelease.signerName} • {vm.governance.adminDisbursementRelease.authId})
+                        </span>
+                        <span className={styles.recordSecondary}>
+                          {vm.governance.adminDisbursementRelease.timestamp} • Ref: {vm.governance.adminDisbursementRelease.referenceNo}
+                        </span>
+                        <img
+                          src={vm.governance.adminDisbursementRelease.signatureImage}
+                          alt="Admin release signature"
+                          className={styles.sigImg}
+                        />
+                        <img
+                          src={vm.governance.adminDisbursementRelease.proofImage}
+                          alt="Admin release proof"
+                          className={styles.mediaImg}
+                        />
+                      </div>
+                    )}
+                    {vm.governance.aoDisbursementConfirmation && (
+                      <div className={styles.mediaCard}>
+                        <span className={styles.fieldLabel}>
+                          Stage 2: AO Confirmation ({vm.governance.aoDisbursementConfirmation.signerName} • {vm.governance.aoDisbursementConfirmation.authId})
+                        </span>
+                        <span className={styles.recordSecondary}>
+                          {vm.governance.aoDisbursementConfirmation.timestamp} • Ref: {vm.governance.aoDisbursementConfirmation.referenceNo}
+                        </span>
+                        <img
+                          src={vm.governance.aoDisbursementConfirmation.signatureImage}
+                          alt="AO confirmation signature"
+                          className={styles.sigImg}
+                        />
+                        <img
+                          src={vm.governance.aoDisbursementConfirmation.proofImage}
+                          alt="AO borrower receipt proof"
+                          className={styles.mediaImg}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               <SignatureGridSection
                 title="Admin Committee Signatures"

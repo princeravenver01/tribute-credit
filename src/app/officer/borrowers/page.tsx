@@ -231,8 +231,12 @@ export default function CurrentBorrowersPage() {
 
   // Filter and Sort active borrowers
   const activeBorrowers = borrowers.filter((b) => {
-    // Show disbursed or ready borrowers
-    const isRelevant = b.status === 'disbursed' || b.status === 'contract_ready' || b.status === 'admin_approved';
+    // Show disbursed or ready/pending-AO-confirmation borrowers
+    const isRelevant =
+      b.status === 'disbursed' ||
+      b.status === 'pending_ao_disbursement' ||
+      b.status === 'contract_ready' ||
+      b.status === 'admin_approved';
     if (!isRelevant) return false;
 
     const matchesSearch =
@@ -493,7 +497,11 @@ export default function CurrentBorrowersPage() {
                             }
                             return (
                               <span className={b.status === 'disbursed' ? styles.statusActive : styles.statusAwaiting}>
-                                {b.status === 'disbursed' ? 'Active / Disbursed' : 'Awaiting Payout'}
+                                {b.status === 'disbursed'
+                                  ? 'Active / Disbursed'
+                                  : b.status === 'pending_ao_disbursement'
+                                  ? 'Released by Admin — Awaiting AO Confirmation'
+                                  : 'Awaiting Payout'}
                               </span>
                             );
                           })()}
@@ -666,7 +674,11 @@ export default function CurrentBorrowersPage() {
                       <span className={styles.statusPaid}>✓ Fully Paid (100%)</span>
                     ) : (
                       <span className={b.status === 'disbursed' ? styles.statusActive : styles.statusAwaiting}>
-                        {b.status === 'disbursed' ? 'Active / Disbursed' : 'Awaiting Payout'}
+                        {b.status === 'disbursed'
+                          ? 'Active / Disbursed'
+                          : b.status === 'pending_ao_disbursement'
+                          ? 'Released by Admin — Awaiting AO Confirmation'
+                          : 'Awaiting Payout'}
                       </span>
                     )}
                   </div>
@@ -1745,6 +1757,33 @@ export default function CurrentBorrowersPage() {
                         {b.officerNotes || 'Borrower underwent complete Credit Investigation, character reference verification, and capacity evaluation. Verified member in good standing with positive neighborhood repayment standing.'}
                       </p>
                     </div>
+
+                    {/* Two-Stage Disbursement Audit Evidence */}
+                    {(b.adminDisbursementRelease || b.aoDisbursementConfirmation) && (
+                      <div style={{ backgroundColor: '#f8fbf9', border: '1px solid #dcece0', borderRadius: '10px', padding: '14px' }}>
+                        <h5 style={{ margin: '0 0 10px 0', fontSize: '13px', fontWeight: '800', color: '#0f172a' }}>Two-Stage Disbursement Audit Trail</h5>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '12px' }}>
+                          {b.adminDisbursementRelease && (
+                            <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', fontSize: '12px' }}>
+                              <strong style={{ display: 'block', color: '#b91c1c', marginBottom: '4px' }}>Stage 1: Admin Release</strong>
+                              <div>Signer: <strong>{b.adminDisbursementRelease.signerName}</strong></div>
+                              <div>Auth ID: <strong style={{ fontFamily: 'monospace' }}>{b.adminDisbursementRelease.authId}</strong></div>
+                              <div>Timestamp: <strong>{b.adminDisbursementRelease.timestamp}</strong></div>
+                              <div>Ref: <strong>{b.adminDisbursementRelease.referenceNo}</strong></div>
+                            </div>
+                          )}
+                          {b.aoDisbursementConfirmation && (
+                            <div style={{ backgroundColor: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', fontSize: '12px' }}>
+                              <strong style={{ display: 'block', color: '#15803d', marginBottom: '4px' }}>Stage 2: AO Confirmation</strong>
+                              <div>Signer: <strong>{b.aoDisbursementConfirmation.signerName}</strong></div>
+                              <div>Auth ID: <strong style={{ fontFamily: 'monospace' }}>{b.aoDisbursementConfirmation.authId}</strong></div>
+                              <div>Timestamp: <strong>{b.aoDisbursementConfirmation.timestamp}</strong></div>
+                              <div>Ref: <strong>{b.aoDisbursementConfirmation.referenceNo}</strong></div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                   </div>
                 </div>

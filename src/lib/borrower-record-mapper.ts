@@ -1,4 +1,5 @@
 import type { CreditAssessmentItem, FiveCsScorecard } from './credit-assessment-store';
+import type { DisbursementAuditRecord } from './disbursement-workflow';
 
 export interface SignatureEntry {
   signature: string;
@@ -131,6 +132,8 @@ export interface NormalizedBorrowerDetails {
     disbursedBy: string | null;
     disbursementReferenceNo: string | null;
     disbursementNotes: string | null;
+    adminDisbursementRelease: DisbursementAuditRecord | null;
+    aoDisbursementConfirmation: DisbursementAuditRecord | null;
   };
   documents: {
     applicantFacePhoto: string | null;
@@ -212,6 +215,8 @@ export function formatAssessmentStatusLabel(status: CreditAssessmentItem['status
       return 'Declined / Rejected';
     case 'contract_ready':
       return 'Contract Executed';
+    case 'pending_ao_disbursement':
+      return 'Released by Admin — Awaiting AO Confirmation';
     case 'disbursed':
       return 'Disbursed / Active';
     default:
@@ -476,6 +481,8 @@ export function buildBorrowerDetailsViewModel(
       disbursedBy: cleanText(record.disbursedBy),
       disbursementReferenceNo: cleanText(record.disbursementReferenceNo),
       disbursementNotes: cleanText(record.disbursementNotes),
+      adminDisbursementRelease: record.adminDisbursementRelease || null,
+      aoDisbursementConfirmation: record.aoDisbursementConfirmation || null,
     },
     documents: {
       applicantFacePhoto:

@@ -43,7 +43,7 @@ export interface BorrowerApplicationItem {
   paymentMode: string;
   currentStep: number;
   status: 'draft' | 'pending_ai' | 'pending_admin' | 'approved' | 'rejected' | 'completed';
-  assessmentStatus?: 'pending_assessment' | 'pending_admin' | 'admin_approved' | 'admin_rejected' | 'contract_ready' | 'disbursed';
+  assessmentStatus?: 'pending_assessment' | 'pending_admin' | 'admin_approved' | 'admin_rejected' | 'contract_ready' | 'pending_ao_disbursement' | 'disbursed';
   updatedAt: string;
   policyNo?: string;
 }
@@ -125,8 +125,8 @@ export default function ApplicationsPage() {
             approvedAmount: a.adminApprovedAmount || a.officerAdjustedAmount || a.aiPreApprovedAmount,
             termMonths: a.termMonths || 3,
             paymentMode: a.paymentMode || 'Daily',
-            currentStep: a.status === 'contract_ready' || a.status === 'disbursed' ? 7 : a.status === 'admin_approved' ? 6 : 5,
-            status: a.status === 'admin_approved' || a.status === 'contract_ready' || a.status === 'disbursed'
+            currentStep: a.status === 'contract_ready' || a.status === 'pending_ao_disbursement' || a.status === 'disbursed' ? 7 : a.status === 'admin_approved' ? 6 : 5,
+            status: a.status === 'admin_approved' || a.status === 'contract_ready' || a.status === 'pending_ao_disbursement' || a.status === 'disbursed'
               ? 'approved'
               : a.status === 'admin_rejected'
               ? 'rejected'

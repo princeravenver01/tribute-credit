@@ -4,6 +4,7 @@ import {
   FileSpreadsheet,
   Users2,
   BadgeCheck,
+  Wallet,
   LucideIcon
 } from 'lucide-react';
 
@@ -21,4 +22,5 @@ export const OFFICER_NAV_ITEMS: OfficerNavItem[] = [
   { name: 'Applications', href: '/officer/queue', icon: FileSpreadsheet, badge: 'Draft Vault' },
   { name: 'Current Borrowers', href: '/officer/borrowers', icon: Users2 },
   { name: 'Credit Assessments', href: '/officer/credit-assessments', icon: BadgeCheck },
+  { name: 'Disbursements', href: '/officer/disbursements', icon: Wallet },
 ];

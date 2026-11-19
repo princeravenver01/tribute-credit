@@ -61,7 +61,8 @@ test('Issue 2: Officer navigation should have a unified source of truth with mat
     { name: 'New Borrower', href: '/officer/borrowers/new' },
     { name: 'Applications', href: '/officer/queue' },
     { name: 'Current Borrowers', href: '/officer/borrowers' },
-    { name: 'Credit Assessments', href: '/officer/credit-assessments' }
+    { name: 'Credit Assessments', href: '/officer/credit-assessments' },
+    { name: 'Disbursements', href: '/officer/disbursements' }
   ];
 
   // Source of truth must have exact names and order
@@ -69,7 +70,7 @@ test('Issue 2: Officer navigation should have a unified source of truth with mat
   assert.deepEqual(
     namesInOrder,
     expectedOrder.map(e => e.name),
-    'OFFICER_NAV_ITEMS must have exact 5 names in order'
+    'OFFICER_NAV_ITEMS must have exact 6 names in order'
   );
 });
 

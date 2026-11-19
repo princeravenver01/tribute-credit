@@ -59,7 +59,7 @@ export default function AdminDashboardPage() {
     .reduce((sum, a) => sum + (a.finalContractAmount || a.adminApprovedAmount || 0), 0);
 
   const activeBorrowersCount = assessments
-    .filter(a => a.status === 'disbursed' || a.status === 'contract_ready').length;
+    .filter(a => a.status === 'disbursed').length;
 
   const pendingApprovalsCount = assessments
     .filter(a => a.status === 'pending_admin').length;
@@ -77,7 +77,17 @@ export default function AdminDashboardPage() {
     borrower: a.borrowerName,
     product: a.productName || 'Regular Loan',
     amount: `₱ ${(a.adminApprovedAmount || a.officerAdjustedAmount || a.requestedAmount || 0).toLocaleString('en-PH')}`,
-    status: a.status === 'admin_approved' ? 'Approved' : a.status === 'disbursed' ? 'Disbursed' : a.status === 'contract_ready' ? 'Contract Executed' : a.status === 'admin_rejected' ? 'Declined' : 'Pending Review'
+    status: a.status === 'admin_approved'
+      ? 'Approved'
+      : a.status === 'disbursed'
+      ? 'Disbursed'
+      : a.status === 'pending_ao_disbursement'
+      ? 'Released by Admin — Awaiting AO Confirmation'
+      : a.status === 'contract_ready'
+      ? 'Contract Executed'
+      : a.status === 'admin_rejected'
+      ? 'Declined'
+      : 'Pending Review'
   }));
 
   const selectedBorrower = selectedBorrowerId

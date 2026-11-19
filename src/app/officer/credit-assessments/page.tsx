@@ -93,6 +93,7 @@ export default function CreditAssessmentsPage() {
               existingItem.status === 'admin_approved' ||
               existingItem.status === 'admin_rejected' ||
               existingItem.status === 'contract_ready' ||
+              existingItem.status === 'pending_ao_disbursement' ||
               existingItem.status === 'disbursed'
             );
 
@@ -490,7 +491,14 @@ export default function CreditAssessmentsPage() {
     if (!matchesSearch) return false;
     if (filterTab === 'pending') return a.status === 'pending_assessment';
     if (filterTab === 'admin_queue') return a.status === 'pending_admin';
-    if (filterTab === 'approved') return a.status === 'admin_approved' || a.status === 'contract_ready' || a.status === 'disbursed';
+    if (filterTab === 'approved') {
+      return (
+        a.status === 'admin_approved' ||
+        a.status === 'contract_ready' ||
+        a.status === 'pending_ao_disbursement' ||
+        a.status === 'disbursed'
+      );
+    }
     return true;
   });
 
@@ -603,6 +611,7 @@ export default function CreditAssessmentsPage() {
                           }}
                         >
                           {item.status === 'contract_ready' ? 'Contract Executed' :
+                           item.status === 'pending_ao_disbursement' ? 'Released by Admin — Awaiting AO Confirmation' :
                            item.status === 'disbursed' ? 'Funds Disbursed' :
                            item.status === 'admin_approved' ? 'Admin Approved' :
                            item.status === 'admin_rejected' ? 'Declined' :
@@ -1044,7 +1053,12 @@ export default function CreditAssessmentsPage() {
                     ) : (
                       <button
                         type="button"
-                        disabled={isSubmitting || selectedAssessment.status === 'contract_ready' || selectedAssessment.status === 'disbursed'}
+                        disabled={
+                          isSubmitting ||
+                          selectedAssessment.status === 'contract_ready' ||
+                          selectedAssessment.status === 'pending_ao_disbursement' ||
+                          selectedAssessment.status === 'disbursed'
+                        }
                         onClick={() => handleSaveAssessment(true)}
                         className={styles.endorseAdminBtn}
                         style={{ opacity: isSubmitting ? 0.7 : 1, cursor: isSubmitting ? 'not-allowed' : 'pointer' }}

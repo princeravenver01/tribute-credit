@@ -119,7 +119,15 @@ export default function OfficerDashboardPage() {
     amount: `₱ ${(a.officerAdjustedAmount || a.aiPreApprovedAmount || a.requestedAmount || 0).toLocaleString('en-PH')}`,
     term: `${a.termMonths || 3} mos`,
     date: a.evaluatedAt || 'Today',
-    status: a.status === 'admin_approved' ? 'Approved' : a.status === 'contract_ready' ? 'Contract Executed' : a.status === 'disbursed' ? 'Disbursed' : 'Pending Admin',
+    status: a.status === 'admin_approved'
+      ? 'Approved'
+      : a.status === 'contract_ready'
+      ? 'Contract Executed'
+      : a.status === 'pending_ao_disbursement'
+      ? 'Released by Admin — Awaiting AO Confirmation'
+      : a.status === 'disbursed'
+      ? 'Disbursed'
+      : 'Pending Admin',
     score: a.fiveCs?.riskGrade || 'Class A'
   }));
 

@@ -55,6 +55,8 @@ interface AssessmentRecord {
   cidNumber?: string;
   loanCycle?: number;
   branchManagerName?: string;
+  adminDisbursementRelease?: any;
+  aoDisbursementConfirmation?: any;
   disbursedAt?: string;
   disbursedBy?: string;
   disbursementReferenceNo?: string;
@@ -104,8 +106,13 @@ async function syncToMySql(item: AssessmentRecord) {
     }
 
     // 2. Map application status to DB enum ('pending', 'under_review', 'approved', 'rejected', 'disbursed', 'completed')
+    // Note: pending_ao_disbursement is NOT yet disbursed in MySQL — it maps to 'approved' with disbursed_at = null.
     let dbStatus: 'pending' | 'under_review' | 'approved' | 'rejected' | 'disbursed' = 'pending';
-    if (item.status === 'admin_approved' || item.status === 'contract_ready') {
+    if (
+      item.status === 'admin_approved' ||
+      item.status === 'contract_ready' ||
+      item.status === 'pending_ao_disbursement'
+    ) {
       dbStatus = 'approved';
     } else if (item.status === 'admin_rejected') {
       dbStatus = 'rejected';
@@ -116,7 +123,11 @@ async function syncToMySql(item: AssessmentRecord) {
     }
 
     const finalAmount = Number(
-      (item.status === 'admin_approved' || item.status === 'contract_ready' || item.status === 'disbursed') && item.adminApprovedAmount
+      (item.status === 'admin_approved' ||
+        item.status === 'contract_ready' ||
+        item.status === 'pending_ao_disbursement' ||
+        item.status === 'disbursed') &&
+        item.adminApprovedAmount
         ? item.adminApprovedAmount
         : item.officerAdjustedAmount || item.requestedAmount || 10000
     );
@@ -263,7 +274,7 @@ export async function GET() {
           borrowerEmail: row.borrower_email
         };
 
-        upsertRecord(record);
+        upsertRecord(record, true);
       }
     }
   } catch (err) {
@@ -321,7 +332,7 @@ export async function POST(req: Request) {
   }
 }
 
-function upsertRecord(item: AssessmentRecord) {
+function upsertRecord(item: AssessmentRecord, fromDbSync = false) {
   if (!global.__tributeAssessmentsStore) global.__tributeAssessmentsStore = [];
   const list = global.__tributeAssessmentsStore;
 
@@ -332,7 +343,26 @@ function upsertRecord(item: AssessmentRecord) {
   );
 
   if (idx >= 0) {
-    list[idx] = { ...list[idx], ...item };
+    const existing = list[idx];
+    let mergedStatus = item.status || existing.status;
+    // DB 'approved' maps to admin_approved, contract_ready, or pending_ao_disbursement in app memory.
+    // Never downgrade a more specific in-memory stage back to admin_approved during DB hydration.
+    if (
+      fromDbSync &&
+      item.status === 'admin_approved' &&
+      (existing.status === 'contract_ready' || existing.status === 'pending_ao_disbursement')
+    ) {
+      mergedStatus = existing.status;
+    }
+
+    list[idx] = {
+      ...existing,
+      ...item,
+      status: mergedStatus,
+      // Keep Stage 1 Admin release evidence immutable once captured
+      adminDisbursementRelease: existing.adminDisbursementRelease || item.adminDisbursementRelease,
+      aoDisbursementConfirmation: existing.aoDisbursementConfirmation || item.aoDisbursementConfirmation,
+    };
   } else {
     list.unshift(item);
   }

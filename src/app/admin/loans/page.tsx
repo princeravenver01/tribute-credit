@@ -88,7 +88,11 @@ export default function AdminLoanApprovalsPage() {
               if (draft.adminSimulationStatus === 'pending') {
                 resolvedStatus = 'pending_admin';
                 resolvedApprovedAmount = undefined;
-              } else if (currentItem.status === 'contract_ready' || currentItem.status === 'disbursed') {
+              } else if (
+                currentItem.status === 'contract_ready' ||
+                currentItem.status === 'pending_ao_disbursement' ||
+                currentItem.status === 'disbursed'
+              ) {
                 resolvedStatus = currentItem.status;
                 resolvedApprovedAmount = currentItem.adminApprovedAmount || resolvedApprovedAmount;
               } else if (draft.adminSimulationStatus === 'approved' || currentItem.status === 'admin_approved') {
@@ -175,7 +179,11 @@ export default function AdminLoanApprovalsPage() {
                 let finalStatus = serverItem.status;
                 if (serverItem.status === 'pending_admin' || existing.status === 'pending_admin') {
                   finalStatus = 'pending_admin';
-                } else if (serverItem.status === 'contract_ready' || serverItem.status === 'disbursed') {
+                } else if (
+                  serverItem.status === 'contract_ready' ||
+                  serverItem.status === 'pending_ao_disbursement' ||
+                  serverItem.status === 'disbursed'
+                ) {
                   finalStatus = serverItem.status;
                 } else if (serverItem.status === 'admin_approved' || existing.status === 'admin_approved') {
                   finalStatus = 'admin_approved';
@@ -210,6 +218,7 @@ export default function AdminLoanApprovalsPage() {
             } else if (
               target.status === 'admin_approved' ||
               target.status === 'contract_ready' ||
+              target.status === 'pending_ao_disbursement' ||
               target.status === 'disbursed'
             ) {
               setFilterTab('approved');
@@ -376,7 +385,13 @@ export default function AdminLoanApprovalsPage() {
   };
 
   const pendingCount = assessments.filter(a => a.status === 'pending_admin').length;
-  const approvedCount = assessments.filter(a => a.status === 'admin_approved' || a.status === 'contract_ready' || a.status === 'disbursed').length;
+  const approvedCount = assessments.filter(
+    a =>
+      a.status === 'admin_approved' ||
+      a.status === 'contract_ready' ||
+      a.status === 'pending_ao_disbursement' ||
+      a.status === 'disbursed'
+  ).length;
   const rejectedCount = assessments.filter(a => a.status === 'admin_rejected').length;
   const totalCount = assessments.length;
 
@@ -388,7 +403,14 @@ export default function AdminLoanApprovalsPage() {
 
     if (!matchesSearch) return false;
     if (filterTab === 'pending') return a.status === 'pending_admin';
-    if (filterTab === 'approved') return a.status === 'admin_approved' || a.status === 'contract_ready' || a.status === 'disbursed';
+    if (filterTab === 'approved') {
+      return (
+        a.status === 'admin_approved' ||
+        a.status === 'contract_ready' ||
+        a.status === 'pending_ao_disbursement' ||
+        a.status === 'disbursed'
+      );
+    }
     if (filterTab === 'rejected') return a.status === 'admin_rejected';
     return true;
   });
@@ -765,7 +787,10 @@ export default function AdminLoanApprovalsPage() {
                 </h3>
 
                 {/* Locked State if Already Approved / Executed */}
-                {(selectedApp.status === 'admin_approved' || selectedApp.status === 'contract_ready' || selectedApp.status === 'disbursed') ? (
+                {(selectedApp.status === 'admin_approved' ||
+                  selectedApp.status === 'contract_ready' ||
+                  selectedApp.status === 'pending_ao_disbursement' ||
+                  selectedApp.status === 'disbursed') ? (
                   <div>
                     <div className={styles.lockedBanner}>
                       <CheckCircle2 size={24} color="#15803D" />
@@ -774,7 +799,16 @@ export default function AdminLoanApprovalsPage() {
                           ✓ Application Formally Approved by Credit Committee (Locked)
                         </strong>
                         <p style={{ fontSize: '12.5px', color: '#334155', margin: '2px 0 0 0' }}>
-                          Approved Loan Principal: <strong>₱{(Number(selectedApp.adminApprovedAmount || selectedApp.officerAdjustedAmount || selectedApp.aiPreApprovedAmount || selectedApp.requestedAmount) || 0).toLocaleString('en-PH')}</strong> • Status: <strong>{selectedApp.status === 'disbursed' ? 'Funds Disbursed' : selectedApp.status === 'contract_ready' ? 'Contract Executed & Dispatched' : 'Approved (Awaiting Officer Execution)'}</strong>
+                          Approved Loan Principal: <strong>₱{(Number(selectedApp.adminApprovedAmount || selectedApp.officerAdjustedAmount || selectedApp.aiPreApprovedAmount || selectedApp.requestedAmount) || 0).toLocaleString('en-PH')}</strong> • Status:{' '}
+                          <strong>
+                            {selectedApp.status === 'disbursed'
+                              ? 'Funds Disbursed'
+                              : selectedApp.status === 'pending_ao_disbursement'
+                              ? 'Released by Admin — Awaiting AO Confirmation'
+                              : selectedApp.status === 'contract_ready'
+                              ? 'Contract Executed (Awaiting Admin Release)'
+                              : 'Approved (Awaiting Officer Execution)'}
+                          </strong>
                         </p>
                       </div>
                     </div>
