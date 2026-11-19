@@ -180,6 +180,32 @@ export interface CreditAssessmentItem {
   };
 }
 
+const POST_CONTRACT_STATUS_RANK: Partial<Record<CreditAssessmentItem['status'], number>> = {
+  contract_ready: 1,
+  pending_ao_disbursement: 2,
+  disbursed: 3,
+};
+
+/**
+ * Resolves records arriving from drafts, API polling, or another browser tab.
+ * Once contract execution has started, stale earlier workflow states must not
+ * move the loan backwards. Before that boundary, the incoming state remains
+ * authoritative so reconsideration can legitimately return a loan to Admin.
+ */
+export function resolveAssessmentSyncStatus(
+  existingStatus: CreditAssessmentItem['status'],
+  incomingStatus: CreditAssessmentItem['status']
+): CreditAssessmentItem['status'] {
+  const existingRank = POST_CONTRACT_STATUS_RANK[existingStatus] || 0;
+  const incomingRank = POST_CONTRACT_STATUS_RANK[incomingStatus] || 0;
+
+  if (existingRank > 0 || incomingRank > 0) {
+    return existingRank >= incomingRank ? existingStatus : incomingStatus;
+  }
+
+  return incomingStatus;
+}
+
 const STORAGE_KEY = 'tribute_credit_assessments_db';
 
 /**

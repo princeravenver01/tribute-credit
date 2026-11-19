@@ -350,7 +350,9 @@ function upsertRecord(item: AssessmentRecord, fromDbSync = false) {
     if (
       fromDbSync &&
       item.status === 'admin_approved' &&
-      (existing.status === 'contract_ready' || existing.status === 'pending_ao_disbursement')
+      (existing.status === 'contract_ready' ||
+        existing.status === 'pending_ao_disbursement' ||
+        existing.status === 'disbursed')
     ) {
       mergedStatus = existing.status;
     }

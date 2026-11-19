@@ -7,10 +7,12 @@ import { AppHeader } from '@/components/common/AppHeader';
 import { AdminBorrowerDetailsModal } from '@/components/admin/AdminBorrowerDetailsModal';
 import {
   getCreditAssessments,
+  resolveAssessmentSyncStatus,
   saveCreditAssessment,
   updateAssessmentStatus,
   CreditAssessmentItem
 } from '@/lib/credit-assessment-store';
+import { formatAssessmentStatusLabel } from '@/lib/borrower-record-mapper';
 import {
   ShieldCheck,
   CheckCircle2,
@@ -85,15 +87,16 @@ export default function AdminLoanApprovalsPage() {
 
             if (existingIndex >= 0) {
               const currentItem = list[existingIndex];
-              if (draft.adminSimulationStatus === 'pending') {
+              resolvedStatus = resolveAssessmentSyncStatus(currentItem.status, resolvedStatus);
+
+              if (resolvedStatus === 'pending_admin') {
                 resolvedStatus = 'pending_admin';
                 resolvedApprovedAmount = undefined;
               } else if (
-                currentItem.status === 'contract_ready' ||
-                currentItem.status === 'pending_ao_disbursement' ||
-                currentItem.status === 'disbursed'
+                resolvedStatus === 'contract_ready' ||
+                resolvedStatus === 'pending_ao_disbursement' ||
+                resolvedStatus === 'disbursed'
               ) {
-                resolvedStatus = currentItem.status;
                 resolvedApprovedAmount = currentItem.adminApprovedAmount || resolvedApprovedAmount;
               } else if (draft.adminSimulationStatus === 'approved' || currentItem.status === 'admin_approved') {
                 resolvedStatus = 'admin_approved';
@@ -174,20 +177,8 @@ export default function AdminLoanApprovalsPage() {
                 (serverItem.applicationId && a.applicationId === serverItem.applicationId)
               );
               if (localIdx >= 0) {
-                // If serverItem is pending_admin (e.g. from reconsideration request), respect pending_admin
                 const existing = list[localIdx];
-                let finalStatus = serverItem.status;
-                if (serverItem.status === 'pending_admin' || existing.status === 'pending_admin') {
-                  finalStatus = 'pending_admin';
-                } else if (
-                  serverItem.status === 'contract_ready' ||
-                  serverItem.status === 'pending_ao_disbursement' ||
-                  serverItem.status === 'disbursed'
-                ) {
-                  finalStatus = serverItem.status;
-                } else if (serverItem.status === 'admin_approved' || existing.status === 'admin_approved') {
-                  finalStatus = 'admin_approved';
-                }
+                const finalStatus = resolveAssessmentSyncStatus(existing.status, serverItem.status);
                 list[localIdx] = { ...existing, ...serverItem, status: finalStatus };
               } else {
                 list.unshift(serverItem);
@@ -415,6 +406,14 @@ export default function AdminLoanApprovalsPage() {
     return true;
   });
 
+  const selectedAppIsApproved = Boolean(
+    selectedApp &&
+      (selectedApp.status === 'admin_approved' ||
+        selectedApp.status === 'contract_ready' ||
+        selectedApp.status === 'pending_ao_disbursement' ||
+        selectedApp.status === 'disbursed')
+  );
+
   return (
     <div className={`${theme.adminThemeRoot} ${theme.adminPageShell}`}>
       <Sidebar
@@ -581,7 +580,11 @@ export default function AdminLoanApprovalsPage() {
               ) : (
                 filteredApps.map(app => {
                   const isSelected = selectedApp?.id === app.id;
-                  const isApproved = app.status === 'admin_approved';
+                  const isApproved =
+                    app.status === 'admin_approved' ||
+                    app.status === 'contract_ready' ||
+                    app.status === 'pending_ao_disbursement' ||
+                    app.status === 'disbursed';
 
                   return (
                     <div
@@ -605,7 +608,7 @@ export default function AdminLoanApprovalsPage() {
                             </span>
                           )}
                           <span className={`${styles.statusPill} ${isApproved ? styles.statusPillApproved : app.status === 'admin_rejected' ? styles.statusPillRejected : styles.statusPillPending}`}>
-                            {isApproved ? 'Approved' : app.status === 'admin_rejected' ? 'Rejected' : 'Needs Admin Action'}
+                            {formatAssessmentStatusLabel(app.status)}
                           </span>
                         </div>
                       </div>
@@ -659,20 +662,20 @@ export default function AdminLoanApprovalsPage() {
                   <div style={{
                     fontSize: '12px',
                     fontWeight: '800',
-                    color: selectedApp.status === 'admin_approved' ? '#15803D' : selectedApp.status === 'admin_rejected' ? '#DC2626' : '#B45309',
-                    backgroundColor: selectedApp.status === 'admin_approved' ? '#DCFCE7' : selectedApp.status === 'admin_rejected' ? '#FEE2E2' : '#FEF3C7',
-                    border: '1px solid ' + (selectedApp.status === 'admin_approved' ? '#86EFAC' : selectedApp.status === 'admin_rejected' ? '#FCA5A5' : '#FDE68A'),
+                    color: selectedAppIsApproved ? '#15803D' : selectedApp.status === 'admin_rejected' ? '#DC2626' : '#B45309',
+                    backgroundColor: selectedAppIsApproved ? '#DCFCE7' : selectedApp.status === 'admin_rejected' ? '#FEE2E2' : '#FEF3C7',
+                    border: '1px solid ' + (selectedAppIsApproved ? '#86EFAC' : selectedApp.status === 'admin_rejected' ? '#FCA5A5' : '#FDE68A'),
                     padding: '5px 12px',
                     borderRadius: '8px',
                     marginTop: '4px'
                   }}>
-                    {selectedApp.status === 'admin_approved' 
+                    {selectedApp.status === 'admin_approved'
                       ? `Approved at ₱${(Number(selectedApp.adminApprovedAmount || selectedApp.officerAdjustedAmount || selectedApp.requestedAmount) || 0).toLocaleString('en-PH')}` 
                       : selectedApp.status === 'admin_rejected' 
                       ? 'Disapproved / Rejected' 
-                      : (selectedApp.adjustmentCount || 0) > 0
+                      : selectedApp.status === 'pending_admin' && (selectedApp.adjustmentCount || 0) > 0
                       ? `Reconsideration Pending Approval (${selectedApp.adjustmentCount}/3)`
-                      : 'Pending Admin Decision'}
+                      : formatAssessmentStatusLabel(selectedApp.status)}
                   </div>
                 </div>
               </div>

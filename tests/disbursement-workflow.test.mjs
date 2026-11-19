@@ -242,3 +242,49 @@ test('Disbursement Workflow Persistence & Counts: API maps pending_ao_disburseme
     'AO Current Borrowers must recognize pending_ao_disbursement status honestly'
   );
 });
+
+test('Admin Loans preserves completed workflow stages and labels disbursed loans as active', async () => {
+  const store = await import('../src/lib/credit-assessment-store.ts');
+  const adminLoansSrc = readFile(path.join(ROOT, 'src/app/admin/loans/page.tsx'));
+
+  assert.equal(
+    typeof store.resolveAssessmentSyncStatus,
+    'function',
+    'Credit assessment store must expose one status resolver for sync merges'
+  );
+
+  assert.equal(
+    store.resolveAssessmentSyncStatus('disbursed', 'pending_admin'),
+    'disbursed',
+    'A stale pending Admin record must never downgrade a disbursed loan'
+  );
+  assert.equal(
+    store.resolveAssessmentSyncStatus('pending_admin', 'disbursed'),
+    'disbursed',
+    'A server-confirmed disbursed status must supersede a stale local pending state'
+  );
+  assert.equal(
+    store.resolveAssessmentSyncStatus('pending_ao_disbursement', 'admin_approved'),
+    'pending_ao_disbursement',
+    'Admin release evidence must not be downgraded to initial approval'
+  );
+  assert.equal(
+    store.resolveAssessmentSyncStatus('contract_ready', 'pending_admin'),
+    'contract_ready',
+    'An executed contract must not return to pending Admin decision'
+  );
+  assert.equal(
+    store.resolveAssessmentSyncStatus('admin_approved', 'pending_admin'),
+    'pending_admin',
+    'A genuine pre-contract reconsideration may still return to Admin review'
+  );
+
+  assert.ok(
+    adminLoansSrc.includes("formatAssessmentStatusLabel(app.status)"),
+    'Admin Loans cards must use the complete shared workflow status label'
+  );
+  assert.ok(
+    adminLoansSrc.includes("formatAssessmentStatusLabel(selectedApp.status)"),
+    'Admin Loans governance state must use the complete shared workflow status label'
+  );
+});
