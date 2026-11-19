@@ -5,26 +5,29 @@
   top: 0;
   z-index: 50;
   border-bottom: 1px solid #E2E8F0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .navContainer {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 0 24px;
+  padding: 0 20px;
   height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+  position: relative;
 }
 
-/* Left Brand Section */
+/* Brand Lockup (Logo + Discrete Subtitle) */
 .brandGroup {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   text-decoration: none;
+  min-width: 0;
+  flex-shrink: 0;
 }
 
 .logoWrap {
@@ -34,48 +37,38 @@
   flex-shrink: 0;
 }
 
-.brandText {
+.brandDescriptor {
   display: flex;
   flex-direction: column;
-}
-
-.brandTitleRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.brandTitle {
-  font-size: 15px;
-  font-weight: 800;
-  color: #0F172A;
-  letter-spacing: -0.3px;
+  justify-content: center;
+  border-left: 1px solid #E2E8F0;
+  padding-left: 10px;
   line-height: 1.2;
 }
 
-.portalBadge {
-  font-size: 10.5px;
+.portalLabel {
+  font-size: 11.5px;
   font-weight: 800;
-  background-color: #ECFDF5;
   color: #059669;
-  border: 1px solid #A7F3D0;
-  padding: 1px 8px;
-  border-radius: 12px;
-  letter-spacing: 0.3px;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
 }
 
-.brandSubtitle {
-  font-size: 11.5px;
+.branchLabel {
+  font-size: 11px;
   color: #64748B;
   font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 140px;
 }
 
-/* Desktop Navigation */
+/* Desktop Navigation (Center/Left) */
 .desktopNav {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
 }
 
 .navItem {
@@ -102,99 +95,152 @@
   font-weight: 800;
 }
 
-/* Right User Profile / Actions */
+/* Right Section & Profile Trigger */
 .userSection {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 12px;
 }
 
-.userProfileLink {
+.profileTrigger {
   display: flex;
   align-items: center;
-  gap: 10px;
-  text-decoration: none;
-  padding: 4px 8px;
-  border-radius: 8px;
-  transition: background-color 0.15s ease;
+  gap: 8px;
+  background: none;
+  border: 1px solid transparent;
+  padding: 4px;
+  border-radius: 9999px;
+  cursor: pointer;
+  transition: all 0.15s ease;
 }
 
-.userProfileLink:hover {
+.profileTrigger:hover,
+.profileTrigger:focus-visible {
+  outline: none;
   background-color: #F8FAFC;
+  border-color: #E2E8F0;
 }
 
 .avatar {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: linear-gradient(135deg, #059669 0%, #047857 100%);
   color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 800;
-  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.25);
   flex-shrink: 0;
 }
 
-.userInfo {
-  display: flex;
-  flex-direction: column;
-  text-align: left;
-}
-
-.userName {
-  font-size: 13px;
-  font-weight: 800;
-  color: #1E293B;
-  line-height: 1.2;
-}
-
-.userMeta {
-  font-size: 11px;
+.triggerArrow {
   color: #64748B;
-  font-weight: 600;
+  transition: transform 0.2s ease;
 }
 
-.settingsLinkBtn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  background-color: #F8FAFC;
+.triggerArrowOpen {
+  transform: rotate(180deg);
+}
+
+/* Profile Popover / Dropdown Menu */
+.profileMenu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  width: 250px;
+  background-color: #FFFFFF;
   border: 1px solid #E2E8F0;
-  color: #64748B;
-  text-decoration: none;
-  transition: all 0.15s ease;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+  z-index: 100;
+  overflow: hidden;
+  animation: fadeInMenu 0.15s ease-out;
 }
 
-.settingsLinkBtn:hover {
-  background-color: #ECFDF5;
+@keyframes fadeInMenu {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.menuHeader {
+  padding: 14px 16px;
+  background-color: #F8FAFC;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.menuUserName {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0 0 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.menuMcidBadge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
   color: #059669;
-  border-color: #A7F3D0;
+  background-color: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  padding: 1px 8px;
+  border-radius: 12px;
 }
 
-.logoutBtn {
+.menuBody {
+  padding: 6px;
+}
+
+.menuItemLink,
+.menuItemBtn {
+  width: 100%;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
+  gap: 10px;
+  padding: 10px 12px;
   border-radius: 8px;
-  background-color: #FFF1F2;
-  border: 1px solid #FECDD3;
-  color: #E11D48;
-  font-size: 12.5px;
+  font-size: 13px;
   font-weight: 700;
+  color: #334155;
+  text-decoration: none;
+  background: none;
+  border: none;
   cursor: pointer;
+  text-align: left;
   transition: all 0.15s ease;
 }
 
-.logoutBtn:hover {
-  background-color: #FFE4E6;
-  border-color: #FDA4AF;
+.menuItemLink:hover,
+.menuItemBtn:hover {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+.menuDivider {
+  height: 1px;
+  background-color: #F1F5F9;
+  margin: 4px 0;
+}
+
+.menuItemLogout {
+  color: #E11D48;
+}
+
+.menuItemLogout:hover {
+  background-color: #FFF1F2;
+  color: #BE123C;
 }
 
 /* Mobile Bottom Navigation Bar */
@@ -239,19 +285,16 @@
   background-color: #ECFDF5;
 }
 
-/* Responsive Rules */
+/* Responsive Breakpoints */
 @media (max-width: 860px) {
-  .brandSubtitle {
-    display: none;
-  }
-  .userInfo {
+  .branchLabel {
     display: none;
   }
 }
 
 @media (max-width: 768px) {
   .navContainer {
-    height: 58px;
+    height: 64px;
     padding: 0 16px;
   }
 
@@ -263,11 +306,14 @@
     display: block;
   }
 
-  .logoutBtn span {
-    display: none;
+  .profileMenu {
+    right: 0;
+    width: 220px;
   }
+}
 
-  .logoutBtn {
-    padding: 7px;
+@media (max-width: 360px) {
+  .brandDescriptor {
+    display: none;
   }
 }
