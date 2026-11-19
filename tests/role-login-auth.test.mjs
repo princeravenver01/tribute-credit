@@ -11,6 +11,8 @@ const AUTH_LIB_PATH = path.join(ROOT, 'src/lib/auth.ts');
 const LOGIN_RATE_LIMIT_PATH = path.join(ROOT, 'src/lib/login-rate-limit.ts');
 const LOGIN_API_PATH = path.join(ROOT, 'src/app/api/auth/login/route.ts');
 const LOGOUT_API_PATH = path.join(ROOT, 'src/app/api/auth/logout/route.ts');
+const PROXY_PATH = path.join(ROOT, 'src/proxy.ts');
+const LEGACY_MIDDLEWARE_PATH = path.join(ROOT, 'src/middleware.ts');
 const LOGIN_PAGE_PATHS = {
   borrower: path.join(ROOT, 'src/app/borrower/login/page.tsx'),
   officer: path.join(ROOT, 'src/app/officer/login/page.tsx'),
@@ -241,4 +243,44 @@ test('logout clears the session with matching secure cookie attributes', () => {
   assert.match(source, /sameSite:\s*['"]lax['"]/);
   assert.match(source, /expires:\s*new Date\(0\)/);
   assert.match(source, /path:\s*['"]\/['"]/);
+});
+
+test('Next.js 16 uses a hostname-aware proxy instead of legacy middleware', () => {
+  const source = read(PROXY_PATH);
+
+  assert.equal(fs.existsSync(LEGACY_MIDDLEWARE_PATH), false, 'src/middleware.ts must be removed');
+  assert.match(source, /export\s+async\s+function\s+proxy\s*\(/);
+  assert.match(source, /getPortalForHostname/);
+  assert.match(source, /getPortalForPath/);
+  assert.match(source, /verifyJwtToken/);
+});
+
+test('proxy routes roots and cross-portal paths to the hostname portal', () => {
+  const source = read(PROXY_PATH);
+
+  assert.match(source, /pathname\s*===\s*['"]\/['"]/);
+  assert.match(source, /portal\.loginPath/);
+  assert.match(source, /portal\.dashboardPath/);
+  assert.match(source, /requestedPortal[^\n]*portal\.key|requestedPortal\.key[^\n]*portal\.key/);
+  assert.match(source, /isProductionPortalHost/);
+});
+
+test('proxy verifies role-matching sessions and clears invalid sessions', () => {
+  const source = read(PROXY_PATH);
+
+  assert.match(source, /request\.cookies\.get\(['"]coop_auth_token['"]\)/);
+  assert.match(source, /roleCanAccessPortal\(session\.role,\s*portal\)/);
+  assert.match(source, /NextResponse\.next\(\)/);
+  assert.match(source, /cookies\.set\(['"]coop_auth_token['"]/);
+  assert.match(source, /expires:\s*new Date\(0\)/);
+});
+
+test('proxy preserves admin and disbursement access and excludes APIs and static assets', () => {
+  const source = read(PROXY_PATH);
+
+  assert.match(source, /pathname\.startsWith\(['"]\/api\/['"]\)/);
+  assert.match(source, /_next\/static/);
+  assert.match(source, /_next\/image/);
+  assert.match(source, /favicon\.ico/);
+  assert.match(source, /disbursement/);
 });
