@@ -43,7 +43,7 @@ export interface BorrowerApplicationItem {
   paymentMode: string;
   currentStep: number;
   status: 'draft' | 'pending_ai' | 'pending_admin' | 'approved' | 'rejected' | 'completed';
-  assessmentStatus?: 'pending_assessment' | 'pending_admin' | 'admin_approved' | 'admin_rejected' | 'contract_ready' | 'pending_ao_disbursement' | 'disbursed';
+  assessmentStatus?: 'pending_assessment' | 'pending_admin' | 'admin_approved' | 'admin_rejected' | 'contract_ready' | 'pending_ao_disbursement' | 'disbursed' | 'completed';
   updatedAt: string;
   policyNo?: string;
 }

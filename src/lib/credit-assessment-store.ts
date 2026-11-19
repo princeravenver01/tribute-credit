@@ -60,7 +60,8 @@ export interface CreditAssessmentItem {
     | 'admin_rejected'
     | 'contract_ready'
     | 'pending_ao_disbursement'
-    | 'disbursed';
+    | 'disbursed'
+    | 'completed';
   adminApprovedAmount?: number;
   previousAdminApprovedAmount?: number;
   reconsiderationJustification?: string;

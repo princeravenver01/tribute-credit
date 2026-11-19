@@ -158,6 +158,136 @@ export async function GET() {
   const activeLoan = sortedLoans[0] || null;
   const historyLoans = sortedLoans.slice(1);
 
+  // Derive consolidated Statistics across all matched loans
+  let totalLoaned = 0;
+  let totalPaid = 0;
+  let totalInterest = 0;
+  let activeLoansCount = 0;
+  let fullyPaidLoansCount = 0;
+  let earliestDisbursementDate: Date | null = null;
+  let latestSettlementDate: Date | null = null;
+
+  // Extract CBU Records
+  interface CbuRecordRow {
+    id?: string;
+    date: string;
+    type: 'deposit' | 'withdraw';
+    amount: number;
+    runningBalance: number;
+    referenceNo?: string;
+    processedBy?: string;
+    aoSignature?: string;
+    aoSignatureImage?: string;
+    aoAuthId?: string;
+    notes?: string;
+  }
+  const allCbuRecords: CbuRecordRow[] = [];
+
+  for (const loan of matchedLoans) {
+    const principal = Number(loan.finalContractAmount ?? loan.adminApprovedAmount ?? loan.officerAdjustedAmount ?? 0);
+    const isDisbursedOrDone = loan.status === 'disbursed' || loan.status === 'completed';
+
+    if (isDisbursedOrDone) {
+      totalLoaned += principal;
+
+      // Check dates for Total Days Loaned
+      const dateStr = loan.disbursedAt || loan.contractExecutedAt || loan.evaluatedAt;
+      if (dateStr) {
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) {
+          if (!earliestDisbursementDate || d < earliestDisbursementDate) earliestDisbursementDate = d;
+        }
+      }
+
+      // Sum payment ledger
+      if (Array.isArray(loan.paymentLedgerRecords) && loan.paymentLedgerRecords.length > 0) {
+        let loanPaid = 0;
+        let loanInterest = 0;
+        let hasUnpaid = false;
+
+        for (const p of loan.paymentLedgerRecords) {
+          loanInterest += Number(p.interest || 0);
+          if (p.status === 'Paid' || p.status === 'Fully Paid') {
+            loanPaid += Number(p.payment || 0);
+            if (p.datePaid) {
+              const dp = new Date(p.datePaid);
+              if (!isNaN(dp.getTime()) && (!latestSettlementDate || dp > latestSettlementDate)) {
+                latestSettlementDate = dp;
+              }
+            }
+          } else {
+            hasUnpaid = true;
+          }
+        }
+        totalPaid += loanPaid;
+        totalInterest += loanInterest;
+
+        if (loan.status === 'completed' || (!hasUnpaid && loanPaid > 0)) {
+          fullyPaidLoansCount++;
+        } else {
+          activeLoansCount++;
+        }
+      } else {
+        // Fallback for disbursed without ledger yet
+        if (loan.status === 'completed') fullyPaidLoansCount++;
+        else activeLoansCount++;
+      }
+    }
+
+    // Collect CBU records
+    if (Array.isArray(loan.savingsLedgerRecords) && loan.savingsLedgerRecords.length > 0) {
+      for (const s of loan.savingsLedgerRecords) {
+        allCbuRecords.push({
+          id: s.id,
+          date: s.date || '—',
+          type: s.type || 'deposit',
+          amount: Number(s.amount || 0),
+          runningBalance: Number(s.runningBalance || 0),
+          referenceNo: s.referenceNo || 'CBU-REC',
+          processedBy: s.processedBy || loan.evaluatedByOfficer || 'Account Officer',
+          aoSignature: s.aoSignature,
+          aoSignatureImage: s.aoSignatureImage,
+          aoAuthId: (s as unknown as Record<string, unknown>).aoAuthId as string || 'AO-AUTH-LIVE',
+          notes: s.notes,
+        });
+      }
+    }
+  }
+
+  // Calculate Total Days Loaned
+  let totalDaysLoaned = 0;
+  if (earliestDisbursementDate) {
+    const end = activeLoansCount > 0 ? new Date() : (latestSettlementDate || new Date());
+    const diffMs = Math.max(0, end.getTime() - earliestDisbursementDate.getTime());
+    totalDaysLoaned = Math.max(1, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+  }
+
+  // Sort CBU records by date descending
+  allCbuRecords.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const currentCbuBalance = allCbuRecords[0]?.runningBalance ?? (activeLoan?.savingsBalance || 500);
+  const totalCbuIn = allCbuRecords.filter((r) => r.type === 'deposit').reduce((sum, r) => sum + r.amount, 0);
+  const totalCbuOut = allCbuRecords.filter((r) => r.type === 'withdraw').reduce((sum, r) => sum + r.amount, 0);
+
+  // Evaluate Reloan Eligibility
+  // Eligible only if: zero active loans with remaining balance and zero pending applications
+  const pendingApps = matchedLoans.filter((l) =>
+    ['pending_assessment', 'pending_admin', 'admin_approved', 'contract_ready', 'pending_ao_disbursement'].includes(l.status)
+  );
+  const activeUnpaidLoans = matchedLoans.filter((l) => l.status === 'disbursed' && (l.remainingBalance === undefined || l.remainingBalance > 0));
+
+  let reloanEligible = true;
+  let reloanBlockingReason = '';
+
+  if (activeUnpaidLoans.length > 0) {
+    reloanEligible = false;
+    const l = activeUnpaidLoans[0];
+    reloanBlockingReason = `Active loan ${l.applicationId || l.id} has an outstanding unpaid balance. All current obligations must be settled prior to renewal.`;
+  } else if (pendingApps.length > 0) {
+    reloanEligible = false;
+    const p = pendingApps[0];
+    reloanBlockingReason = `Application ${p.applicationId || p.id} is currently in progress (${p.status.replace(/_/g, ' ')}). You cannot submit a renewal until it concludes.`;
+  }
+
   // Load institutional coop settings
   const coopSettings = await getCoopSettings();
 
@@ -172,7 +302,24 @@ export async function GET() {
     },
     activeLoan,
     historyLoans,
+    allLoans: sortedLoans,
     totalLoansCount: matchedLoans.length,
+    statistics: {
+      totalLoaned,
+      totalPaid,
+      totalInterest,
+      currentCbuBalance,
+      totalCbuIn,
+      totalCbuOut,
+      totalDaysLoaned,
+      activeLoansCount,
+      fullyPaidLoansCount,
+    },
+    cbuLedger: allCbuRecords,
+    reloanEligibility: {
+      eligible: reloanEligible,
+      reason: reloanBlockingReason,
+    },
     coopSettings,
   });
 }
@@ -182,6 +329,23 @@ export async function POST(req: Request) {
   if (!auth.ok || !auth.user) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
+
+  const globalStore = (globalThis as unknown as AssessmentMemoryHolder).__tributeAssessmentsStore;
+
+  const defaultFiveCs: FiveCsScorecard = {
+    characterScore: 20,
+    characterNotes: 'Good standing member',
+    capacityScore: 25,
+    capacityNotes: 'Verified disposable income',
+    capitalScore: 18,
+    capitalNotes: 'Established business capital',
+    collateralScore: 18,
+    collateralNotes: 'Active cooperative membership',
+    conditionsScore: 15,
+    conditionsNotes: 'Stable operations',
+    totalScore: 96,
+    riskGrade: 'Class A (Prime / Low Risk)',
+  };
 
   try {
     const body = await req.json();
@@ -226,18 +390,102 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, message: 'Password updated successfully' });
     }
 
-    if (body.action === 'update_profile') {
-      const { contactNumber, address } = body;
-      try {
-        await query('UPDATE users SET contact_number = ?, address = ? WHERE id = ?', [
-          contactNumber,
-          address,
-          auth.user.userId,
-        ]);
-      } catch {
-        // Fallback
+    if (body.action === 'apply_renewal') {
+      const { requestedAmount, productName, termMonths, purpose } = body;
+      if (!requestedAmount || !productName || !termMonths) {
+        return NextResponse.json({ error: 'Missing required loan renewal parameters' }, { status: 400 });
       }
-      return NextResponse.json({ success: true, message: 'Contact details updated' });
+
+      // Load all loans for this borrower to verify eligibility
+      let loans: CreditAssessmentItem[] = [];
+      if (globalStore && Array.isArray(globalStore)) {
+        loans = [...(globalStore as unknown as CreditAssessmentItem[])];
+      }
+      const userEmail = auth.user.email.toLowerCase().trim();
+      const userName = auth.user.name.toLowerCase().trim();
+      const userMemberNo = ((auth.user as unknown as Record<string, unknown>).member_no as string | undefined)?.toLowerCase().trim();
+
+      const borrowerLoans = loans.filter((loan) => {
+        const fullProfile = (loan as { fullProfile?: { step2?: { email?: string } } }).fullProfile;
+        const lEmail = (loan.borrowerEmail || fullProfile?.step2?.email || '').toLowerCase().trim();
+        const lName = (loan.borrowerName || '').toLowerCase().trim();
+        const lMcid = (loan.mcid || loan.policyNo || '').toLowerCase().trim();
+        return (
+          (lEmail && lEmail === userEmail) ||
+          (lName && lName === userName) ||
+          (lMcid && userMemberNo && lMcid === userMemberNo)
+        );
+      });
+
+      // Re-verify eligibility on the server
+      const activeUnpaid = borrowerLoans.filter((l) => l.status === 'disbursed' && (l.remainingBalance === undefined || l.remainingBalance > 0));
+      const inProgress = borrowerLoans.filter((l) =>
+        ['pending_assessment', 'pending_admin', 'admin_approved', 'contract_ready', 'pending_ao_disbursement'].includes(l.status)
+      );
+
+      if (activeUnpaid.length > 0 || inProgress.length > 0) {
+        return NextResponse.json(
+          { error: 'Cannot submit renewal: You have active or pending loans that must conclude first.' },
+          { status: 400 }
+        );
+      }
+
+      const cycleNumber = borrowerLoans.length + 1;
+      const newAppId = `RNW-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const newLoanItem: CreditAssessmentItem = {
+        id: newAppId,
+        applicationId: newAppId,
+        borrowerName: auth.user.name,
+        borrowerEmail: auth.user.email,
+        policyNo: (auth.user as unknown as Record<string, unknown>).member_no as string || `MEM-${auth.user.userId}`,
+        mcid: (auth.user as unknown as Record<string, unknown>).member_no as string || `MCID-${auth.user.userId}`,
+        contactNumber: '',
+        location: 'Metro Manila',
+        livelihood: purpose || 'Member Micro-enterprise',
+        yearsInBusiness: 3,
+        monthlyNetIncome: 30000,
+        existingDebts: 0,
+        netDisposableIncome: 25000,
+        requestedAmount: Number(requestedAmount),
+        productName: productName || 'Regular Loan',
+        termMonths: Number(termMonths),
+        paymentMode: 'Weekly',
+        aiPreApprovedAmount: Number(requestedAmount),
+        aiRiskRating: 'Class A (Prime / Low Risk)',
+        aiDsr: 20,
+        aiConfidenceScore: 95.0,
+        aiRecommendationNote: `Cycle ${cycleNumber} member reloan requested`,
+        fiveCs: defaultFiveCs,
+        officerAdjustedAmount: Number(requestedAmount),
+        officerRecommendation: 'recommend_approve',
+        officerNotes: `Renewal application submitted by member for cycle ${cycleNumber}. Pending AO Credit Assessment.`,
+        evaluatedByOfficer: 'Assigned Account Officer',
+        evaluatedAt: new Date().toISOString(),
+        status: 'pending_assessment',
+        loanCycle: cycleNumber,
+      };
+
+      if (globalStore && Array.isArray(globalStore)) {
+        globalStore.unshift(newLoanItem as unknown as Record<string, unknown>);
+      }
+
+      try {
+        await query(
+          `INSERT INTO loan_applications 
+           (loan_code, borrower_id, product_id, amount_requested, term_months, purpose, status) 
+           VALUES (?, ?, 1, ?, ?, ?, 'pending')`,
+          [newAppId, auth.user.userId, requestedAmount, termMonths, purpose || 'Reloan renewal']
+        );
+      } catch {
+        // Fallback to memory store
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Loan renewal submitted successfully. Your Account Officer will evaluate your request.',
+        applicationId: newAppId,
+      });
     }
 
     return NextResponse.json({ error: 'Invalid action requested' }, { status: 400 });
