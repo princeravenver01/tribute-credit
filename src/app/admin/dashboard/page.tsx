@@ -4,14 +4,16 @@ import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Sidebar } from '@/components/common/Sidebar';
 import { AppHeader } from '@/components/common/AppHeader';
-import { Users, FileCheck, DollarSign, AlertCircle, ArrowUpRight, TrendingUp } from 'lucide-react';
+import { Users, FileCheck, DollarSign, AlertCircle, ArrowUpRight, TrendingUp, Eye } from 'lucide-react';
 import { getCreditAssessments, CreditAssessmentItem } from '@/lib/credit-assessment-store';
+import { AdminBorrowerDetailsModal } from '@/components/admin/AdminBorrowerDetailsModal';
 import theme from '@/components/admin/AdminTheme.module.css';
 import styles from './dashboard.module.css';
 
 export default function AdminDashboardPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [assessments, setAssessments] = useState<CreditAssessmentItem[]>([]);
+  const [selectedBorrowerId, setSelectedBorrowerId] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -71,11 +73,16 @@ export default function AdminDashboardPage() {
 
   const recentApplications = assessments.map(a => ({
     id: a.applicationId || a.id,
+    record: a,
     borrower: a.borrowerName,
     product: a.productName || 'Regular Loan',
     amount: `₱ ${(a.adminApprovedAmount || a.officerAdjustedAmount || a.requestedAmount || 0).toLocaleString('en-PH')}`,
     status: a.status === 'admin_approved' ? 'Approved' : a.status === 'disbursed' ? 'Disbursed' : a.status === 'contract_ready' ? 'Contract Executed' : a.status === 'admin_rejected' ? 'Declined' : 'Pending Review'
   }));
+
+  const selectedBorrower = selectedBorrowerId
+    ? assessments.find(a => a.id === selectedBorrowerId) || null
+    : null;
 
   const getStatusClass = (status: string) => {
     if (status === 'Approved' || status === 'Contract Executed') return styles.badgeApproved;
@@ -186,12 +193,21 @@ export default function AdminDashboardPage() {
                         </span>
                       </td>
                       <td>
-                        <Link
-                          href="/admin/loans"
-                          className={styles.actionLink}
-                        >
-                          Review <ArrowUpRight size={14} />
-                        </Link>
+                        <div className={styles.actionGroup}>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedBorrowerId(app.record.id)}
+                            className={styles.viewDetailsBtn}
+                          >
+                            <Eye size={13} /> View Details
+                          </button>
+                          <Link
+                            href={`/admin/loans?appId=${encodeURIComponent(app.record.id)}`}
+                            className={styles.actionLink}
+                          >
+                            Review <ArrowUpRight size={14} />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -222,18 +238,33 @@ export default function AdminDashboardPage() {
                     <span>{app.product}</span>
                     <strong className={styles.amountCell}>{app.amount}</strong>
                   </div>
-                  <Link
-                    href="/admin/loans"
-                    className={styles.mobileActionBtn}
-                  >
-                    Review Application <ArrowUpRight size={14} />
-                  </Link>
+                  <div className={styles.mobileCardActions}>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedBorrowerId(app.record.id)}
+                      className={styles.mobileDetailsBtn}
+                    >
+                      <Eye size={14} /> View Details
+                    </button>
+                    <Link
+                      href={`/admin/loans?appId=${encodeURIComponent(app.record.id)}`}
+                      className={styles.mobileActionBtn}
+                    >
+                      Review Application <ArrowUpRight size={14} />
+                    </Link>
+                  </div>
                 </div>
               ))
             )}
           </div>
         </div>
       </main>
+
+      <AdminBorrowerDetailsModal
+        borrower={selectedBorrower}
+        onClose={() => setSelectedBorrowerId(null)}
+        reviewHref={selectedBorrower ? `/admin/loans?appId=${encodeURIComponent(selectedBorrower.id)}` : undefined}
+      />
     </div>
   );
 }

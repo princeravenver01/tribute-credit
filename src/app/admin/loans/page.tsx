@@ -1,9 +1,10 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Sidebar } from '@/components/common/Sidebar';
 import { AppHeader } from '@/components/common/AppHeader';
+import { AdminBorrowerDetailsModal } from '@/components/admin/AdminBorrowerDetailsModal';
 import {
   getCreditAssessments,
   saveCreditAssessment,
@@ -36,6 +37,8 @@ export default function AdminLoanApprovalsPage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [assessments, setAssessments] = useState<CreditAssessmentItem[]>([]);
   const [selectedApp, setSelectedApp] = useState<CreditAssessmentItem | null>(null);
+  const [showFullDossier, setShowFullDossier] = useState(false);
+  const handledDeepLinkRef = useRef(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterTab, setFilterTab] = useState<'pending' | 'approved' | 'rejected' | 'all'>('pending');
   
@@ -50,7 +53,7 @@ export default function AdminLoanApprovalsPage() {
 
   useEffect(() => {
     const refreshAssessments = async () => {
-      let list = getCreditAssessments();
+      const list = getCreditAssessments();
 
       // Check if there is an active onboarding application draft submitted to admin in this tab's localStorage
       try {
@@ -187,7 +190,54 @@ export default function AdminLoanApprovalsPage() {
       } catch (e) {}
 
       setAssessments([...list]);
+
+      let deepLinkedTarget: CreditAssessmentItem | null = null;
+      if (typeof window !== 'undefined' && !handledDeepLinkRef.current) {
+        const params = new URLSearchParams(window.location.search);
+        const appIdParam = params.get('appId');
+        if (appIdParam) {
+          const target = list.find(
+            (a) =>
+              a.id === appIdParam ||
+              a.applicationId === appIdParam ||
+              (a.policyNo && a.policyNo === appIdParam)
+          );
+          if (target) {
+            handledDeepLinkRef.current = true;
+            deepLinkedTarget = target;
+            if (target.status === 'pending_admin') {
+              setFilterTab('pending');
+            } else if (
+              target.status === 'admin_approved' ||
+              target.status === 'contract_ready' ||
+              target.status === 'disbursed'
+            ) {
+              setFilterTab('approved');
+            } else if (target.status === 'admin_rejected') {
+              setFilterTab('rejected');
+            } else {
+              setFilterTab('all');
+            }
+            setApprovedAmount(target.officerAdjustedAmount || target.aiPreApprovedAmount || target.requestedAmount);
+            setAdminNotes(target.adminNotes || `Approved by Credit Committee based on Officer recommendations.`);
+            if (target.adminSignatures && target.adminSignatures.length > 0) {
+              setAdminSignatures(target.adminSignatures);
+              setActiveAdminSigSlot(target.adminSignatures.length >= 3 ? 2 : target.adminSignatures.length);
+            } else {
+              setAdminSignatures([]);
+              setActiveAdminSigSlot(0);
+            }
+            try {
+              params.delete('appId');
+              const remaining = params.toString();
+              window.history.replaceState(null, '', window.location.pathname + (remaining ? `?${remaining}` : ''));
+            } catch {}
+          }
+        }
+      }
+
       setSelectedApp(prev => {
+        if (deepLinkedTarget) return deepLinkedTarget;
         if (!prev) {
           return list.find(a => a.status === 'pending_admin') || list[0] || null;
         }
@@ -434,16 +484,16 @@ export default function AdminLoanApprovalsPage() {
           <div className={styles.leftColumn}>
             {/* Filter Tabs */}
             <div className={styles.filterTabs}>
-              {[
+              {([
                 { key: 'pending', label: 'Pending Review', count: pendingCount, color: '#f59e0b' },
                 { key: 'approved', label: 'Approved', count: approvedCount, color: '#16a34a' },
                 { key: 'rejected', label: 'Rejected', count: rejectedCount, color: '#dc2626' },
                 { key: 'all', label: 'All', count: totalCount, color: '#64748b' },
-              ].map(tab => (
+              ] as const).map(tab => (
                 <button
                   key={tab.key}
                   type="button"
-                  onClick={() => setFilterTab(tab.key as any)}
+                  onClick={() => setFilterTab(tab.key)}
                   className={`${styles.filterTabBtn} ${filterTab === tab.key ? styles.filterTabBtnActive : ''}`}
                 >
                   <span>{tab.label}</span>
@@ -573,6 +623,13 @@ export default function AdminLoanApprovalsPage() {
                   <p className={styles.subDetailText}>
                     {selectedApp.location} • <strong>{selectedApp.livelihood}</strong> ({selectedApp.yearsInBusiness} yrs)
                   </p>
+                  <button
+                    type="button"
+                    onClick={() => setShowFullDossier(true)}
+                    className={styles.dossierBtn}
+                  >
+                    <Eye size={14} /> View Full Borrower Dossier &amp; Passbook
+                  </button>
                 </div>
 
                 <div style={{ textAlign: 'right' }}>
@@ -696,6 +753,7 @@ export default function AdminLoanApprovalsPage() {
                     <div><strong>Capacity:</strong> {selectedApp.fiveCs.capacityScore}/25 ({selectedApp.fiveCs.capacityNotes})</div>
                     <div><strong>Capital:</strong> {selectedApp.fiveCs.capitalScore}/20 ({selectedApp.fiveCs.capitalNotes})</div>
                     <div><strong>Collateral:</strong> {selectedApp.fiveCs.collateralScore}/20 ({selectedApp.fiveCs.collateralNotes})</div>
+                    <div><strong>Conditions:</strong> {selectedApp.fiveCs.conditionsScore}/15 ({selectedApp.fiveCs.conditionsNotes})</div>
                   </div>
                 )}
               </div>
@@ -968,6 +1026,11 @@ export default function AdminLoanApprovalsPage() {
           )}
         </div>
       </main>
+
+      <AdminBorrowerDetailsModal
+        borrower={showFullDossier ? selectedApp : null}
+        onClose={() => setShowFullDossier(false)}
+      />
     </div>
   );
 }

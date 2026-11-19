@@ -277,6 +277,35 @@
   text-decoration: underline;
 }
 
+.actionGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+.viewDetailsBtn {
+  background-color: #FFFFFF;
+  color: #374151;
+  border: 1px solid #D1D5DB;
+  border-radius: 7px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.viewDetailsBtn:hover {
+  background-color: #FEF2F2;
+  border-color: #FECACA;
+  color: #B91C1C;
+}
+
 /* Mobile Responsive Cards */
 .mobileCardsWrap {
   display: none;
@@ -327,8 +356,37 @@
   border-top: 1px solid #F1F5F9;
 }
 
-.mobileActionBtn {
+.mobileCardActions {
   margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.mobileDetailsBtn {
+  width: 100%;
+  min-height: 38px;
+  padding: 8px 12px;
+  border-radius: 9px;
+  border: 1px solid #D1D5DB;
+  background-color: #FFFFFF;
+  color: #1F2937;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.mobileDetailsBtn:hover {
+  background-color: #F8FAFC;
+  border-color: #9CA3AF;
+}
+
+.mobileActionBtn {
   width: 100%;
   min-height: 38px;
   padding: 8px 14px;
