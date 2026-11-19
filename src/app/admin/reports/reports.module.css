@@ -1,0 +1,192 @@
+.reportsWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.filterCard {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.filterGroup {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.filterSelect {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid #D1D5DB;
+  font-size: 12px;
+  font-weight: 700;
+  color: #374151;
+  background-color: #FFFFFF;
+  outline: none;
+}
+
+.filterSelect:focus {
+  border-color: #B91C1C;
+}
+
+.actionBtnOutline {
+  background-color: #FFFFFF;
+  color: #B91C1C;
+  border: 1.5px solid #FECACA;
+  border-radius: 8px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+
+.actionBtnOutline:hover {
+  background-color: #FEF2F2;
+  border-color: #B91C1C;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.kpiCard {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.kpiLabel {
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748B;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.kpiValue {
+  font-size: 22px;
+  font-weight: 900;
+  color: #0F172A;
+}
+
+.kpiValueAccent {
+  color: #B91C1C;
+}
+
+.dualGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.sectionCard {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 18px 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0 0 14px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.tableWrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.reportTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  text-align: left;
+}
+
+.reportTable th {
+  background-color: #F8FAFC;
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #475569;
+  text-transform: uppercase;
+  border-bottom: 1px solid #E2E8F0;
+  white-space: nowrap;
+}
+
+.reportTable td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #F1F5F9;
+  color: #1E293B;
+  vertical-align: middle;
+}
+
+.reportTable tr:hover td {
+  background-color: #FAFAFA;
+}
+
+.statusPill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.statusDisbursed {
+  background-color: #F0FDF4;
+  color: #166534;
+  border: 1px solid #BBF7D0;
+}
+
+.statusPendingAo {
+  background-color: #FFFBEB;
+  color: #B45309;
+  border: 1px solid #FDE68A;
+}
+
+.statusContractReady {
+  background-color: #EFF6FF;
+  color: #1E40AF;
+  border: 1px solid #BFDBFE;
+}
+
+.statusOther {
+  background-color: #F8FAFC;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+}
+
+@media print {
+  body {
+    background-color: #FFFFFF !important;
+  }
+  .filterCard, .actionBtnOutline {
+    display: none !important;
+  }
+}

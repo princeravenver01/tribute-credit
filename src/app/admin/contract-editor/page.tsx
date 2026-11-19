@@ -17,7 +17,11 @@ import {
   Italic,
   Underline,
   List,
-  Code2
+  Code2,
+  Plus,
+  Trash2,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { 
   getActiveContractTemplate, 
@@ -25,7 +29,8 @@ import {
   getContractTemplateHistory, 
   ContractTemplate, 
   DEFAULT_CONTRACT_TEMPLATE,
-  interpolateContractHtml
+  interpolateContractHtml,
+  type ContractClauseItem
 } from '@/lib/contract-template-store';
 import { VisualTextEditor } from '@/components/common/VisualTextEditor';
 import theme from '@/components/admin/AdminTheme.module.css';
@@ -49,19 +54,25 @@ export default function AdminContractEditorPage() {
   });
 
   useEffect(() => {
-    const loaded = getActiveContractTemplate();
-    setTemplate(loaded);
-    setHistory(getContractTemplateHistory());
+    let active = true;
+    Promise.resolve().then(() => {
+      if (!active) return;
+      const loaded = getActiveContractTemplate();
+      setTemplate(loaded);
+      setHistory(getContractTemplateHistory());
 
-    // Compute next suggested version
-    if (loaded.version) {
-      const match = loaded.version.match(/v?(\d+)\.(\d+)/);
-      if (match) {
-        const major = match[1];
-        const minor = Number(match[2]) + 1;
-        setEditorVersionInput(`v${major}.${minor}`);
+      if (loaded.version) {
+        const match = loaded.version.match(/v?(\d+)\.(\d+)/);
+        if (match) {
+          const major = match[1];
+          const minor = Number(match[2]) + 1;
+          setEditorVersionInput(`v${major}.${minor}`);
+        }
       }
-    }
+    });
+    return () => {
+      active = false;
+    };
   }, []);
 
   const handleSave = () => {
@@ -97,6 +108,51 @@ export default function AdminContractEditorPage() {
       setTemplate(h);
       setActiveTab('editor');
     }
+  };
+
+  const handleAddClause = () => {
+    const existing = template.customClauses || [];
+    const newClause: ContractClauseItem = {
+      id: `clause-${Date.now()}`,
+      title: `Special Clause ${existing.length + 1}`,
+      html: '<p>The borrower agrees to the specific covenants stipulated herein.</p>',
+      order: existing.length + 1,
+      isRequired: false,
+    };
+    setTemplate({
+      ...template,
+      customClauses: [...existing, newClause],
+    });
+  };
+
+  const handleUpdateClause = (id: string, updates: Partial<ContractClauseItem>) => {
+    const existing = template.customClauses || [];
+    setTemplate({
+      ...template,
+      customClauses: existing.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+    });
+  };
+
+  const handleDeleteClause = (id: string) => {
+    const existing = template.customClauses || [];
+    setTemplate({
+      ...template,
+      customClauses: existing.filter((c) => c.id !== id),
+    });
+  };
+
+  const handleMoveClause = (index: number, direction: 'up' | 'down') => {
+    const existing = [...(template.customClauses || [])];
+    const targetIdx = direction === 'up' ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= existing.length) return;
+    const temp = existing[index];
+    existing[index] = existing[targetIdx];
+    existing[targetIdx] = temp;
+    const reordered = existing.map((c, idx) => ({ ...c, order: idx + 1 }));
+    setTemplate({
+      ...template,
+      customClauses: reordered,
+    });
   };
 
   return (
@@ -348,6 +404,94 @@ export default function AdminContractEditorPage() {
                   showTagHelper={false}
                 />
               </div>
+
+              {/* DYNAMIC CUSTOM CLAUSES BUILDER */}
+              <div className={styles.cardBox}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <h3 className={styles.cardTitle} style={{ margin: 0 }}>
+                      Custom Governance & Operational Clauses
+                    </h3>
+                    <p style={{ fontSize: '11px', color: '#64748b', margin: '2px 0 0 0' }}>
+                      Add arbitrary legal sections, covenants, or policy stipulations with custom ordering.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddClause}
+                    className={styles.addClauseBtn}
+                  >
+                    <Plus size={14} /> Add Custom Clause
+                  </button>
+                </div>
+
+                {(!template.customClauses || template.customClauses.length === 0) ? (
+                  <div className={styles.emptyClauseBox}>
+                    <p style={{ fontSize: '12px', color: '#64748b', margin: 0 }}>
+                      No custom clauses added yet. Click &quot;Add Custom Clause&quot; above to append specialized covenants.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    {template.customClauses.map((clause, idx) => (
+                      <div key={clause.id} className={styles.clauseItemCard}>
+                        <div className={styles.clauseItemHeader}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                            <span className={styles.clauseOrderBadge}>#{idx + 1}</span>
+                            <input
+                              type="text"
+                              value={clause.title}
+                              onChange={(e) => handleUpdateClause(clause.id, { title: e.target.value })}
+                              className={styles.clauseTitleInput}
+                              placeholder="Clause Title (e.g. Early Settlement Rebate Policy)"
+                            />
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveClause(idx, 'up')}
+                              disabled={idx === 0}
+                              className={styles.clauseIconBtn}
+                              title="Move Up"
+                              aria-label="Move Up"
+                            >
+                              <ArrowUp size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleMoveClause(idx, 'down')}
+                              disabled={idx === (template.customClauses?.length || 0) - 1}
+                              className={styles.clauseIconBtn}
+                              title="Move Down"
+                              aria-label="Move Down"
+                            >
+                              <ArrowDown size={14} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteClause(clause.id)}
+                              className={styles.clauseDeleteBtn}
+                              title="Remove Clause"
+                              aria-label="Remove Clause"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </div>
+
+                        <VisualTextEditor
+                          label="Clause Body HTML"
+                          description="Supports rich text and dynamic tokens like {{borrowerName}}, {{principal}}, {{installmentAmount}}."
+                          initialHtml={clause.html}
+                          onChange={(html) => handleUpdateClause(clause.id, { html })}
+                          minHeight="90px"
+                          showTagHelper={false}
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Right Side: Version Control & Variable Helper */}
@@ -512,6 +656,19 @@ export default function AdminContractEditorPage() {
                   />
                 </>
               )}
+
+              {template.customClauses && template.customClauses.map((clause, idx) => (
+                <div key={clause.id} style={{ marginTop: '14px' }}>
+                  <h3 style={{ fontSize: '9pt', fontWeight: '800', color: '#0f172a', textTransform: 'uppercase', margin: '0 0 6px 0' }}>
+                    {clause.title || `SPECIAL COVENANT #${idx + 1}`}
+                  </h3>
+                  <div 
+                    dangerouslySetInnerHTML={{ 
+                      __html: interpolateContractHtml(clause.html, previewVars) 
+                    }} 
+                  />
+                </div>
+              ))}
             </div>
           </div>
         )}
