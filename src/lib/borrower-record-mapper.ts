@@ -146,6 +146,11 @@ export interface NormalizedBorrowerDetails {
     officerSignatures: SignatureEntry[];
     adminSignatures: SignatureEntry[];
   };
+  contract: {
+    contractTemplateSnapshot: CreditAssessmentItem['contractTemplateSnapshot'] | null;
+    contractExecutedAt: string | null;
+    finalContractAmount: number | null;
+  };
   ledger: {
     firstDueDate: string | null;
     nextDueDate: string | null;
@@ -499,6 +504,16 @@ export function buildBorrowerDetailsViewModel(
       borrowerSignatures: normalizeSignatures(record.borrowerSignatures, profile.borrowerSignatures),
       officerSignatures: normalizeSignatures(record.officerSignatures, profile.officerSignatures),
       adminSignatures: normalizeSignatures(record.adminSignatures, profile.adminSignatures),
+    },
+    contract: {
+      contractTemplateSnapshot:
+        record.contractTemplateSnapshot && typeof record.contractTemplateSnapshot === 'object' && 'version' in record.contractTemplateSnapshot
+          ? (record.contractTemplateSnapshot as CreditAssessmentItem['contractTemplateSnapshot'])
+          : profile.contractTemplateSnapshot && typeof profile.contractTemplateSnapshot === 'object' && 'version' in profile.contractTemplateSnapshot
+            ? (profile.contractTemplateSnapshot as CreditAssessmentItem['contractTemplateSnapshot'])
+            : null,
+      contractExecutedAt: cleanText(record.contractExecutedAt) || cleanText(profile.contractExecutedAt),
+      finalContractAmount: cleanNumber(record.finalContractAmount) ?? cleanNumber(profile.finalContractAmount),
     },
     ledger: {
       firstDueDate: cleanText(record.firstDueDate),

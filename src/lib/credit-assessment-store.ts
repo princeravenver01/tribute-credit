@@ -80,6 +80,10 @@ export interface CreditAssessmentItem {
   contractTemplateSnapshot?: {
     version: string;
     updatedAt: string;
+    updatedBy?: string;
+    title?: string;
+    subTitle?: string;
+    legalNotice?: string;
     sections: {
       promissoryTitle: string;
       promissoryHtml: string;
