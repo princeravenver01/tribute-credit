@@ -1,37 +1,37 @@
 .navShell {
   width: 100%;
-  background-color: #064E3B;
-  color: #FFFFFF;
+  background-color: #FFFFFF;
   position: sticky;
   top: 0;
   z-index: 50;
-  box-shadow: 0 2px 10px rgba(6, 78, 59, 0.25);
+  border-bottom: 1px solid #E2E8F0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .navContainer {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 12px 24px;
+  padding: 0 24px;
+  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 16px;
 }
 
+/* Left Brand Section */
 .brandGroup {
   display: flex;
   align-items: center;
   gap: 12px;
+  text-decoration: none;
 }
 
-.brandLogo {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background-color: #059669;
+.logoWrap {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #FFFFFF;
+  flex-shrink: 0;
 }
 
 .brandText {
@@ -39,91 +39,162 @@
   flex-direction: column;
 }
 
+.brandTitleRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .brandTitle {
   font-size: 15px;
   font-weight: 800;
+  color: #0F172A;
   letter-spacing: -0.3px;
   line-height: 1.2;
-  color: #FFFFFF;
 }
 
-.brandSubtitle {
-  font-size: 11px;
-  color: #A7F3D0;
-  font-weight: 600;
-  letter-spacing: 0.5px;
+.portalBadge {
+  font-size: 10.5px;
+  font-weight: 800;
+  background-color: #ECFDF5;
+  color: #059669;
+  border: 1px solid #A7F3D0;
+  padding: 1px 8px;
+  border-radius: 12px;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
 }
 
-/* Desktop 4 items nav */
+.brandSubtitle {
+  font-size: 11.5px;
+  color: #64748B;
+  font-weight: 600;
+}
+
+/* Desktop Navigation */
 .desktopNav {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .navItem {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
+  gap: 7px;
+  padding: 8px 14px;
   border-radius: 8px;
   font-size: 13.5px;
   font-weight: 700;
-  color: #D1FAE5;
+  color: #475569;
   text-decoration: none;
   transition: all 0.15s ease-in-out;
 }
 
 .navItem:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: #FFFFFF;
+  background-color: #F8FAFC;
+  color: #059669;
 }
 
 .navItemActive {
-  background-color: #059669;
-  color: #FFFFFF;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  background-color: #ECFDF5;
+  color: #059669;
+  font-weight: 800;
 }
 
-.userGroup {
+/* Right User Profile / Actions */
+.userSection {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
 }
 
-.memberPill {
+.userProfileLink {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  background-color: rgba(255, 255, 255, 0.15);
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 20px;
-  font-size: 11.5px;
-  font-weight: 700;
+  gap: 10px;
+  text-decoration: none;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: background-color 0.15s ease;
+}
+
+.userProfileLink:hover {
+  background-color: #F8FAFC;
+}
+
+.avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #059669 0%, #047857 100%);
   color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);
+  flex-shrink: 0;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.userName {
+  font-size: 13px;
+  font-weight: 800;
+  color: #1E293B;
+  line-height: 1.2;
+}
+
+.userMeta {
+  font-size: 11px;
+  color: #64748B;
+  font-weight: 600;
+}
+
+.settingsLinkBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #64748B;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.settingsLinkBtn:hover {
+  background-color: #ECFDF5;
+  color: #059669;
+  border-color: #A7F3D0;
 }
 
 .logoutBtn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  border-radius: 6px;
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: #FCA5A5;
-  font-size: 12px;
+  padding: 7px 12px;
+  border-radius: 8px;
+  background-color: #FFF1F2;
+  border: 1px solid #FECDD3;
+  color: #E11D48;
+  font-size: 12.5px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .logoutBtn:hover {
-  background-color: rgba(239, 68, 68, 0.15);
-  border-color: #EF4444;
-  color: #FFFFFF;
+  background-color: #FFE4E6;
+  border-color: #FDA4AF;
 }
 
 /* Mobile Bottom Navigation Bar */
@@ -168,7 +239,22 @@
   background-color: #ECFDF5;
 }
 
+/* Responsive Rules */
+@media (max-width: 860px) {
+  .brandSubtitle {
+    display: none;
+  }
+  .userInfo {
+    display: none;
+  }
+}
+
 @media (max-width: 768px) {
+  .navContainer {
+    height: 58px;
+    padding: 0 16px;
+  }
+
   .desktopNav {
     display: none;
   }
@@ -177,7 +263,11 @@
     display: block;
   }
 
-  .userGroup .memberPill {
+  .logoutBtn span {
     display: none;
+  }
+
+  .logoutBtn {
+    padding: 7px;
   }
 }

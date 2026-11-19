@@ -129,7 +129,40 @@ test('Borrower Portal Refinement Test 5: Account Settings is password-only secur
   assert.ok(!settingsSrc.includes('interest_rate'), 'Settings must not contain loan configurations');
 });
 
-test('Borrower Portal Refinement Test 6: CSS Module contracts are valid across all borrower components', () => {
+test('Borrower Portal Refinement Test 6: Modern sleek white/green header with official logo and no AO/Admin clutter', () => {
+  const navSrc = readIfExists(NAV_PATH);
+
+  // Uses official tribute-credit-logo.png with next/image
+  assert.ok(navSrc.includes("from 'next/image'"), 'BorrowerNav must import next/image');
+  assert.ok(navSrc.includes('/tribute-credit-logo.png'), 'BorrowerNav must use /tribute-credit-logo.png');
+  assert.ok(navSrc.includes('alt="Tribute Credit Cooperative"'), 'BorrowerNav must have accessible alt text for official logo');
+
+  // Modern styling attributes: white background with Tribute green accents
+  const navCss = readIfExists(NAV_CSS_PATH);
+  assert.ok(navCss.includes('background-color: #FFFFFF') || navCss.includes('background-color: #ffffff') || navCss.includes('background: #FFFFFF') || navCss.includes('background: #ffffff'), 'Header shell must have clean white background');
+  assert.ok(navCss.includes('border-bottom:'), 'Header must have subtle border elevation');
+
+  // Right side features: profile avatar/initials, name, MCID, Account Settings & Sign Out
+  assert.ok(navSrc.includes('user?.name'), 'Header must display borrower name');
+  assert.ok(navSrc.includes('user?.memberNo'), 'Header must display borrower MCID');
+  assert.ok(navSrc.includes('/borrower/settings'), 'Header must provide link to Account Settings');
+  assert.ok(navSrc.includes('handleLogout') || navSrc.includes('/api/auth/logout'), 'Header must provide Sign Out action');
+
+  // Must NOT contain AO/Admin clutter
+  assert.ok(!navSrc.includes('Synced'), 'Header must not show AO sync notice');
+  assert.ok(!navSrc.includes('Online'), 'Header must not show AO online status badge');
+  assert.ok(!navSrc.includes('Clear Data'), 'Header must not show Admin clear data action');
+  assert.ok(!navSrc.includes('Clear All Records'), 'Header must not show Admin clear records button');
+  assert.ok(!navSrc.includes('CDA Registration No.'), 'Header must not show CDA-heavy administrative block');
+
+  // Consistency across all 4 pages
+  assert.ok(readIfExists(DASHBOARD_PAGE_PATH).includes('<BorrowerNav'), 'Dashboard must use BorrowerNav');
+  assert.ok(readIfExists(LOANS_PAGE_PATH).includes('<BorrowerNav'), 'Loans must use BorrowerNav');
+  assert.ok(readIfExists(SAVINGS_PAGE_PATH).includes('<BorrowerNav'), 'Savings must use BorrowerNav');
+  assert.ok(readIfExists(SETTINGS_PAGE_PATH).includes('<BorrowerNav'), 'Settings must use BorrowerNav');
+});
+
+test('Borrower Portal Refinement Test 7: CSS Module contracts are valid across all borrower components', () => {
   const checkContract = (tsxPath, cssPath, name) => {
     const tsxSrc = readIfExists(tsxPath);
     const cssSrc = readIfExists(cssPath);
