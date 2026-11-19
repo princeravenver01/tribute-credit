@@ -26,6 +26,11 @@ const GUARDED_API_ROUTES = {
   'src/app/api/assessments/route.ts': ['account_officer', 'admin', 'disbursement'],
   'src/app/api/sync/route.ts': ['account_officer'],
 };
+const DATABASE_SCHEMA_PATH = path.join(ROOT, 'database/schema.sql');
+const CREATE_ADMIN_PATH = path.join(ROOT, 'scripts/create-initial-admin.mjs');
+const ENV_EXAMPLE_PATH = path.join(ROOT, '.env.example');
+const DEPLOYMENT_GUIDE_PATH = path.join(ROOT, 'docs/deployment/hostinger-cloud-startup.md');
+const PACKAGE_PATH = path.join(ROOT, 'package.json');
 const LOGIN_PAGE_PATHS = {
   borrower: path.join(ROOT, 'src/app/borrower/login/page.tsx'),
   officer: path.join(ROOT, 'src/app/officer/login/page.tsx'),
@@ -330,4 +335,55 @@ test('account password changes have no demo-password or database-failure overrid
 
   assert.doesNotMatch(sources, /Password123!|Pass123|demo fallback|Demo accounts cannot change password/i);
   assert.doesNotMatch(sources, /catch\s*\{\s*\/\/\s*Fallback\s*\}/i);
+});
+
+test('database schema contains no default users or known plaintext login credentials', () => {
+  const source = read(DATABASE_SCHEMA_PATH);
+
+  assert.doesNotMatch(source, /Password123!|Pass123|admin@tribute\.coop|officer@tribute\.coop|borrower@tribute\.coop/i);
+  assert.doesNotMatch(source, /INSERT\s+(?:IGNORE\s+)?INTO\s+`?users`?/i);
+  assert.match(source, /INSERT\s+IGNORE\s+INTO\s+`?loan_products`?/i);
+});
+
+test('one-time admin bootstrap requires strong environment credentials and hashes passwords', () => {
+  const source = read(CREATE_ADMIN_PATH);
+
+  for (const variable of ['INITIAL_ADMIN_EMAIL', 'INITIAL_ADMIN_PASSWORD', 'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME']) {
+    assert.match(source, new RegExp(`process\\.env\\.${variable}`));
+  }
+  assert.match(source, /length\s*<\s*12/);
+  assert.match(source, /Password123!|Pass123/);
+  assert.match(source, /bcrypt\.hash/);
+  assert.match(source, /INSERT\s+INTO\s+users/i);
+  assert.match(source, /ON\s+DUPLICATE\s+KEY\s+UPDATE/i);
+  assert.match(source, /['"]admin['"]/);
+});
+
+test('deployment metadata targets Node 22 and provides secret-free environment names', () => {
+  const packageJson = JSON.parse(read(PACKAGE_PATH));
+  const envSource = read(ENV_EXAMPLE_PATH);
+
+  assert.equal(packageJson.engines?.node, '>=22 <23');
+  assert.equal(packageJson.scripts?.['create-admin'], 'node scripts/create-initial-admin.mjs');
+  for (const variable of ['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD', 'DB_NAME', 'JWT_SECRET', 'INITIAL_ADMIN_EMAIL', 'INITIAL_ADMIN_PASSWORD']) {
+    assert.match(envSource, new RegExp(`^${variable}=`, 'm'));
+  }
+  assert.doesNotMatch(envSource, /Password123!|Pass123|admin@tribute\.coop|root-password/i);
+});
+
+test('Hostinger guide covers all three apps, database setup, smoke tests, and rollback', () => {
+  const source = read(DEPLOYMENT_GUIDE_PATH);
+
+  for (const hostname of ['credit.tribute-grace.com', 'ao-credit.tribute-grace.com', 'admin-credit.tribute-grace.com']) {
+    assert.match(source, new RegExp(hostname.replaceAll('.', '\\.')));
+  }
+  assert.match(source, /three Node\.js Web Apps|3 Node\.js Web Apps/i);
+  assert.match(source, /DB_HOST=127\.0\.0\.1/);
+  assert.match(source, /JWT_SECRET/);
+  assert.match(source, /npm run build/);
+  assert.match(source, /npm run start/);
+  assert.match(source, /database\/schema\.sql/);
+  assert.match(source, /smoke test/i);
+  assert.match(source, /rollback/i);
+  assert.match(source, /Coming Soon/i);
 });

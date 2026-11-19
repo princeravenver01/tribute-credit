@@ -8,8 +8,6 @@ import {
 } from '@/config/portal-auth';
 import { verifyJwtToken } from '@/lib/auth';
 
-const SESSION_COOKIE = 'coop_auth_token';
-
 function redirectTo(request: NextRequest, pathname: string, clearSession = false): NextResponse {
   const response = NextResponse.redirect(new URL(pathname, request.url));
 
