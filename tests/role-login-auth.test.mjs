@@ -7,6 +7,10 @@ const ROOT = process.cwd();
 const PORTAL_CONFIG_PATH = path.join(ROOT, 'src/config/portal-auth.ts');
 const SHARED_LOGIN_PATH = path.join(ROOT, 'src/components/auth/RoleLoginPage.tsx');
 const SHARED_LOGIN_CSS_PATH = path.join(ROOT, 'src/components/auth/RoleLoginPage.module.css');
+const AUTH_LIB_PATH = path.join(ROOT, 'src/lib/auth.ts');
+const LOGIN_RATE_LIMIT_PATH = path.join(ROOT, 'src/lib/login-rate-limit.ts');
+const LOGIN_API_PATH = path.join(ROOT, 'src/app/api/auth/login/route.ts');
+const LOGOUT_API_PATH = path.join(ROOT, 'src/app/api/auth/logout/route.ts');
 const LOGIN_PAGE_PATHS = {
   borrower: path.join(ROOT, 'src/app/borrower/login/page.tsx'),
   officer: path.join(ROOT, 'src/app/officer/login/page.tsx'),
@@ -156,4 +160,85 @@ test('shared login CSS implements split desktop and safe single-column mobile la
   assert.match(css, /:focus-visible/);
   assert.match(css, /overflow-x:\s*hidden/);
   assert.match(css, /@media\s*\(max-width:\s*(?:360|340|320)px\)/);
+});
+
+test('production JWT secrets are mandatory and reject weak values', async () => {
+  const authSource = read(AUTH_LIB_PATH);
+  assert.doesNotMatch(authSource, /coop_secret_default|change_in_production/i);
+
+  const { getJwtSecret } = await import('../src/lib/auth.ts');
+  assert.throws(
+    () => getJwtSecret({ NODE_ENV: 'production' }),
+    /JWT_SECRET/i,
+  );
+  assert.throws(
+    () => getJwtSecret({ NODE_ENV: 'production', JWT_SECRET: 'too-short' }),
+    /32 characters/i,
+  );
+  assert.equal(
+    getJwtSecret({ NODE_ENV: 'production', JWT_SECRET: 'a-secure-production-secret-value-123' }),
+    'a-secure-production-secret-value-123',
+  );
+});
+
+test('login rate limiter permits five failures, blocks the sixth, expires, and clears on success', async () => {
+  assert.ok(fs.existsSync(LOGIN_RATE_LIMIT_PATH), 'src/lib/login-rate-limit.ts must exist');
+  const { createLoginRateLimiter } = await import('../src/lib/login-rate-limit.ts');
+  const limiter = createLoginRateLimiter({ maxFailures: 5, windowMs: 15 * 60 * 1000, maxKeys: 5000 });
+  const start = 1_000_000;
+
+  assert.equal(limiter.consume('member@example.com|127.0.0.1', start).allowed, true);
+  for (let index = 0; index < 5; index += 1) {
+    limiter.recordFailure('member@example.com|127.0.0.1', start + index);
+  }
+  const blocked = limiter.consume('member@example.com|127.0.0.1', start + 10);
+  assert.equal(blocked.allowed, false);
+  assert.ok(blocked.retryAfterSeconds > 0);
+  assert.equal(limiter.consume('member@example.com|127.0.0.1', start + 15 * 60 * 1000 + 1).allowed, true);
+
+  limiter.recordFailure('member@example.com|127.0.0.1', start + 15 * 60 * 1000 + 2);
+  limiter.clear('member@example.com|127.0.0.1');
+  assert.equal(limiter.consume('member@example.com|127.0.0.1', start + 15 * 60 * 1000 + 3).allowed, true);
+});
+
+test('login rate limiter bounds tracked keys and prunes stale entries', async () => {
+  assert.ok(fs.existsSync(LOGIN_RATE_LIMIT_PATH), 'src/lib/login-rate-limit.ts must exist');
+  const { createLoginRateLimiter } = await import('../src/lib/login-rate-limit.ts');
+  const limiter = createLoginRateLimiter({ maxFailures: 5, windowMs: 100, maxKeys: 5 });
+
+  for (let index = 0; index < 8; index += 1) {
+    limiter.recordFailure(`key-${index}`, index);
+  }
+  assert.ok(limiter.size <= 5);
+
+  limiter.consume('fresh-key', 1_000);
+  assert.equal(limiter.size, 0);
+});
+
+test('login API is database-only, hostname-bound, role-aware, generic, and audited', () => {
+  const source = read(LOGIN_API_PATH);
+
+  assert.doesNotMatch(source, /defaultAccounts|plainPass|Password123!|Pass123|generic fallback|requiredRole/);
+  assert.match(source, /getPortalForHostname/);
+  assert.match(source, /new URL\([^)]*\.url\)\.hostname|headers\.get\(['"]host['"]\)/);
+  assert.match(source, /bcrypt\.compare/);
+  assert.match(source, /status\s*!==\s*['"]active['"]|user\.status\s*===\s*['"]active['"]/);
+  assert.match(source, /expectedRole/);
+  assert.match(source, /INVALID_CREDENTIALS/);
+  assert.match(source, /WRONG_PORTAL/);
+  assert.match(source, /SERVICE_UNAVAILABLE/);
+  assert.match(source, /status:\s*503/);
+  assert.match(source, /INSERT INTO audit_logs/);
+  assert.match(source, /httpOnly:\s*true/);
+  assert.match(source, /secure:\s*process\.env\.NODE_ENV\s*===\s*['"]production['"]/);
+  assert.match(source, /sameSite:\s*['"]lax['"]/);
+});
+
+test('logout clears the session with matching secure cookie attributes', () => {
+  const source = read(LOGOUT_API_PATH);
+  assert.match(source, /httpOnly:\s*true/);
+  assert.match(source, /secure:\s*process\.env\.NODE_ENV\s*===\s*['"]production['"]/);
+  assert.match(source, /sameSite:\s*['"]lax['"]/);
+  assert.match(source, /expires:\s*new Date\(0\)/);
+  assert.match(source, /path:\s*['"]\/['"]/);
 });
