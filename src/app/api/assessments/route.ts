@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { requireApiRole } from '@/lib/server-auth';
 
 // Server-side assessment & loan record interface
 interface AssessmentRecord {
@@ -191,6 +192,9 @@ async function syncToMySql(item: AssessmentRecord) {
 }
 
 export async function GET() {
+  const auth = await requireApiRole('account_officer', 'admin', 'disbursement');
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const rows: any = await query(`
       SELECT 
@@ -289,6 +293,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await requireApiRole('account_officer', 'admin', 'disbursement');
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   try {
     const body = await req.json();
 

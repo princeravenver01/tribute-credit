@@ -1,25 +1,11 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
-import { verifyJwtToken } from '@/lib/auth';
+import { requireApiRole } from '@/lib/server-auth';
 import { getCoopSettings, saveCoopSettings, type CoopSettings } from '@/lib/settings-store';
 import { query } from '@/lib/db';
 
-async function checkAdminAuth() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('coop_auth_token')?.value;
-  if (!token) {
-    return { ok: false, status: 401, error: 'Unauthorized: No session token' };
-  }
-  const payload = verifyJwtToken(token);
-  if (!payload || payload.role !== 'admin') {
-    return { ok: false, status: 403, error: 'Forbidden: Admin access required' };
-  }
-  return { ok: true, admin: payload };
-}
-
 export async function GET() {
-  const auth = await checkAdminAuth();
+  const auth = await requireApiRole('admin');
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -29,7 +15,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const auth = await checkAdminAuth();
+  const auth = await requireApiRole('admin');
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
@@ -50,20 +36,18 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'New password must be at least 8 characters long' }, { status: 400 });
       }
 
-      // Verify current password against database or demo fallback
-      let isVerified = false;
+      let rows: Array<{ password?: string }>;
       try {
-        const rows = await query<any[]>('SELECT password FROM users WHERE id = ? LIMIT 1', [auth.admin?.userId]);
-        if (rows && rows.length > 0 && rows[0].password) {
-          isVerified = await bcrypt.compare(currentPassword, rows[0].password);
-        }
+        rows = await query<Array<{ password?: string }>>(
+          'SELECT password FROM users WHERE id = ? AND role = ? LIMIT 1',
+          [auth.session.userId, 'admin'],
+        );
       } catch {
-        // Database offline fallback
+        return NextResponse.json({ error: 'Password service is temporarily unavailable.' }, { status: 503 });
       }
 
-      if (!isVerified && (currentPassword === 'Password123!' || currentPassword === 'Pass123')) {
-        isVerified = true;
-      }
+      const storedPassword = rows?.[0]?.password;
+      const isVerified = storedPassword ? await bcrypt.compare(currentPassword, storedPassword) : false;
 
       if (!isVerified) {
         return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 });
@@ -71,9 +55,9 @@ export async function POST(req: Request) {
 
       const newHash = await bcrypt.hash(newPassword, 10);
       try {
-        await query('UPDATE users SET password = ? WHERE id = ?', [newHash, auth.admin?.userId]);
+        await query('UPDATE users SET password = ? WHERE id = ? AND role = ?', [newHash, auth.session.userId, 'admin']);
       } catch {
-        // Fallback
+        return NextResponse.json({ error: 'Password service is temporarily unavailable.' }, { status: 503 });
       }
 
       return NextResponse.json({ success: true, message: 'Password updated successfully' });

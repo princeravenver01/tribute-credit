@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
-import { verifyJwtToken } from '@/lib/auth';
+import { requireApiRole } from '@/lib/server-auth';
 import { query } from '@/lib/db';
 import { getCoopSettings } from '@/lib/settings-store';
 import { CreditAssessmentItem, FiveCsScorecard } from '@/lib/credit-assessment-store';
@@ -31,27 +30,13 @@ interface UserDbRow {
   [key: string]: unknown;
 }
 
-async function getAuthenticatedBorrower() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('coop_auth_token')?.value;
-  if (!token) {
-    return { ok: false, status: 401, error: 'Unauthorized: No session token found' };
-  }
-  const payload = verifyJwtToken(token);
-  if (!payload) {
-    return { ok: false, status: 401, error: 'Unauthorized: Invalid session token' };
-  }
-  // Allow borrower, and allow admin/officer previewing as borrower
-  return { ok: true, user: payload };
-}
-
 export async function GET() {
-  const auth = await getAuthenticatedBorrower();
-  if (!auth.ok || !auth.user) {
+  const auth = await requireApiRole('borrower');
+  if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const user = auth.user;
+  const user = auth.session;
   const userEmail = user.email.toLowerCase().trim();
   const userName = user.name.toLowerCase().trim();
 
@@ -325,8 +310,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const auth = await getAuthenticatedBorrower();
-  if (!auth.ok || !auth.user) {
+  const auth = await requireApiRole('borrower');
+  if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
@@ -362,19 +347,18 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: 'Password must be at least 8 characters' }, { status: 400 });
       }
 
-      let isVerified = false;
+      let rows: UserDbRow[];
       try {
-        const rows = await query<UserDbRow[]>('SELECT password FROM users WHERE id = ? LIMIT 1', [auth.user.userId]);
-        if (rows && rows.length > 0 && rows[0].password) {
-          isVerified = await bcrypt.compare(currentPassword, rows[0].password);
-        }
+        rows = await query<UserDbRow[]>(
+          'SELECT password FROM users WHERE id = ? AND role = ? LIMIT 1',
+          [auth.session.userId, 'borrower'],
+        );
       } catch {
-        // Fallback
+        return NextResponse.json({ error: 'Password service is temporarily unavailable.' }, { status: 503 });
       }
 
-      if (!isVerified && (currentPassword === 'Password123!' || currentPassword === 'Pass123')) {
-        isVerified = true;
-      }
+      const storedPassword = rows?.[0]?.password;
+      const isVerified = storedPassword ? await bcrypt.compare(currentPassword, storedPassword) : false;
 
       if (!isVerified) {
         return NextResponse.json({ error: 'Current password is incorrect' }, { status: 401 });
@@ -382,9 +366,9 @@ export async function POST(req: Request) {
 
       const newHash = await bcrypt.hash(newPassword, 10);
       try {
-        await query('UPDATE users SET password = ? WHERE id = ?', [newHash, auth.user.userId]);
+        await query('UPDATE users SET password = ? WHERE id = ? AND role = ?', [newHash, auth.session.userId, 'borrower']);
       } catch {
-        // Fallback
+        return NextResponse.json({ error: 'Password service is temporarily unavailable.' }, { status: 503 });
       }
 
       return NextResponse.json({ success: true, message: 'Password updated successfully' });
@@ -401,9 +385,9 @@ export async function POST(req: Request) {
       if (globalStore && Array.isArray(globalStore)) {
         loans = [...(globalStore as unknown as CreditAssessmentItem[])];
       }
-      const userEmail = auth.user.email.toLowerCase().trim();
-      const userName = auth.user.name.toLowerCase().trim();
-      const userMemberNo = ((auth.user as unknown as Record<string, unknown>).member_no as string | undefined)?.toLowerCase().trim();
+      const userEmail = auth.session.email.toLowerCase().trim();
+      const userName = auth.session.name.toLowerCase().trim();
+      const userMemberNo = ((auth.session as unknown as Record<string, unknown>).member_no as string | undefined)?.toLowerCase().trim();
 
       const borrowerLoans = loans.filter((loan) => {
         const fullProfile = (loan as { fullProfile?: { step2?: { email?: string } } }).fullProfile;
@@ -436,10 +420,10 @@ export async function POST(req: Request) {
       const newLoanItem: CreditAssessmentItem = {
         id: newAppId,
         applicationId: newAppId,
-        borrowerName: auth.user.name,
-        borrowerEmail: auth.user.email,
-        policyNo: (auth.user as unknown as Record<string, unknown>).member_no as string || `MEM-${auth.user.userId}`,
-        mcid: (auth.user as unknown as Record<string, unknown>).member_no as string || `MCID-${auth.user.userId}`,
+        borrowerName: auth.session.name,
+        borrowerEmail: auth.session.email,
+        policyNo: (auth.session as unknown as Record<string, unknown>).member_no as string || `MEM-${auth.session.userId}`,
+        mcid: (auth.session as unknown as Record<string, unknown>).member_no as string || `MCID-${auth.session.userId}`,
         contactNumber: '',
         location: 'Metro Manila',
         livelihood: purpose || 'Member Micro-enterprise',
@@ -475,7 +459,7 @@ export async function POST(req: Request) {
           `INSERT INTO loan_applications 
            (loan_code, borrower_id, product_id, amount_requested, term_months, purpose, status) 
            VALUES (?, ?, 1, ?, ?, ?, 'pending')`,
-          [newAppId, auth.user.userId, requestedAmount, termMonths, purpose || 'Reloan renewal']
+          [newAppId, auth.session.userId, requestedAmount, termMonths, purpose || 'Reloan renewal']
         );
       } catch {
         // Fallback to memory store

@@ -41,7 +41,7 @@ test('Milestone 2 Test B: User API route handles GET and POST with validation', 
   const apiSrc = readIfExists(USERS_API_PATH);
   assert.ok(apiSrc.includes('export async function GET'), 'API must have GET handler');
   assert.ok(apiSrc.includes('export async function POST'), 'API must have POST handler');
-  assert.ok(apiSrc.includes('verifyJwtToken') || apiSrc.includes('coop_auth_token'), 'API must check session auth');
+  assert.ok(apiSrc.includes('requireApiRole'), 'API must check session auth through the central role guard');
 });
 
 test('Milestone 2 Test C: Admin Users UI page renders table, modals, and adheres to CSS module contract', () => {

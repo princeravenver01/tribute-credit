@@ -13,6 +13,19 @@ const LOGIN_API_PATH = path.join(ROOT, 'src/app/api/auth/login/route.ts');
 const LOGOUT_API_PATH = path.join(ROOT, 'src/app/api/auth/logout/route.ts');
 const PROXY_PATH = path.join(ROOT, 'src/proxy.ts');
 const LEGACY_MIDDLEWARE_PATH = path.join(ROOT, 'src/middleware.ts');
+const SERVER_AUTH_PATH = path.join(ROOT, 'src/lib/server-auth.ts');
+const GUARDED_API_ROUTES = {
+  'src/app/api/admin/products/route.ts': ['admin'],
+  'src/app/api/admin/settings/route.ts': ['admin'],
+  'src/app/api/admin/stats/route.ts': ['admin'],
+  'src/app/api/admin/users/route.ts': ['admin'],
+  'src/app/api/officer/account/route.ts': ['account_officer'],
+  'src/app/api/officer/queue/route.ts': ['account_officer'],
+  'src/app/api/borrower/portal/route.ts': ['borrower'],
+  'src/app/api/borrower/apply/route.ts': ['borrower'],
+  'src/app/api/assessments/route.ts': ['account_officer', 'admin', 'disbursement'],
+  'src/app/api/sync/route.ts': ['account_officer'],
+};
 const LOGIN_PAGE_PATHS = {
   borrower: path.join(ROOT, 'src/app/borrower/login/page.tsx'),
   officer: path.join(ROOT, 'src/app/officer/login/page.tsx'),
@@ -283,4 +296,38 @@ test('proxy preserves admin and disbursement access and excludes APIs and static
   assert.match(source, /_next\/image/);
   assert.match(source, /favicon\.ico/);
   assert.match(source, /disbursement/);
+});
+
+test('central server authorization distinguishes missing, invalid, forbidden, and permitted sessions', () => {
+  const source = read(SERVER_AUTH_PATH);
+
+  assert.match(source, /export\s+async\s+function\s+getSessionFromCookies/);
+  assert.match(source, /export\s+async\s+function\s+requireApiRole/);
+  assert.match(source, /verifyJwtToken/);
+  assert.match(source, /status:\s*401/);
+  assert.match(source, /status:\s*403/);
+  assert.match(source, /allowedRoles\.includes\(session\.role\)/);
+  assert.match(source, /ok:\s*true,\s*session/);
+});
+
+test('every sensitive API route enforces its explicit role policy at the data boundary', () => {
+  for (const [relativePath, allowedRoles] of Object.entries(GUARDED_API_ROUTES)) {
+    const source = read(path.join(ROOT, relativePath));
+    assert.match(source, /from ['"]@\/lib\/server-auth['"]/i, `${relativePath} must import the central guard`);
+    assert.match(source, /requireApiRole\(/, `${relativePath} must call the central guard`);
+    for (const role of allowedRoles) {
+      assert.match(source, new RegExp(`requireApiRole\\([\\s\\S]{0,120}['"]${role}['"]`), `${relativePath} must allow ${role}`);
+    }
+  }
+});
+
+test('account password changes have no demo-password or database-failure override', () => {
+  const sources = [
+    read(path.join(ROOT, 'src/app/api/admin/settings/route.ts')),
+    read(path.join(ROOT, 'src/app/api/officer/account/route.ts')),
+    read(path.join(ROOT, 'src/app/api/borrower/portal/route.ts')),
+  ].join('\n');
+
+  assert.doesNotMatch(sources, /Password123!|Pass123|demo fallback|Demo accounts cannot change password/i);
+  assert.doesNotMatch(sources, /catch\s*\{\s*\/\/\s*Fallback\s*\}/i);
 });

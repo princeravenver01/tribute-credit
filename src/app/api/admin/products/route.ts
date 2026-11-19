@@ -1,28 +1,17 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
-import { verifyJwtToken } from '@/lib/auth';
+import { requireApiRole } from '@/lib/server-auth';
 import { listProducts, saveProduct, type DynamicLoanProduct } from '@/lib/product-store';
 
-async function checkAdminAuth() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('coop_auth_token')?.value;
-  if (!token) {
-    return { ok: false, status: 401, error: 'Unauthorized: No session token' };
-  }
-  const payload = verifyJwtToken(token);
-  if (!payload || payload.role !== 'admin') {
-    return { ok: false, status: 403, error: 'Forbidden: Admin access required' };
-  }
-  return { ok: true, admin: payload };
-}
-
 export async function GET() {
+  const auth = await requireApiRole('admin');
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
+
   const products = await listProducts();
   return NextResponse.json({ success: true, products });
 }
 
 export async function POST(req: Request) {
-  const auth = await checkAdminAuth();
+  const auth = await requireApiRole('admin');
   if (!auth.ok) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }

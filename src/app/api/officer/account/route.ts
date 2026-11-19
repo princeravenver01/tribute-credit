@@ -1,35 +1,9 @@
 import { NextResponse } from 'next/server';
-import { cookies } from 'next/headers';
 import bcrypt from 'bcryptjs';
-import { verifyJwtToken, signJwtToken } from '@/lib/auth';
+import { signJwtToken } from '@/lib/auth';
+import { requireApiRole } from '@/lib/server-auth';
 import { query } from '@/lib/db';
 import { sanitizeProfileUpdate, validatePasswordUpdate } from '@/lib/officer-account';
-
-// Built-in fallback demo account for Officer Juan
-const DEMO_OFFICER = {
-  id: 101,
-  name: 'Officer Juan',
-  email: 'officer@tribute.coop',
-  role: 'account_officer' as const,
-  contact_number: '0917-889-4400',
-  status: 'active',
-  member_no: 'AO-001'
-};
-
-async function getAuthenticatedOfficer() {
-  const cookieStore = await cookies();
-  const token = cookieStore.get('coop_auth_token')?.value;
-  if (!token) {
-    return { officer: null, error: 'Unauthorized: No session token', status: 401 };
-  }
-
-  const payload = verifyJwtToken(token);
-  if (!payload || payload.role !== 'account_officer') {
-    return { officer: null, error: 'Forbidden: Account officer access required', status: 403 };
-  }
-
-  return { officer: payload, token, error: null, status: 200 };
-}
 
 /**
  * GET /api/officer/account
@@ -37,29 +11,18 @@ async function getAuthenticatedOfficer() {
  */
 export async function GET() {
   try {
-    const auth = await getAuthenticatedOfficer();
-    if (!auth.officer) {
+    const auth = await requireApiRole('account_officer');
+    if (!auth.ok) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
-
-    let dbUser: Record<string, unknown> | null = null;
-    let isDbAvailable = true;
 
     try {
       const rows = await query<Record<string, unknown>[]>(
         'SELECT id, member_no, name, email, role, contact_number, status, created_at FROM users WHERE id = ? AND role = ? LIMIT 1',
-        [auth.officer.userId, 'account_officer']
+        [auth.session.userId, 'account_officer']
       );
-      if (rows && rows.length > 0) {
-        dbUser = rows[0];
-      }
-    } catch (e: unknown) {
-      isDbAvailable = false;
-      const errMsg = e instanceof Error ? e.message : 'Database error';
-      console.warn('Database query unavailable for officer account GET, returning token/fallback info:', errMsg);
-    }
-
-    if (dbUser) {
+      const dbUser = rows?.[0];
+      if (!dbUser) return NextResponse.json({ error: 'Account record not found.' }, { status: 404 });
       return NextResponse.json({
         success: true,
         source: 'database',
@@ -74,23 +37,9 @@ export async function GET() {
           created_at: dbUser.created_at
         }
       });
+    } catch {
+      return NextResponse.json({ error: 'Account service is temporarily unavailable.' }, { status: 503 });
     }
-
-    // Fallback when MySQL row doesn't exist or DB is offline
-    return NextResponse.json({
-      success: true,
-      source: isDbAvailable ? 'session' : 'fallback',
-      isOffline: !isDbAvailable,
-      user: {
-        id: auth.officer.userId || DEMO_OFFICER.id,
-        member_no: DEMO_OFFICER.member_no,
-        name: auth.officer.name || DEMO_OFFICER.name,
-        email: auth.officer.email || DEMO_OFFICER.email,
-        role: auth.officer.role || DEMO_OFFICER.role,
-        contact_number: DEMO_OFFICER.contact_number,
-        status: DEMO_OFFICER.status
-      }
-    });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Internal Server Error';
     console.error('Officer account GET error:', error);
@@ -105,8 +54,8 @@ export async function GET() {
  */
 export async function PATCH(req: Request) {
   try {
-    const auth = await getAuthenticatedOfficer();
-    if (!auth.officer) {
+    const auth = await requireApiRole('account_officer');
+    if (!auth.ok) {
       return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
@@ -133,7 +82,7 @@ export async function PATCH(req: Request) {
           params.push(sanitized.contact_number);
         }
 
-        params.push(auth.officer.userId);
+        params.push(auth.session.userId);
         params.push('account_officer');
 
         const result = await query<{ affectedRows?: number }>(
@@ -143,16 +92,16 @@ export async function PATCH(req: Request) {
 
         if (result && result.affectedRows === 0) {
           return NextResponse.json({
-            error: 'Database record not found for this account. Demo fallback accounts cannot be permanently updated without a corresponding database row.'
+            error: 'Database record not found for this account.'
           }, { status: 404 });
         }
 
         // Issue refreshed JWT token with updated name
-        const newName = sanitized.name || auth.officer.name;
+        const newName = sanitized.name || auth.session.name;
         const refreshedToken = signJwtToken({
-          userId: auth.officer.userId,
-          email: auth.officer.email,
-          role: auth.officer.role,
+          userId: auth.session.userId,
+          email: auth.session.email,
+          role: auth.session.role,
           name: newName
         });
 
@@ -160,7 +109,7 @@ export async function PATCH(req: Request) {
           success: true,
           message: 'Profile updated successfully',
           user: {
-            id: auth.officer.userId,
+            id: auth.session.userId,
             name: newName,
             contact_number: sanitized.contact_number
           }
@@ -193,13 +142,13 @@ export async function PATCH(req: Request) {
       try {
         const rows = await query<Record<string, unknown>[]>(
           'SELECT password FROM users WHERE id = ? AND role = ? LIMIT 1',
-          [auth.officer.userId, 'account_officer']
+          [auth.session.userId, 'account_officer']
         );
         if (rows && rows.length > 0) {
           storedHash = (rows[0].password as string) || '';
         } else {
           return NextResponse.json({
-            error: 'No database account record found for this session. Demo accounts cannot change password without a database row.'
+            error: 'No database account record found for this session.'
           }, { status: 404 });
         }
       } catch (dbErr: unknown) {
@@ -226,7 +175,7 @@ export async function PATCH(req: Request) {
       try {
         await query(
           'UPDATE users SET password = ? WHERE id = ? AND role = ?',
-          [newHash, auth.officer.userId, 'account_officer']
+          [newHash, auth.session.userId, 'account_officer']
         );
 
         return NextResponse.json({

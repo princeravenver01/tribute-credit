@@ -224,8 +224,8 @@ test('Issue 8: /officer/settings route exists and provides functional account ma
   assert.equal(/AppHeader/.test(settingsContent), true, 'Settings page must include AppHeader');
   assert.equal(/OfficerMobileNav/.test(settingsContent), true, 'Settings page must include OfficerMobileNav');
 
-  // API route must enforce account_officer role via verifyJwtToken
-  assert.equal(/verifyJwtToken/.test(apiContent), true, 'API route must call verifyJwtToken');
+  // API route must enforce account_officer role through the central server guard
+  assert.equal(/requireApiRole/.test(apiContent), true, 'API route must call the central role guard');
   assert.equal(/account_officer/.test(apiContent), true, 'API route must require account_officer role');
 
   // Ensure GET does not return password hash
