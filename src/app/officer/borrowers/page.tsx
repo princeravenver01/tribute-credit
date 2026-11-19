@@ -801,10 +801,6 @@ export default function CurrentBorrowersPage() {
             ? new Date(b.disbursedAt).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
             : new Date().toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
 
-          const aoSig = b.evaluatedByOfficer ? `${b.evaluatedByOfficer.replace(/\s+/g, '_').toUpperCase()}-AUTH0012220-A` : 'ROLANDO_ROBLES-AUTH0012220-A';
-          const mgrSig = 'DENNIS_YUAN-AUTH0002912-C';
-
-          // Extract biometrics & signatures with fallbacks across fullProfile and Step 1/7
           const p: any = b.fullProfile || {};
           const s1: any = p.step1 || {};
           const facePhoto = b.applicantFacePhoto || p.applicantFacePhoto || s1.applicantFacePhoto;
@@ -826,6 +822,12 @@ export default function CurrentBorrowersPage() {
             : (p.officerSignatures && p.officerSignatures.length > 0)
             ? p.officerSignatures
             : undefined;
+          const adminSigs = (b.adminSignatures && b.adminSignatures.length > 0)
+            ? b.adminSignatures
+            : (p.adminSignatures && p.adminSignatures.length > 0)
+            ? p.adminSignatures
+            : undefined;
+          const adminActionAtTime = b.adminActionAt || p.adminActionAt;
 
           // Generate collection schedule according to Philippine holiday calendar & payment mode
           const parsedApprovalDate = b.disbursedAt ? new Date(b.disbursedAt) : new Date();
@@ -859,7 +861,7 @@ export default function CurrentBorrowersPage() {
                   cbuIn: cbuInitial,
                   cbuOut: 0,
                   cbuBalance: cbuInitial,
-                  aoSignature: aoSig.replace('AUTH0012220-A', 'AUTH0012222-A')
+                  aoSignature: (aoSigs && aoSigs[0]?.authId) || (b.evaluatedByOfficer ? b.evaluatedByOfficer.replace(/\s+/g, '_').toUpperCase() : undefined)
                 },
                 ...b.savingsLedgerRecords.map(s => ({
                   paymentSchedule: s.notes || (s.type === 'deposit' ? 'Member Deposit' : 'Member Withdrawal'),
@@ -878,7 +880,7 @@ export default function CurrentBorrowersPage() {
                   cbuIn: cbuInitial,
                   cbuOut: 0,
                   cbuBalance: cbuInitial,
-                  aoSignature: aoSig.replace('AUTH0012220-A', 'AUTH0012222-A')
+                  aoSignature: (aoSigs && aoSigs[0]?.authId) || (b.evaluatedByOfficer ? b.evaluatedByOfficer.replace(/\s+/g, '_').toUpperCase() : undefined)
                 }
               ];
 
@@ -896,6 +898,8 @@ export default function CurrentBorrowersPage() {
             specimenSignature: primarySig,
             specimenSignatures: borrowerSigs,
             aoSignatures: aoSigs,
+            adminSignatures: adminSigs,
+            adminActionAt: adminActionAtTime,
             memberFacePhoto: facePhoto,
             holdingIdPhoto: holdingPhoto,
             dateReleased: releaseDate,
@@ -905,8 +909,6 @@ export default function CurrentBorrowersPage() {
             paymentMode: b.paymentMode || 'Weekly',
             disbursementType: b.disbursementMode === 'cash' ? 'Cash' : (b.disbursementChannel || 'Cash'),
             cycle: b.loanCycle || 1,
-            aoSignatureName: aoSig,
-            managerSignatureName: mgrSig,
             cbuInitialDeposit: cbuInitial,
             cbuBalance: currentCbuBalance,
             paymentRecords: samplePayments,
@@ -1236,10 +1238,6 @@ export default function CurrentBorrowersPage() {
             ? new Date(b.disbursedAt).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
             : new Date().toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
 
-          const aoSig = b.evaluatedByOfficer ? `${b.evaluatedByOfficer.replace(/\s+/g, '_').toUpperCase()}-AUTH0012220-A` : 'ROLANDO_ROBLES-AUTH0012220-A';
-          const mgrSig = 'DENNIS_YUAN-AUTH0002912-C';
-
-          // Extract biometrics & signatures with fallbacks across fullProfile and Step 1/7
           const p: any = b.fullProfile || {};
           const s1: any = p.step1 || {};
           const facePhoto = b.applicantFacePhoto || p.applicantFacePhoto || s1.applicantFacePhoto;
@@ -1261,6 +1259,12 @@ export default function CurrentBorrowersPage() {
             : (p.officerSignatures && p.officerSignatures.length > 0)
             ? p.officerSignatures
             : undefined;
+          const adminSigs = (b.adminSignatures && b.adminSignatures.length > 0)
+            ? b.adminSignatures
+            : (p.adminSignatures && p.adminSignatures.length > 0)
+            ? p.adminSignatures
+            : undefined;
+          const adminActionAtTime = b.adminActionAt || p.adminActionAt;
 
           // Generate collection schedule according to Philippine holiday calendar & payment mode
           const parsedApprovalDate = b.disbursedAt ? new Date(b.disbursedAt) : new Date();
@@ -1294,7 +1298,7 @@ export default function CurrentBorrowersPage() {
                   cbuIn: cbuInitial,
                   cbuOut: 0,
                   cbuBalance: cbuInitial,
-                  aoSignature: aoSig.replace('AUTH0012220-A', 'AUTH0012222-A')
+                  aoSignature: (aoSigs && aoSigs[0]?.authId) || (b.evaluatedByOfficer ? b.evaluatedByOfficer.replace(/\s+/g, '_').toUpperCase() : undefined)
                 },
                 ...b.savingsLedgerRecords.map(s => ({
                   paymentSchedule: s.notes || (s.type === 'deposit' ? 'Member Deposit' : 'Member Withdrawal'),
@@ -1312,7 +1316,7 @@ export default function CurrentBorrowersPage() {
                   cbuIn: cbuInitial,
                   cbuOut: 0,
                   cbuBalance: cbuInitial,
-                  aoSignature: aoSig.replace('AUTH0012220-A', 'AUTH0012222-A')
+                  aoSignature: (aoSigs && aoSigs[0]?.authId) || (b.evaluatedByOfficer ? b.evaluatedByOfficer.replace(/\s+/g, '_').toUpperCase() : undefined)
                 }
               ];
 
@@ -1330,6 +1334,8 @@ export default function CurrentBorrowersPage() {
             specimenSignature: primarySig,
             specimenSignatures: borrowerSigs,
             aoSignatures: aoSigs,
+            adminSignatures: adminSigs,
+            adminActionAt: adminActionAtTime,
             memberFacePhoto: facePhoto,
             holdingIdPhoto: holdingPhoto,
             dateReleased: releaseDate,
@@ -1339,8 +1345,6 @@ export default function CurrentBorrowersPage() {
             paymentMode: b.paymentMode || 'Weekly',
             disbursementType: b.disbursementMode === 'cash' ? 'Cash' : (b.disbursementChannel || 'Cash'),
             cycle: b.loanCycle || 1,
-            aoSignatureName: aoSig,
-            managerSignatureName: mgrSig,
             cbuInitialDeposit: cbuInitial,
             cbuBalance: currentCbuBalance,
             paymentRecords: samplePayments,
@@ -1422,9 +1426,6 @@ export default function CurrentBorrowersPage() {
             ? new Date(b.disbursedAt).toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' })
             : new Date().toLocaleDateString('en-PH', { month: 'long', day: 'numeric', year: 'numeric' });
 
-          const aoSig = b.evaluatedByOfficer ? `${b.evaluatedByOfficer.replace(/\s+/g, '_').toUpperCase()}-AUTH0012220-A` : 'ROLANDO_ROBLES-AUTH0012220-A';
-          const mgrSig = 'DENNIS_YUAN-AUTH0002912-C';
-
           const p: any = b.fullProfile || {};
           const s1: any = p.step1 || {};
           const facePhoto = b.applicantFacePhoto || p.applicantFacePhoto || s1.applicantFacePhoto;
@@ -1446,6 +1447,12 @@ export default function CurrentBorrowersPage() {
             : (p.officerSignatures && p.officerSignatures.length > 0)
             ? p.officerSignatures
             : undefined;
+          const adminSigs = (b.adminSignatures && b.adminSignatures.length > 0)
+            ? b.adminSignatures
+            : (p.adminSignatures && p.adminSignatures.length > 0)
+            ? p.adminSignatures
+            : undefined;
+          const adminActionAtTime = b.adminActionAt || p.adminActionAt;
 
           const parsedApprovalDate = b.disbursedAt ? new Date(b.disbursedAt) : new Date();
           const baseApprovalDate = isNaN(parsedApprovalDate.getTime()) ? new Date() : parsedApprovalDate;
@@ -1478,7 +1485,7 @@ export default function CurrentBorrowersPage() {
                   cbuIn: cbuInitial,
                   cbuOut: 0,
                   cbuBalance: cbuInitial,
-                  aoSignature: aoSig.replace('AUTH0012220-A', 'AUTH0012222-A')
+                  aoSignature: (aoSigs && aoSigs[0]?.authId) || (b.evaluatedByOfficer ? b.evaluatedByOfficer.replace(/\s+/g, '_').toUpperCase() : undefined)
                 },
                 ...b.savingsLedgerRecords.map(s => ({
                   paymentSchedule: s.notes || (s.type === 'deposit' ? 'Member Deposit' : 'Member Withdrawal'),
@@ -1496,7 +1503,7 @@ export default function CurrentBorrowersPage() {
                   cbuIn: cbuInitial,
                   cbuOut: 0,
                   cbuBalance: cbuInitial,
-                  aoSignature: aoSig.replace('AUTH0012220-A', 'AUTH0012222-A')
+                  aoSignature: (aoSigs && aoSigs[0]?.authId) || (b.evaluatedByOfficer ? b.evaluatedByOfficer.replace(/\s+/g, '_').toUpperCase() : undefined)
                 }
               ];
 
@@ -1514,6 +1521,8 @@ export default function CurrentBorrowersPage() {
             specimenSignature: primarySig,
             specimenSignatures: borrowerSigs,
             aoSignatures: aoSigs,
+            adminSignatures: adminSigs,
+            adminActionAt: adminActionAtTime,
             memberFacePhoto: facePhoto,
             holdingIdPhoto: holdingPhoto,
             dateReleased: releaseDate,
@@ -1523,8 +1532,6 @@ export default function CurrentBorrowersPage() {
             paymentMode: b.paymentMode || 'Weekly',
             disbursementType: b.disbursementMode === 'cash' ? 'Cash' : (b.disbursementChannel || 'Cash'),
             cycle: b.loanCycle || 1,
-            aoSignatureName: aoSig,
-            managerSignatureName: mgrSig,
             cbuInitialDeposit: cbuInitial,
             cbuBalance: currentCbuBalance,
             paymentRecords: samplePayments,

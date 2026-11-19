@@ -667,3 +667,44 @@ test('Issue 15: In-app Reconsideration Confirmation Modal replaces browser confi
   );
 });
 
+test('Issue 16: Official Document Signatures and Authorization integrity in Passbook & Contract', () => {
+  const passbookPath = path.join(projectRoot, 'src/components/passbook/PassbookBooklet.tsx');
+  const borrowersNewPath = path.join(projectRoot, 'src/app/officer/borrowers/new/page.tsx');
+  const borrowersPagePath = path.join(projectRoot, 'src/app/officer/borrowers/page.tsx');
+
+  const passbookContent = fs.readFileSync(passbookPath, 'utf-8');
+  const borrowersNewContent = fs.readFileSync(borrowersNewPath, 'utf-8');
+  const borrowersPageContent = fs.readFileSync(borrowersPagePath, 'utf-8');
+
+  // 1. Hard-coded placeholder strings must be removed from PassbookBooklet
+  assert.equal(/ROLANDO_ROBLES/.test(passbookContent), false, 'ROLANDO_ROBLES placeholder must be removed from PassbookBooklet');
+  assert.equal(/DENNIS_YUAN/.test(passbookContent), false, 'DENNIS_YUAN placeholder must be removed from PassbookBooklet');
+  assert.equal(/OFFICIAL SEAL &bull; VERIFIED/.test(passbookContent), false, 'Decorative OFFICIAL SEAL must be replaced with verification cards');
+
+  // 2. Hard-coded ROLANDO and DENNIS removed from borrowers/page.tsx
+  assert.equal(/ROLANDO_ROBLES/.test(borrowersPageContent), false, 'ROLANDO_ROBLES placeholder must be removed from borrowers/page.tsx');
+  assert.equal(/DENNIS_YUAN/.test(borrowersPageContent), false, 'DENNIS_YUAN placeholder must be removed from borrowers/page.tsx');
+
+  // 3. New borrower contract print views must not hard-code Officer Juan for COOP APPROVAL
+  const coopApprovalBlock = borrowersNewContent.slice(
+    borrowersNewContent.indexOf('COOP APPROVAL'),
+    borrowersNewContent.indexOf('COOP APPROVAL') + 400
+  );
+  assert.equal(/Officer Juan \(AO-001\)/.test(coopApprovalBlock), false, 'COOP APPROVAL must not hard-code Officer Juan');
+
+  // 4. Passbook identity header prevents character-by-character breaking for loan reference
+  assert.equal(/whiteSpace:\s*['"]nowrap['"]/.test(passbookContent), true, 'Passbook header loan reference must have white-space nowrap');
+
+  // 5. borrowers/new/page.tsx preserves and loads adminSignatures and adminActionAt in draft and assessment sync
+  assert.equal(/adminSignatures/.test(borrowersNewContent), true, 'borrowers/new/page.tsx must preserve adminSignatures');
+  assert.equal(/adminActionAt/.test(borrowersNewContent), true, 'borrowers/new/page.tsx must preserve adminActionAt');
+
+  // 6. PassbookData interface has explicit aoOfficialSignature and adminOfficialSignature
+  assert.equal(/aoOfficialSignature\?:/.test(passbookContent), true, 'PassbookData must include aoOfficialSignature');
+  assert.equal(/adminOfficialSignature\?:/.test(passbookContent), true, 'PassbookData must include adminOfficialSignature');
+
+  // 7. No AUTO fallback string for borrower or official signatures
+  assert.equal(/AUTH-BRW-00\$\{idx \+ 1\}-AUTO/.test(borrowersNewContent), false, 'AUTH-BRW-AUTO fallback must be removed');
+});
+
+

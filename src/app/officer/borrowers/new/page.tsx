@@ -73,6 +73,12 @@ import {
   BookOpen
 } from 'lucide-react';
 import { PassbookBooklet, LoanPaymentLedger, PassbookData } from '@/components/passbook/PassbookBooklet';
+import {
+  OfficialSignatureBlock,
+  OfficialSignatureRecord,
+  getLatestOfficialSignature,
+  formatPhDateTime
+} from '@/components/common/OfficialSignatureBlock';
 import { generateCollectionScheduleDates, isPhilippineHoliday } from '@/lib/ph-holidays';
 import { 
   getActiveContractTemplate, 
@@ -253,6 +259,11 @@ export default function NewBorrowerRegistrationPage() {
   >([]);
   const [activeOfficerSigSlot, setActiveOfficerSigSlot] = useState<number>(0);
 
+  const [adminSignatures, setAdminSignatures] = useState<
+    { signature: string; authId: string; timestamp: string }[]
+  >([]);
+  const [adminActionAt, setAdminActionAt] = useState<string>('');
+
   const [applicantFacePhoto, setApplicantFacePhoto] = useState<string>('');
   const [borrowerHoldingIdPhoto, setBorrowerHoldingIdPhoto] = useState<string>('');
   const [contractAgreed, setContractAgreed] = useState(false);
@@ -422,6 +433,8 @@ export default function NewBorrowerRegistrationPage() {
           if (matched.applicantSignature) setApplicantSignature(matched.applicantSignature);
           if (matched.borrowerSignatures) setBorrowerSignatures(matched.borrowerSignatures);
           if (matched.officerSignatures) setOfficerSignatures(matched.officerSignatures);
+          if (matched.adminSignatures) setAdminSignatures(matched.adminSignatures);
+          if (matched.adminActionAt) setAdminActionAt(matched.adminActionAt);
           if (matched.applicantFacePhoto) setApplicantFacePhoto(matched.applicantFacePhoto);
           if (matched.borrowerHoldingIdPhoto) setBorrowerHoldingIdPhoto(matched.borrowerHoldingIdPhoto);
           if (matched.disbursementMode) setDisbursementMode(matched.disbursementMode);
@@ -494,6 +507,8 @@ export default function NewBorrowerRegistrationPage() {
         if (d.applicantSignature) setApplicantSignature(d.applicantSignature);
         if (d.borrowerSignatures) setBorrowerSignatures(d.borrowerSignatures);
         if (d.officerSignatures) setOfficerSignatures(d.officerSignatures);
+        if (d.adminSignatures) setAdminSignatures(d.adminSignatures);
+        if (d.adminActionAt) setAdminActionAt(d.adminActionAt);
         if (d.applicantFacePhoto) setApplicantFacePhoto(d.applicantFacePhoto);
         if (d.borrowerHoldingIdPhoto) setBorrowerHoldingIdPhoto(d.borrowerHoldingIdPhoto);
         if (d.contractAgreed) setContractAgreed(d.contractAgreed);
@@ -561,6 +576,8 @@ export default function NewBorrowerRegistrationPage() {
       applicantSignature,
       borrowerSignatures,
       officerSignatures,
+      adminSignatures,
+      adminActionAt,
       applicantFacePhoto,
       borrowerHoldingIdPhoto,
       contractAgreed,
@@ -606,6 +623,8 @@ export default function NewBorrowerRegistrationPage() {
     applicantSignature,
     borrowerSignatures,
     officerSignatures,
+    adminSignatures,
+    adminActionAt,
     applicantFacePhoto,
     borrowerHoldingIdPhoto,
     contractAgreed,
@@ -627,6 +646,12 @@ export default function NewBorrowerRegistrationPage() {
         const draftRaw = localStorage.getItem('tribute_new_borrower_draft');
         if (draftRaw) {
           const draft = JSON.parse(draftRaw);
+          if (draft.adminSignatures && Array.isArray(draft.adminSignatures) && draft.adminSignatures.length > 0) {
+            setAdminSignatures(draft.adminSignatures);
+          }
+          if (draft.adminActionAt) {
+            setAdminActionAt(draft.adminActionAt);
+          }
           if (draft.adminSimulationStatus === 'pending') {
             if (adminSimulationStatus !== 'pending') {
               setAdminSimulationStatus('pending');
@@ -674,12 +699,20 @@ export default function NewBorrowerRegistrationPage() {
             if (matched.applicantSignature) setApplicantSignature(matched.applicantSignature);
             if (matched.borrowerSignatures) setBorrowerSignatures(matched.borrowerSignatures);
             if (matched.officerSignatures) setOfficerSignatures(matched.officerSignatures);
+            if (matched.adminSignatures) setAdminSignatures(matched.adminSignatures);
+            if (matched.adminActionAt) setAdminActionAt(matched.adminActionAt);
             if (matched.applicantFacePhoto) setApplicantFacePhoto(matched.applicantFacePhoto);
             if (matched.borrowerHoldingIdPhoto) setBorrowerHoldingIdPhoto(matched.borrowerHoldingIdPhoto);
             if (matched.disbursementMode) setDisbursementMode(matched.disbursementMode);
             if (matched.disbursementChannel) setDisbursementChannel(matched.disbursementChannel);
             if (matched.disbursementAccountNumber) setDisbursementAccountNumber(matched.disbursementAccountNumber);
           } else if (matched.status === 'admin_approved') {
+            if (matched.adminSignatures && Array.isArray(matched.adminSignatures) && matched.adminSignatures.length > 0) {
+              setAdminSignatures(matched.adminSignatures);
+            }
+            if (matched.adminActionAt) {
+              setAdminActionAt(matched.adminActionAt);
+            }
             if (adminSimulationStatus !== 'approved') {
               setAdminSimulationStatus('approved');
               setSuccessMsg('🎉 Official Approval Received from Admin Credit Committee! Ready for Contract Execution.');
@@ -1218,6 +1251,18 @@ export default function NewBorrowerRegistrationPage() {
   const selectedProvinceCities = PH_LOCATIONS[step2.province]?.cities || [];
   const selectedCityData = selectedProvinceCities.find((c) => c.name === step2.city);
   const barangays = selectedCityData?.barangays || [];
+
+  const officialAo = getLatestOfficialSignature(
+    officerSignatures,
+    'OFFICER JUAN DE LA CRUZ',
+    'Account Officer (AO-001)'
+  );
+  const officialAdmin = getLatestOfficialSignature(
+    adminSignatures,
+    'Branch General Manager / Credit Approver',
+    'Branch General Manager',
+    adminActionAt
+  );
 
   return (
     <div className={`${theme.theme} ${theme.pageShell}`}>
@@ -4236,14 +4281,16 @@ export default function NewBorrowerRegistrationPage() {
                               const sigObj = borrowerSignatures && borrowerSignatures[idx];
                               const fallbackSig = applicantSignature;
                               const sigUrl = sigObj?.signature || (idx === 0 ? fallbackSig : undefined);
-                              const authId = sigObj?.authId || `AUTH-BRW-00${idx + 1}-AUTO`;
-                              const timestamp = sigObj?.timestamp || new Date().toLocaleString('en-PH');
+                              const authId = sigObj?.authId || (sigUrl ? `AUTH-BRW-00${idx + 1}` : undefined);
+                              const timestamp = sigObj?.timestamp || (sigUrl ? new Date().toLocaleString('en-PH') : undefined);
 
                               return (
                                 <div key={idx} style={{ backgroundColor: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '8px', textAlign: 'center', minHeight: '84px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '7pt', fontWeight: '800', color: '#64748b' }}>
                                     <span>Sign #{idx + 1}</span>
-                                    <span style={{ color: '#0284c7', fontFamily: 'monospace', fontSize: '6.5pt' }}>{authId}</span>
+                                    <span style={{ color: authId ? '#0284c7' : '#94a3b8', fontFamily: authId ? 'monospace' : 'inherit', fontSize: '6.5pt' }}>
+                                      {authId || 'Auth ID unavailable'}
+                                    </span>
                                   </div>
                                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px 0' }}>
                                     {sigUrl ? (
@@ -4253,7 +4300,7 @@ export default function NewBorrowerRegistrationPage() {
                                     )}
                                   </div>
                                   <div style={{ fontSize: '6.5pt', color: '#64748b', borderTop: '1px dashed #e2e8f0', paddingTop: '2px' }}>
-                                    {timestamp}
+                                    {timestamp || 'Pending timestamp'}
                                   </div>
                                 </div>
                               );
@@ -4269,24 +4316,26 @@ export default function NewBorrowerRegistrationPage() {
                           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
                             {[0, 1, 2].map((idx) => {
                               const sigObj = officerSignatures && officerSignatures[idx];
-                              const authId = sigObj?.authId || `AO-001-AUTH00${idx + 1}-A`;
-                              const timestamp = sigObj?.timestamp || new Date().toLocaleString('en-PH');
+                              const authId = sigObj?.authId;
+                              const timestamp = sigObj?.timestamp;
 
                               return (
                                 <div key={idx} style={{ backgroundColor: '#ffffff', border: '1px solid #bbf7d0', borderRadius: '8px', padding: '8px', textAlign: 'center', minHeight: '84px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '7pt', fontWeight: '800', color: '#15803d' }}>
                                     <span>AO Sign #{idx + 1}</span>
-                                    <span style={{ color: '#047857', fontFamily: 'monospace', fontSize: '6.5pt' }}>{authId}</span>
+                                    <span style={{ color: authId ? '#047857' : '#94a3b8', fontFamily: authId ? 'monospace' : 'inherit', fontSize: '6.5pt' }}>
+                                      {authId || 'Auth ID unavailable'}
+                                    </span>
                                   </div>
                                   <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '4px 0' }}>
                                     {sigObj?.signature ? (
                                       <img src={sigObj.signature} alt={`AO Sig ${idx + 1}`} style={{ maxHeight: '36px', maxWidth: '95%', objectFit: 'contain' }} />
                                     ) : (
-                                      <span style={{ fontSize: '7.5pt', color: '#94a3b8', fontStyle: 'italic' }}>Officer Juan Signature</span>
+                                      <span style={{ fontSize: '7.5pt', color: '#94a3b8', fontStyle: 'italic' }}>Pending signature</span>
                                     )}
                                   </div>
                                   <div style={{ fontSize: '6.5pt', color: '#15803d', borderTop: '1px dashed #bbf7d0', paddingTop: '2px' }}>
-                                    {timestamp}
+                                    {timestamp || 'Pending timestamp'}
                                   </div>
                                 </div>
                               );
@@ -4333,14 +4382,16 @@ export default function NewBorrowerRegistrationPage() {
                           specimenSignature: applicantSignature,
                           specimenSignatures: borrowerSignatures,
                           aoSignatures: officerSignatures,
+                          adminSignatures: adminSignatures,
+                          adminActionAt: adminActionAt,
+                          aoOfficialSignature: officialAo,
+                          adminOfficialSignature: officialAdmin,
                           memberFacePhoto: applicantFacePhoto,
                           holdingIdPhoto: borrowerHoldingIdPhoto,
                           dateReleased: new Date().toLocaleDateString('en-PH'),
                           loanType: step5.loanProduct,
                           loanAmount: tributeCalculations.principal,
                           cycle: 1,
-                          aoSignatureName: officerSignatures[0]?.authId || 'Officer Juan (AO-001)',
-                          managerSignatureName: 'Approved (Admin)',
                           cbuInitialDeposit: tributeCalculations.cbuAmount,
                           cbuBalance: tributeCalculations.cbuAmount,
                         }}
@@ -4409,8 +4460,11 @@ export default function NewBorrowerRegistrationPage() {
                           paymentMode: step5.repaymentFrequency,
                           termMonths: step5.termMonths,
                           cycle: 1,
-                          aoSignatureName: officerSignatures[0]?.authId || 'Officer Juan (AO-001)',
-                          managerSignatureName: 'Approved (Admin)',
+                          aoSignatures: officerSignatures,
+                          adminSignatures: adminSignatures,
+                          adminActionAt: adminActionAt,
+                          aoOfficialSignature: officialAo,
+                          adminOfficialSignature: officialAdmin,
                           cbuInitialDeposit: tributeCalculations.cbuAmount,
                           cbuBalance: tributeCalculations.cbuAmount,
                         }}
@@ -4668,15 +4722,14 @@ export default function NewBorrowerRegistrationPage() {
                         </div>
                       </div>
 
-                      <div style={{ border: '1.5px solid #cbd5e1', borderRadius: '6px', padding: '6px 8px', textAlign: 'center', backgroundColor: '#ffffff' }}>
-                        <span style={{ fontSize: '6.5pt', fontWeight: '800', color: '#475569', display: 'block', textTransform: 'uppercase' }}>COOP APPROVAL</span>
-                        <div style={{ height: '28px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                          <span style={{ fontFamily: 'monospace', fontSize: '7.5pt', fontWeight: '800', color: '#0f172a' }}>Officer Juan (AO-001)</span>
-                        </div>
-                        <div style={{ borderTop: '1px solid #cbd5e1', paddingTop: '2px', marginTop: '2px' }}>
-                          <span style={{ fontSize: '6pt', color: '#64748b' }}>Authorized Credit Approver</span>
-                        </div>
-                      </div>
+                      <OfficialSignatureBlock
+                        signature={officialAdmin?.signature}
+                        authId={officialAdmin?.authId}
+                        timestamp={officialAdmin?.timestamp || (adminActionAt ? formatPhDateTime(adminActionAt) : undefined)}
+                        signerName={officialAdmin?.signerName || 'Authorized Credit Approver'}
+                        roleTitle="Authorized Credit Approver"
+                        variant="coop-approval"
+                      />
                     </div>
 
                     {/* Signatures Specimen Grid with Auth IDs */}
@@ -4685,24 +4738,26 @@ export default function NewBorrowerRegistrationPage() {
                         const sigObj = borrowerSignatures && borrowerSignatures[idx];
                         const fallbackSig = applicantSignature;
                         const sigUrl = sigObj?.signature || (idx === 0 ? fallbackSig : undefined);
-                        const authId = sigObj?.authId || `AUTH-BRW-00${idx + 1}-AUTO`;
-                        const timestamp = sigObj?.timestamp || new Date().toLocaleString('en-PH');
+                        const authId = sigObj?.authId || (sigUrl ? `AUTH-BRW-00${idx + 1}` : undefined);
+                        const timestamp = sigObj?.timestamp || (sigUrl ? new Date().toLocaleString('en-PH') : undefined);
 
                         return (
                           <div key={idx} style={{ border: '1px solid #cbd5e1', borderRadius: '5px', padding: '4px 6px', backgroundColor: '#ffffff', textAlign: 'center', minHeight: '62px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '6pt', fontWeight: '800', color: '#64748b' }}>
                               <span>Borrower Sign #{idx + 1}</span>
-                              <span style={{ color: '#0284c7', fontFamily: 'monospace', fontSize: '5.5pt' }}>{authId}</span>
+                              <span style={{ color: authId ? '#0284c7' : '#94a3b8', fontFamily: authId ? 'monospace' : 'inherit', fontSize: '5.5pt' }}>
+                                {authId || 'Auth ID unavailable'}
+                              </span>
                             </div>
                             <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               {sigUrl ? (
                                 <img src={sigUrl} alt={`Borrower Sig ${idx + 1}`} style={{ maxHeight: '28px', maxWidth: '95%', objectFit: 'contain' }} />
                               ) : (
-                                <span style={{ fontSize: '6.5pt', color: '#94a3b8' }}>Digitally Signed</span>
+                                <span style={{ fontSize: '6.5pt', color: '#94a3b8', fontStyle: 'italic' }}>Pending Signature</span>
                               )}
                             </div>
                             <div style={{ fontSize: '5.5pt', color: '#64748b', borderTop: '1px dashed #e2e8f0', paddingTop: '1px' }}>
-                              {timestamp}
+                              {timestamp || 'Pending timestamp'}
                             </div>
                           </div>
                         );
@@ -4833,12 +4888,14 @@ export default function NewBorrowerRegistrationPage() {
                         <p style={{ fontSize: '7.5pt', fontWeight: '800', marginTop: '3px', textTransform: 'uppercase' }}>Borrower Conforme & Signature</p>
                       </div>
 
-                      <div style={{ textAlign: 'center' }}>
-                        <div style={{ borderBottom: '1.5px solid #0f172a', height: '30px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-                          <span style={{ fontSize: '8pt', fontWeight: '800', fontFamily: 'monospace' }}>Officer Juan (AO-001)</span>
-                        </div>
-                        <p style={{ fontSize: '7.5pt', fontWeight: '800', marginTop: '3px', textTransform: 'uppercase' }}>Account Officer / Certified Collector</p>
-                      </div>
+                      <OfficialSignatureBlock
+                        signature={officialAo?.signature}
+                        authId={officialAo?.authId}
+                        timestamp={officialAo?.timestamp || (officialAo?.signature ? new Date().toLocaleDateString('en-PH') : undefined)}
+                        signerName={officialAo?.signerName || 'Officer Juan (AO-001)'}
+                        roleTitle="Account Officer / Certified Collector"
+                        variant="collector"
+                      />
                     </div>
                   </div>
 
@@ -4859,6 +4916,10 @@ export default function NewBorrowerRegistrationPage() {
                         specimenSignature: applicantSignature,
                         specimenSignatures: borrowerSignatures,
                         aoSignatures: officerSignatures,
+                        adminSignatures: adminSignatures,
+                        adminActionAt: adminActionAt,
+                        aoOfficialSignature: officialAo,
+                        adminOfficialSignature: officialAdmin,
                         memberFacePhoto: applicantFacePhoto,
                         holdingIdPhoto: borrowerHoldingIdPhoto,
                         dateReleased: new Date().toLocaleDateString('en-PH'),
@@ -4867,8 +4928,6 @@ export default function NewBorrowerRegistrationPage() {
                         loanReference: applicationId || 'TC-LN-A-00001',
                         mcidNumber: step1.cooperativeId || 'TCID-A-00001',
                         cycle: 1,
-                        aoSignatureName: officerSignatures[0]?.authId || 'Officer Juan (AO-001)',
-                        managerSignatureName: 'Approved (Admin)',
                         cbuInitialDeposit: tributeCalculations.cbuAmount,
                         cbuBalance: tributeCalculations.cbuAmount,
                       }}
@@ -4898,8 +4957,11 @@ export default function NewBorrowerRegistrationPage() {
                         loanReference: applicationId || 'TC-LN-A-00001',
                         mcidNumber: step1.cooperativeId || 'TCID-A-00001',
                         cycle: 1,
-                        aoSignatureName: officerSignatures[0]?.authId || 'Officer Juan (AO-001)',
-                        managerSignatureName: 'Approved (Admin)',
+                        aoSignatures: officerSignatures,
+                        adminSignatures: adminSignatures,
+                        adminActionAt: adminActionAt,
+                        aoOfficialSignature: officialAo,
+                        adminOfficialSignature: officialAdmin,
                         cbuInitialDeposit: tributeCalculations.cbuAmount,
                         cbuBalance: tributeCalculations.cbuAmount,
                       }}
@@ -4986,6 +5048,8 @@ export default function NewBorrowerRegistrationPage() {
                           applicantSignature,
                           borrowerSignatures,
                           officerSignatures,
+                          adminSignatures: adminSignatures.length > 0 ? adminSignatures : matched?.adminSignatures,
+                          adminActionAt: adminActionAt || matched?.adminActionAt,
                           applicantFacePhoto,
                           borrowerHoldingIdPhoto,
                           borrowerEmail: registeredEmail,
