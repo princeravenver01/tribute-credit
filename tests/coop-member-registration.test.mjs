@@ -11,6 +11,7 @@ const AO_NEW_MEMBER_PAGE = path.join(ROOT, 'src/app/officer/members/new/page.tsx
 const ADMIN_MEMBERS_PAGE = path.join(ROOT, 'src/app/admin/members/page.tsx');
 const ADMIN_NEW_MEMBER_PAGE = path.join(ROOT, 'src/app/admin/members/new/page.tsx');
 const SIDEBAR_PATH = path.join(ROOT, 'src/components/common/Sidebar.tsx');
+const OFFICER_NAV_PATH = path.join(ROOT, 'src/components/officer/officer-nav-items.ts');
 const MIGRATION_PATH = path.join(ROOT, 'database/migrations/20261120_cooperative_members.sql');
 
 function readIfExists(filePath) {
@@ -267,6 +268,14 @@ test('Coop Member Test 8: Hostinger migration syntax check (no hardcoded USE or 
 
 test('Coop Member Test 9: Sidebar navigation includes Cooperative Members for both AO and Admin', () => {
   const sidebarSrc = readIfExists(SIDEBAR_PATH);
+  const officerNavSrc = readIfExists(OFFICER_NAV_PATH);
   assert.ok(sidebarSrc.includes('/admin/members'), 'Sidebar must include /admin/members for Admin');
-  assert.ok(sidebarSrc.includes('/officer/members'), 'Sidebar must include /officer/members for AO');
+  assert.ok(
+    officerNavSrc.includes('/officer/members'),
+    'Active AO navigation must include /officer/members'
+  );
+  assert.ok(
+    officerNavSrc.includes('Cooperative Members'),
+    'Active AO navigation must label the membership registry clearly'
+  );
 });

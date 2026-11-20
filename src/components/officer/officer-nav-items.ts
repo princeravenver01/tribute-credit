@@ -19,6 +19,7 @@ export interface OfficerNavItem {
 export const OFFICER_NAV_ITEMS: OfficerNavItem[] = [
   { name: 'Dashboard', href: '/officer/dashboard', icon: LayoutDashboard },
   { name: 'New Borrower', href: '/officer/borrowers/new', icon: UserPlus, isPrimary: true },
+  { name: 'Cooperative Members', href: '/officer/members', icon: Users2 },
   { name: 'Applications', href: '/officer/queue', icon: FileSpreadsheet, badge: 'Draft Vault' },
   { name: 'Current Borrowers', href: '/officer/borrowers', icon: Users2 },
   { name: 'Credit Assessments', href: '/officer/credit-assessments', icon: BadgeCheck },
