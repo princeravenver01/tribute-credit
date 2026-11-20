@@ -194,6 +194,11 @@ export default function NewBorrowerRegistrationPage() {
     referral: '',
   });
 
+  // Real-Time Member Detection State
+  const [detectedMember, setDetectedMember] = useState<any | null>(null);
+  const [isDetectingMember, setIsDetectingMember] = useState<boolean>(false);
+  const [detectedMemberDismissed, setDetectedMemberDismissed] = useState<boolean>(false);
+
   // Step 2: Contact Information
   const [step2, setStep2] = useState({
     countryCode: '+63',
@@ -635,6 +640,116 @@ export default function NewBorrowerRegistrationPage() {
     aoLocationConfirmed,
     aoLocationData
   ]);
+
+  // Real-time detection effect: Triggers on exact memberNo, email, or compound phone+DOB
+  useEffect(() => {
+    if (detectedMemberDismissed || currentStep > 2) return;
+
+    const email = step2.email?.trim();
+    const phone = step2.mobileNumber?.trim();
+    const dob = step1.dateOfBirth?.trim();
+    const memberNo = step1.cooperativeId?.startsWith('TCID-M-') ? step1.cooperativeId.trim() : '';
+
+    const hasExactEmail = Boolean(email && email.includes('@') && email.length >= 6);
+    const hasCompound = Boolean(phone && phone.replace(/\D/g, '').length >= 10 && dob);
+    const hasMemberNo = Boolean(memberNo);
+
+    if (!hasExactEmail && !hasCompound && !hasMemberNo) {
+      if (detectedMember) setDetectedMember(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        setIsDetectingMember(true);
+        const res = await fetch('/api/members/detect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            memberNo: hasMemberNo ? memberNo : undefined,
+            email: hasExactEmail ? email : undefined,
+            contactNumber: phone || undefined,
+            dateOfBirth: dob || undefined,
+          }),
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.matched && data.member) {
+            setDetectedMember(data.member);
+          } else {
+            setDetectedMember(null);
+          }
+        }
+      } catch {
+        // Silent failure in background detection
+      } finally {
+        setIsDetectingMember(false);
+      }
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [
+    step1.cooperativeId,
+    step1.dateOfBirth,
+    step2.email,
+    step2.mobileNumber,
+    detectedMemberDismissed,
+    currentStep,
+  ]);
+
+  const handleApplyDetectedMember = (mem: any) => {
+    // 1. Prefill Step 1
+    const parts = (mem.fullName || '').split(' ');
+    setStep1((prev) => ({
+      ...prev,
+      cooperativeId: mem.memberNo,
+      firstName: mem.firstName || parts[0] || prev.firstName,
+      middleName: mem.middleName || prev.middleName,
+      lastName: mem.lastName || parts[parts.length - 1] || prev.lastName,
+      suffix: mem.suffix || prev.suffix,
+      dateOfBirth: mem.dateOfBirth || prev.dateOfBirth,
+      civilStatus: mem.civilStatus || prev.civilStatus,
+      sex: mem.gender === 'Female' ? 'Female' : 'Male',
+      referral: prev.referral || 'Cooperative Member (Auto-detected)',
+    }));
+
+    // 2. Prefill Step 2
+    setStep2((prev) => ({
+      ...prev,
+      email: mem.email || prev.email,
+      mobileNumber: mem.contactNumber ? mem.contactNumber.replace(/^\+63|^0/, '') : prev.mobileNumber,
+      addressLine1: mem.address || prev.addressLine1,
+      city: mem.city || prev.city,
+      province: mem.province || prev.province,
+      barangay: mem.barangay || prev.barangay,
+    }));
+
+    // 3. Prefill Gov ID if provided
+    if (mem.validIdType && mem.validIdNumber) {
+      setGovIds([
+        {
+          idType: mem.validIdType,
+          idNumber: mem.validIdNumber,
+          expiryDate: '',
+        },
+      ]);
+    }
+
+    // 4. Prefill Step 4 occupation if available
+    if (mem.occupation) {
+      setStep4((prev) => ({
+        ...prev,
+        occupation: mem.occupation,
+        monthlyNetIncome: mem.monthlyIncome || prev.monthlyNetIncome,
+      }));
+    }
+
+    // 5. Automatically continue to Step 3 (Dependants), while allowing user to step back to review
+    setDetectedMemberDismissed(true);
+    setSuccessMsg(`✓ Matched & prefilled authoritative records for Member ${mem.memberNo}. Continued to Step 3: Dependants.`);
+    setCurrentStep(3);
+  };
 
   // 6. Real-Time Admin Approval Sync Listener & Poller
   useEffect(() => {
@@ -1572,6 +1687,106 @@ export default function NewBorrowerRegistrationPage() {
               )}
             </div>
 
+            {/* Real-time Member Detection Card */}
+            {detectedMember && !detectedMemberDismissed && (
+              <div style={{
+                marginBottom: '24px',
+                padding: '16px',
+                backgroundColor: '#f0fdf4',
+                border: '1.5px solid #86efac',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {detectedMember.photoUrl ? (
+                    <img
+                      src={detectedMember.photoUrl}
+                      alt={detectedMember.fullName}
+                      style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #16a34a' }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      backgroundColor: '#dcfce7',
+                      color: '#15803d',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: '800'
+                    }}>
+                      {detectedMember.firstName?.charAt(0)}{detectedMember.lastName?.charAt(0)}
+                    </div>
+                  )}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '15px', fontWeight: '800', color: '#166534' }}>
+                        Existing Cooperative Member Detected
+                      </span>
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        color: '#15803d',
+                        backgroundColor: '#dcfce7',
+                        padding: '2px 8px',
+                        borderRadius: '9999px',
+                        textTransform: 'uppercase'
+                      }}>
+                        {detectedMember.membershipType === 'borrower_only' ? 'Borrower-Only' : 'Full Member'}
+                      </span>
+                    </div>
+                    <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#334155' }}>
+                      <strong>{detectedMember.fullName}</strong> • MCID: <span style={{ fontFamily: 'monospace' }}>{detectedMember.memberNo}</span> • {detectedMember.email}
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => setDetectedMemberDismissed(true)}
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: '#64748b',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Dismiss
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyDetectedMember(detectedMember)}
+                    style={{
+                      padding: '8px 16px',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: '#ffffff',
+                      backgroundColor: '#15803d',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <CheckCircle size={16} />
+                    <span>Prefill & Continue to Dependants</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
               <div style={{ backgroundColor: '#e0f2fe', color: '#0284c7', padding: '10px', borderRadius: '12px' }}>
                 <User size={22} />
@@ -1693,6 +1908,106 @@ export default function NewBorrowerRegistrationPage() {
         {/* ================= STEP 2: CONTACT & GOV IDS ================= */}
         {currentStep === 2 && (
           <div className="officer-card" style={cardStyle}>
+            {/* Real-time Member Detection Card (Step 2) */}
+            {detectedMember && !detectedMemberDismissed && (
+              <div style={{
+                marginBottom: '24px',
+                padding: '16px',
+                backgroundColor: '#f0fdf4',
+                border: '1.5px solid #86efac',
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                flexWrap: 'wrap',
+                gap: '12px'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  {detectedMember.photoUrl ? (
+                    <img
+                      src={detectedMember.photoUrl}
+                      alt={detectedMember.fullName}
+                      style={{ width: '48px', height: '48px', borderRadius: '50%', objectFit: 'cover', border: '2px solid #16a34a' }}
+                    />
+                  ) : (
+                    <div style={{
+                      width: '48px',
+                      height: '48px',
+                      borderRadius: '50%',
+                      backgroundColor: '#dcfce7',
+                      color: '#15803d',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontWeight: '800'
+                    }}>
+                      {detectedMember.firstName?.charAt(0)}{detectedMember.lastName?.charAt(0)}
+                    </div>
+                  )}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '15px', fontWeight: '800', color: '#166534' }}>
+                        Existing Cooperative Member Detected
+                      </span>
+                      <span style={{
+                        fontSize: '11px',
+                        fontWeight: '700',
+                        color: '#15803d',
+                        backgroundColor: '#dcfce7',
+                        padding: '2px 8px',
+                        borderRadius: '9999px',
+                        textTransform: 'uppercase'
+                      }}>
+                        {detectedMember.membershipType === 'borrower_only' ? 'Borrower-Only' : 'Full Member'}
+                      </span>
+                    </div>
+                    <p style={{ margin: '2px 0 0', fontSize: '13px', color: '#334155' }}>
+                      <strong>{detectedMember.fullName}</strong> • MCID: <span style={{ fontFamily: 'monospace' }}>{detectedMember.memberNo}</span> • {detectedMember.email}
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    onClick={() => setDetectedMemberDismissed(true)}
+                    style={{
+                      padding: '8px 12px',
+                      fontSize: '13px',
+                      fontWeight: '600',
+                      color: '#64748b',
+                      backgroundColor: '#ffffff',
+                      border: '1px solid #cbd5e1',
+                      borderRadius: '8px',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Dismiss
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyDetectedMember(detectedMember)}
+                    style={{
+                      padding: '8px 16px',
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: '#ffffff',
+                      backgroundColor: '#15803d',
+                      border: 'none',
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '6px'
+                    }}
+                  >
+                    <CheckCircle size={16} />
+                    <span>Prefill & Continue to Dependants</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '28px' }}>
               <div style={{ backgroundColor: '#e0f2fe', color: '#0284c7', padding: '10px', borderRadius: '12px' }}>
                 <Phone size={22} />

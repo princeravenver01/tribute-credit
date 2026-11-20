@@ -106,6 +106,34 @@ async function syncToMySql(item: AssessmentRecord) {
       borrowerId = insertUserRes.insertId;
     }
 
+    // Automatically create or link provisional borrower-only cooperative member record
+    try {
+      const { createProvisionalBorrowerMember, linkMemberToUserAccount, findMatchingCooperativeMember } = await import('@/lib/coop-member-store');
+      const matched = await findMatchingCooperativeMember({
+        memberNo: item.policyNo,
+        email: borrowerEmail,
+        contactNumber: contact,
+      });
+
+      if (matched) {
+        if (!matched.linkedUserId) {
+          await linkMemberToUserAccount(matched.memberNo, borrowerId).catch(() => {});
+        }
+      } else {
+        await createProvisionalBorrowerMember({
+          linkedUserId: borrowerId,
+          name: borrowerName,
+          email: borrowerEmail,
+          contactNumber: contact,
+          address,
+          recordedByName: item.evaluatedByOfficer || 'Account Officer',
+          recordedByRole: 'account_officer',
+        }).catch(() => {});
+      }
+    } catch (e) {
+      console.error('Coop member auto-bridge error in /api/assessments:', e);
+    }
+
     // 2. Map application status to DB enum ('pending', 'under_review', 'approved', 'rejected', 'disbursed', 'completed')
     // Note: pending_ao_disbursement is NOT yet disbursed in MySQL — it maps to 'approved' with disbursed_at = null.
     let dbStatus: 'pending' | 'under_review' | 'approved' | 'rejected' | 'disbursed' = 'pending';

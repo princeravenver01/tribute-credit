@@ -57,10 +57,13 @@ export class DatabasePersistenceError extends Error {
   }
 }
 
+export type MembershipType = 'full_cooperative' | 'borrower_only';
+
 export interface CooperativeMember {
   id: number | string;
   memberNo: string; // e.g. TCID-M-2026-0001
   linkedUserId?: number | null; // Nullable link to users table for future borrower/applicant conversion
+  membershipType: MembershipType;
   firstName: string;
   middleName?: string;
   lastName: string;
@@ -138,6 +141,21 @@ export interface RegisterMemberInput {
   registeredByRole?: 'admin' | 'account_officer';
 }
 
+export interface ProvisionalBorrowerInput {
+  linkedUserId?: number | null;
+  name: string;
+  email: string;
+  contactNumber: string;
+  address: string;
+  dateOfBirth?: string;
+  gender?: 'Male' | 'Female' | 'Other';
+  civilStatus?: 'Single' | 'Married' | 'Widowed' | 'Separated' | 'Divorced';
+  occupation?: string;
+  monthlyIncome?: number;
+  recordedByName?: string;
+  recordedByRole?: 'admin' | 'account_officer';
+}
+
 export interface MemberTransactionRecord {
   id?: number;
   memberId: number | string;
@@ -147,6 +165,26 @@ export interface MemberTransactionRecord {
   referenceNo: string;
   recordedByName: string;
   createdAt: string;
+}
+
+export interface MemberPaymentInput {
+  memberNo: string;
+  component: 'registration_fee' | 'capital_share' | 'savings_deposit' | 'all';
+  amount: number;
+  paymentMethod?: 'cash' | 'online' | 'bank_transfer';
+  paymentReference?: string;
+  recordedByName?: string;
+  recordedByRole?: 'admin' | 'account_officer';
+}
+
+export interface PaymentResult {
+  member: CooperativeMember;
+  remainingBalances: {
+    registrationFee: number;
+    capitalShare: number;
+    initialSavings: number;
+    totalRemaining: number;
+  };
 }
 
 // In-Memory store fallback for environments without configured DB (e.g. unit test runner)
@@ -167,7 +205,10 @@ export function generateMemberNo(): string {
   return `TCID-M-${year}-${timeHex}-${randomPart}`;
 }
 
-export async function listCooperativeMembers(searchQuery = ''): Promise<CooperativeMember[]> {
+export async function listCooperativeMembers(
+  searchQuery = '',
+  filterType?: MembershipType
+): Promise<CooperativeMember[]> {
   if (isDatabaseConfigured()) {
     try {
       const db = await import('./db');
@@ -179,6 +220,7 @@ export async function listCooperativeMembers(searchQuery = ''): Promise<Cooperat
           id: r.id as number | string,
           memberNo: r.member_no as string,
           linkedUserId: (r.linked_user_id as number) || null,
+          membershipType: (r.membership_type as MembershipType) || 'full_cooperative',
           firstName: r.first_name as string,
           middleName: (r.middle_name as string) || undefined,
           lastName: r.last_name as string,
@@ -218,6 +260,10 @@ export async function listCooperativeMembers(searchQuery = ''): Promise<Cooperat
           updatedAt: r.updated_at as string,
         }));
 
+        if (filterType) {
+          result = result.filter((m) => m.membershipType === filterType);
+        }
+
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
           result = result.filter(
@@ -241,6 +287,9 @@ export async function listCooperativeMembers(searchQuery = ''): Promise<Cooperat
 
   // Memory fallback for unconfigured environments
   let memoryList = globalThis.__tributeCoopMembersStore || [];
+  if (filterType) {
+    memoryList = memoryList.filter((m) => m.membershipType === filterType);
+  }
   if (searchQuery.trim()) {
     const q = searchQuery.toLowerCase().trim();
     memoryList = memoryList.filter(
@@ -255,6 +304,392 @@ export async function listCooperativeMembers(searchQuery = ''): Promise<Cooperat
   return [...memoryList].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
+}
+
+// Strict Real-Time Member Detection (Non-fuzzy)
+export async function findMatchingCooperativeMember(params: {
+  memberNo?: string;
+  email?: string;
+  contactNumber?: string;
+  dateOfBirth?: string;
+}): Promise<CooperativeMember | null> {
+  const normMemberNo = params.memberNo?.trim().toUpperCase();
+  const normEmail = params.email?.trim().toLowerCase();
+  const normPhone = params.contactNumber?.replace(/[^0-9]/g, '');
+  const normDob = params.dateOfBirth?.trim();
+
+  const members = await listCooperativeMembers();
+
+  // 1. Exact Member Number match
+  if (normMemberNo) {
+    const matched = members.find((m) => m.memberNo.toUpperCase() === normMemberNo);
+    if (matched) return matched;
+  }
+
+  // 2. Exact Normalized Email match
+  if (normEmail && normEmail.includes('@')) {
+    const matched = members.find((m) => m.email.toLowerCase() === normEmail);
+    if (matched) return matched;
+  }
+
+  // 3. Exact Compound Match: Phone AND Date of Birth (both required)
+  if (normPhone && normPhone.length >= 7 && normDob) {
+    const matched = members.find((m) => {
+      const mPhone = m.contactNumber.replace(/[^0-9]/g, '');
+      const mDob = m.dateOfBirth ? new Date(m.dateOfBirth).toISOString().slice(0, 10) : '';
+      const inputDob = new Date(normDob).toISOString().slice(0, 10);
+      return mPhone.endsWith(normPhone.slice(-7)) && mDob === inputDob;
+    });
+    if (matched) return matched;
+  }
+
+  // Zero fuzzy name-only matching allowed!
+  return null;
+}
+
+// Automatic Provisional Borrower-Only Member Creation
+export async function createProvisionalBorrowerMember(
+  input: ProvisionalBorrowerInput
+): Promise<CooperativeMember> {
+  const normalizedEmail = (input.email || `borrower.${Date.now()}@tribute.coop`).toLowerCase().trim();
+  const existingList = await listCooperativeMembers();
+
+  // If user is already linked or email exists, return existing
+  if (input.linkedUserId) {
+    const matchedUser = existingList.find((m) => m.linkedUserId === input.linkedUserId);
+    if (matchedUser) return matchedUser;
+  }
+  const matchedEmail = existingList.find((m) => m.email.toLowerCase() === normalizedEmail);
+  if (matchedEmail) return matchedEmail;
+
+  const parts = input.name.trim().split(/\s+/);
+  const firstName = parts[0] || 'Borrower';
+  const lastName = parts.length > 1 ? parts.slice(1).join(' ') : 'Member';
+  const memberNo = generateMemberNo();
+  const nowIso = new Date().toISOString();
+
+  if (isDatabaseConfigured()) {
+    const db = await import('./db');
+    const pool = db.getDbPool();
+    let conn: PoolConnection | null = null;
+
+    try {
+      conn = await pool.getConnection();
+      await conn.beginTransaction();
+
+      const [insertRes] = (await conn.execute(
+        `INSERT INTO coop_members
+         (member_no, linked_user_id, membership_type, first_name, middle_name, last_name, suffix, full_name, gender, date_of_birth, civil_status,
+          email, contact_number, address, barangay, city, province, occupation, monthly_income,
+          signature_data, signature_auth_id, signature_timestamp, photo_url, photo_timestamp,
+          id_selfie_url, id_selfie_timestamp, valid_id_type, valid_id_number,
+          registration_fee, capital_share, initial_savings, total_paid, payment_method, payment_reference,
+          registered_by_id, registered_by_name, registered_by_role, registration_status)
+         VALUES (?, ?, 'borrower_only', ?, NULL, ?, NULL, ?, ?, ?, ?, ?, ?, ?, '', '', '', ?, ?, '', '', ?, '', ?, '', ?, 'System ID', 'UNVERIFIED', 0.00, 0.00, 0.00, 0.00, 'cash', 'PENDING-ONBOARDING', NULL, ?, ?, 'active')`,
+        [
+          memberNo,
+          input.linkedUserId || null,
+          firstName,
+          lastName,
+          input.name.trim(),
+          input.gender || 'Male',
+          input.dateOfBirth || '1990-01-01',
+          input.civilStatus || 'Single',
+          normalizedEmail,
+          input.contactNumber || '09000000000',
+          input.address || 'Philippines',
+          input.occupation || 'Borrower',
+          Number(input.monthlyIncome) || 0,
+          new Date(nowIso),
+          new Date(nowIso),
+          new Date(nowIso),
+          input.recordedByName || 'Loan Onboarding System',
+          input.recordedByRole || 'account_officer',
+        ]
+      )) as unknown as [{ insertId: number }];
+
+      await conn.commit();
+
+      const newId = insertRes.insertId;
+      return {
+        id: newId,
+        memberNo,
+        linkedUserId: input.linkedUserId || null,
+        membershipType: 'borrower_only',
+        firstName,
+        lastName,
+        fullName: input.name.trim(),
+        gender: input.gender || 'Male',
+        dateOfBirth: input.dateOfBirth || '1990-01-01',
+        civilStatus: input.civilStatus || 'Single',
+        email: normalizedEmail,
+        contactNumber: input.contactNumber || '09000000000',
+        address: input.address || 'Philippines',
+        barangay: '',
+        city: '',
+        province: '',
+        occupation: input.occupation || 'Borrower',
+        monthlyIncome: Number(input.monthlyIncome) || 0,
+        signatureData: '',
+        signatureAuthId: '',
+        signatureTimestamp: nowIso,
+        photoUrl: '',
+        photoTimestamp: nowIso,
+        idSelfieUrl: '',
+        idSelfieTimestamp: nowIso,
+        validIdType: 'System ID',
+        validIdNumber: 'UNVERIFIED',
+        registrationFee: 0,
+        capitalShare: 0,
+        initialSavings: 0,
+        totalPaid: 0,
+        paymentMethod: 'cash',
+        paymentReference: 'PENDING-ONBOARDING',
+        registeredByName: input.recordedByName || 'Loan Onboarding System',
+        registeredByRole: input.recordedByRole || 'account_officer',
+        registrationStatus: 'active',
+        createdAt: nowIso,
+        updatedAt: nowIso,
+      };
+    } catch (err: unknown) {
+      if (conn) {
+        try {
+          await conn.rollback();
+        } catch {}
+      }
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new DatabasePersistenceError(`Failed to create provisional borrower member: ${msg}`);
+    } finally {
+      if (conn) conn.release();
+    }
+  }
+
+  // In-memory fallback
+  const provisional: CooperativeMember = {
+    id: memberNo,
+    memberNo,
+    linkedUserId: input.linkedUserId || null,
+    membershipType: 'borrower_only',
+    firstName,
+    lastName,
+    fullName: input.name.trim(),
+    gender: input.gender || 'Male',
+    dateOfBirth: input.dateOfBirth || '1990-01-01',
+    civilStatus: input.civilStatus || 'Single',
+    email: normalizedEmail,
+    contactNumber: input.contactNumber || '09000000000',
+    address: input.address || 'Philippines',
+    barangay: '',
+    city: '',
+    province: '',
+    occupation: input.occupation || 'Borrower',
+    monthlyIncome: Number(input.monthlyIncome) || 0,
+    signatureData: '',
+    signatureAuthId: '',
+    signatureTimestamp: nowIso,
+    photoUrl: '',
+    photoTimestamp: nowIso,
+    idSelfieUrl: '',
+    idSelfieTimestamp: nowIso,
+    validIdType: 'System ID',
+    validIdNumber: 'UNVERIFIED',
+    registrationFee: 0,
+    capitalShare: 0,
+    initialSavings: 0,
+    totalPaid: 0,
+    paymentMethod: 'cash',
+    paymentReference: 'PENDING-ONBOARDING',
+    registeredByName: input.recordedByName || 'Loan Onboarding System',
+    registeredByRole: input.recordedByRole || 'account_officer',
+    registrationStatus: 'active',
+    createdAt: nowIso,
+    updatedAt: nowIso,
+  };
+
+  globalThis.__tributeCoopMembersStore = globalThis.__tributeCoopMembersStore || [];
+  globalThis.__tributeCoopMembersStore.unshift(provisional);
+  return provisional;
+}
+
+// Record Membership Payment & Automatic Promotion
+export async function recordMembershipPayment(input: MemberPaymentInput): Promise<PaymentResult> {
+  const members = await listCooperativeMembers();
+  const member = members.find((m) => m.memberNo === input.memberNo);
+  if (!member) {
+    throw new Error(`Cooperative member "${input.memberNo}" not found.`);
+  }
+
+  const curFee = member.registrationFee || 0;
+  const curCap = member.capitalShare || 0;
+  const curSav = member.initialSavings || 0;
+
+  const remFee = Math.max(0, MEMBER_FEES.REGISTRATION_FEE - curFee);
+  const remCap = Math.max(0, MEMBER_FEES.CAPITAL_SHARE - curCap);
+  const remSav = Math.max(0, MEMBER_FEES.INITIAL_SAVINGS - curSav);
+
+  let allocFee = 0;
+  let allocCap = 0;
+  let allocSav = 0;
+
+  if (input.component === 'registration_fee') {
+    if (remFee <= 0) throw new Error('Registration Fee is already fully paid (₱500.00).');
+    if (input.amount > remFee) throw new Error(`Amount ₱${input.amount} exceeds remaining fee balance of ₱${remFee}.`);
+    allocFee = input.amount;
+  } else if (input.component === 'capital_share') {
+    if (remCap <= 0) throw new Error('Capital Share is already fully paid (₱2,000.00).');
+    if (input.amount > remCap) throw new Error(`Amount ₱${input.amount} exceeds remaining capital share balance of ₱${remCap}.`);
+    allocCap = input.amount;
+  } else if (input.component === 'savings_deposit') {
+    if (remSav <= 0) throw new Error('Initial Savings is already fully paid (₱500.00).');
+    if (input.amount > remSav) throw new Error(`Amount ₱${input.amount} exceeds remaining savings deposit balance of ₱${remSav}.`);
+    allocSav = input.amount;
+  } else if (input.component === 'all') {
+    const totalRemaining = remFee + remCap + remSav;
+    if (totalRemaining <= 0) throw new Error('All required membership components are already fully paid.');
+    if (input.amount > totalRemaining) {
+      throw new Error(`Amount ₱${input.amount} exceeds total remaining required balance of ₱${totalRemaining}.`);
+    }
+
+    let left = input.amount;
+    allocFee = Math.min(left, remFee);
+    left -= allocFee;
+    allocCap = Math.min(left, remCap);
+    left -= allocCap;
+    allocSav = Math.min(left, remSav);
+  }
+
+  const totalAdded = allocFee + allocCap + allocSav;
+  if (totalAdded <= 0) {
+    throw new Error('Payment amount must be greater than zero.');
+  }
+
+  const newFee = curFee + allocFee;
+  const newCap = curCap + allocCap;
+  const newSav = curSav + allocSav;
+  const newTotal = newFee + newCap + newSav;
+  const isPromoted = newFee >= MEMBER_FEES.REGISTRATION_FEE && newCap >= MEMBER_FEES.CAPITAL_SHARE && newSav >= MEMBER_FEES.INITIAL_SAVINGS;
+  const targetMembershipType: MembershipType = isPromoted ? 'full_cooperative' : member.membershipType;
+
+  const nowIso = new Date().toISOString();
+  const payRef = input.paymentReference?.trim() || `REC-${Date.now().toString().slice(-6)}`;
+  const actorName = input.recordedByName || 'Cooperative Officer';
+
+  if (isDatabaseConfigured()) {
+    const db = await import('./db');
+    const pool = db.getDbPool();
+    let conn: PoolConnection | null = null;
+
+    try {
+      conn = await pool.getConnection();
+      await conn.beginTransaction();
+
+      // Record transaction ledger entries
+      if (allocFee > 0) {
+        await conn.execute(
+          `INSERT INTO coop_member_transactions (member_id, member_no, transaction_type, amount, reference_no, recorded_by_name)
+           VALUES (?, ?, 'registration_fee', ?, ?, ?)`,
+          [member.id, member.memberNo, allocFee, `FEE-${payRef}`, actorName]
+        );
+      }
+      if (allocCap > 0) {
+        await conn.execute(
+          `INSERT INTO coop_member_transactions (member_id, member_no, transaction_type, amount, reference_no, recorded_by_name)
+           VALUES (?, ?, 'capital_share', ?, ?, ?)`,
+          [member.id, member.memberNo, allocCap, `CS-${payRef}`, actorName]
+        );
+      }
+      if (allocSav > 0) {
+        await conn.execute(
+          `INSERT INTO coop_member_transactions (member_id, member_no, transaction_type, amount, reference_no, recorded_by_name)
+           VALUES (?, ?, 'savings_deposit', ?, ?, ?)`,
+          [member.id, member.memberNo, allocSav, `SAV-${payRef}`, actorName]
+        );
+      }
+
+      // Update coop_members table
+      await conn.execute(
+        `UPDATE coop_members SET
+          registration_fee = ?,
+          capital_share = ?,
+          initial_savings = ?,
+          total_paid = ?,
+          membership_type = ?,
+          payment_method = ?,
+          payment_reference = ?
+         WHERE member_no = ?`,
+        [newFee, newCap, newSav, newTotal, targetMembershipType, input.paymentMethod || 'cash', payRef, member.memberNo]
+      );
+
+      await conn.commit();
+    } catch (err: unknown) {
+      if (conn) {
+        try {
+          await conn.rollback();
+        } catch {}
+      }
+      const msg = err instanceof Error ? err.message : String(err);
+      throw new DatabasePersistenceError(`Failed to record membership payment: ${msg}`);
+    } finally {
+      if (conn) conn.release();
+    }
+  } else {
+    // Memory fallback
+    member.registrationFee = newFee;
+    member.capitalShare = newCap;
+    member.initialSavings = newSav;
+    member.totalPaid = newTotal;
+    member.membershipType = targetMembershipType;
+    member.paymentReference = payRef;
+    member.updatedAt = nowIso;
+
+    globalThis.__tributeCoopMemberTransactions = globalThis.__tributeCoopMemberTransactions || [];
+    if (allocFee > 0) {
+      globalThis.__tributeCoopMemberTransactions.push({
+        memberId: member.id,
+        memberNo: member.memberNo,
+        transactionType: 'registration_fee',
+        amount: allocFee,
+        referenceNo: `FEE-${payRef}`,
+        recordedByName: actorName,
+        createdAt: nowIso,
+      });
+    }
+    if (allocCap > 0) {
+      globalThis.__tributeCoopMemberTransactions.push({
+        memberId: member.id,
+        memberNo: member.memberNo,
+        transactionType: 'capital_share',
+        amount: allocCap,
+        referenceNo: `CS-${payRef}`,
+        recordedByName: actorName,
+        createdAt: nowIso,
+      });
+    }
+    if (allocSav > 0) {
+      globalThis.__tributeCoopMemberTransactions.push({
+        memberId: member.id,
+        memberNo: member.memberNo,
+        transactionType: 'savings_deposit',
+        amount: allocSav,
+        referenceNo: `SAV-${payRef}`,
+        recordedByName: actorName,
+        createdAt: nowIso,
+      });
+    }
+  }
+
+  const updatedMembers = await listCooperativeMembers();
+  const updated = updatedMembers.find((m) => m.memberNo === member.memberNo) || member;
+
+  return {
+    member: updated,
+    remainingBalances: {
+      registrationFee: Math.max(0, MEMBER_FEES.REGISTRATION_FEE - newFee),
+      capitalShare: Math.max(0, MEMBER_FEES.CAPITAL_SHARE - newCap),
+      initialSavings: Math.max(0, MEMBER_FEES.INITIAL_SAVINGS - newSav),
+      totalRemaining: Math.max(0, MEMBER_FEES.TOTAL_PAYMENT - newTotal),
+    },
+  };
 }
 
 export async function linkMemberToUserAccount(
@@ -414,13 +849,13 @@ export async function registerCooperativeMember(input: RegisterMemberInput): Pro
         // 2. Insert member record
         const [insertRes] = (await conn.execute(
           `INSERT INTO coop_members
-           (member_no, linked_user_id, first_name, middle_name, last_name, suffix, full_name, gender, date_of_birth, civil_status,
+           (member_no, linked_user_id, membership_type, first_name, middle_name, last_name, suffix, full_name, gender, date_of_birth, civil_status,
             email, contact_number, address, barangay, city, province, occupation, monthly_income,
             signature_data, signature_auth_id, signature_timestamp, photo_url, photo_timestamp,
             id_selfie_url, id_selfie_timestamp, valid_id_type, valid_id_number,
             registration_fee, capital_share, initial_savings, total_paid, payment_method, payment_reference,
             registered_by_id, registered_by_name, registered_by_role, registration_status)
-           VALUES (?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
+           VALUES (?, NULL, 'full_cooperative', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'active')`,
           [
             memberNo,
             input.firstName.trim(),
@@ -485,6 +920,7 @@ export async function registerCooperativeMember(input: RegisterMemberInput): Pro
           id: newId,
           memberNo,
           linkedUserId: null,
+          membershipType: 'full_cooperative',
           firstName: input.firstName.trim(),
           middleName: input.middleName?.trim() || undefined,
           lastName: input.lastName.trim(),
@@ -578,6 +1014,7 @@ export async function registerCooperativeMember(input: RegisterMemberInput): Pro
     id: memberNo,
     memberNo,
     linkedUserId: null,
+    membershipType: 'full_cooperative',
     firstName: input.firstName.trim(),
     middleName: input.middleName?.trim() || undefined,
     lastName: input.lastName.trim(),

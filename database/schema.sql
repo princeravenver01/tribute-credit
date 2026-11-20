@@ -113,6 +113,7 @@ CREATE TABLE IF NOT EXISTS `coop_members` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `member_no` VARCHAR(50) UNIQUE NOT NULL,
   `linked_user_id` INT NULL UNIQUE,
+  `membership_type` ENUM('full_cooperative', 'borrower_only') NOT NULL DEFAULT 'full_cooperative',
   `first_name` VARCHAR(100) NOT NULL,
   `middle_name` VARCHAR(100) NULL,
   `last_name` VARCHAR(100) NOT NULL,
@@ -152,6 +153,7 @@ CREATE TABLE IF NOT EXISTS `coop_members` (
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX (`member_no`),
   INDEX (`linked_user_id`),
+  INDEX (`membership_type`, `registration_status`),
   INDEX (`email`),
   INDEX (`registration_status`)
 ) ENGINE=InnoDB;

@@ -19,7 +19,8 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const search = url.searchParams.get('search') || '';
-    const members = await listCooperativeMembers(search);
+    const typeParam = url.searchParams.get('type') as 'full_cooperative' | 'borrower_only' | null;
+    const members = await listCooperativeMembers(search, typeParam || undefined);
     return NextResponse.json({ success: true, members });
   } catch (err: unknown) {
     if (err instanceof DatabasePersistenceError) {
