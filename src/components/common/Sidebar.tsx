@@ -56,7 +56,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { name: 'Loan Approvals', href: '/admin/loans', icon: FileText },
     { name: 'Disbursement Hub', href: '/disbursement', icon: CreditCard },
     { name: 'Contract Editor', href: '/admin/contract-editor', icon: FileCheck },
-    { name: 'Manage Users', href: '/admin/users', icon: Users },
+    { name: 'Cooperative Members', href: '/admin/members', icon: Users },
+    { name: 'Manage Users', href: '/admin/users', icon: ShieldCheck },
     { name: 'Loan Products', href: '/admin/products', icon: Layers },
     { name: 'Reports & Analytics', href: '/admin/reports', icon: BarChart3 },
     { name: 'Settings', href: '/admin/settings', icon: Settings },
@@ -70,6 +71,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const officerLinks = [
     { name: 'Review Queue', href: '/officer/dashboard', icon: LayoutDashboard },
+    { name: 'Cooperative Members', href: '/officer/members', icon: Users },
     { name: 'Applications', href: '/officer/queue', icon: FileText },
     { name: 'Current Borrowers', href: '/officer/borrowers', icon: UserCheck },
     { name: 'Credit Assessments', href: '/officer/credit-assessments', icon: BadgeCheck },
