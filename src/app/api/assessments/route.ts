@@ -84,55 +84,84 @@ async function syncToMySql(item: AssessmentRecord) {
     if (!loanCode) return;
 
     // 1. Resolve or create user/borrower in MySQL users table
-    const borrowerEmail = item.borrowerEmail || `${loanCode.toLowerCase().replace(/[^a-z0-9]/g, '')}@tribute.coop`;
-    const borrowerName = item.borrowerName || 'Borrower Member';
-    const contact = item.contactNumber || '';
-    const address = item.location || '';
+  const borrowerEmail = item.borrowerEmail || `${loanCode.toLowerCase().replace(/[^a-z0-9]/g, '')}@tribute.coop`;
+  const borrowerName = item.borrowerName || 'Borrower Member';
+  const contact = item.contactNumber || '';
+  const address = item.location || '';
 
-    // Check if user exists
-    const existingUsers: any = await query(
-      'SELECT id FROM users WHERE email = ? OR name = ? LIMIT 1',
-      [borrowerEmail, borrowerName]
+  // Check if user exists
+  const existingUsers: any = await query(
+    'SELECT id FROM users WHERE email = ? OR name = ? LIMIT 1',
+    [borrowerEmail, borrowerName]
+  );
+
+  let borrowerId: number;
+  if (existingUsers && existingUsers.length > 0) {
+    borrowerId = existingUsers[0].id;
+  } else {
+    const insertUserRes: any = await query(
+      'INSERT INTO users (member_no, name, email, password, role, contact_number, address, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [item.policyNo || `MEM-${Date.now().toString().slice(-6)}`, borrowerName, borrowerEmail, '$2b$10$tributeTempHashPlaceholder', 'borrower', contact, address, 'active']
     );
+    borrowerId = insertUserRes.insertId;
+  }
 
-    let borrowerId: number;
-    if (existingUsers && existingUsers.length > 0) {
-      borrowerId = existingUsers[0].id;
-    } else {
-      const insertUserRes: any = await query(
-        'INSERT INTO users (member_no, name, email, password, role, contact_number, address, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [item.policyNo || `MEM-${Date.now().toString().slice(-6)}`, borrowerName, borrowerEmail, '$2b$10$tributeTempHashPlaceholder', 'borrower', contact, address, 'active']
+  // 2. Strict Every-Borrower Cooperative Membership Resolution / Creation
+  // Correct member identifier lookup: prefer mcid or fullProfile.step1.cooperativeId, NOT policyNo
+  const authoritativeMemberNo = (item.mcid || item.fullProfile?.step1?.cooperativeId || item.cidNumber)?.trim();
+  const step1 = item.fullProfile?.step1 || {};
+  const step2 = item.fullProfile?.step2 || {};
+  const govIds = item.fullProfile?.govIds || [];
+  const primaryGovId = Array.isArray(govIds) && govIds.length > 0 ? govIds[0] : null;
+
+  const { createProvisionalBorrowerMember, linkMemberToUserAccount, findMatchingCooperativeMember } = await import('@/lib/coop-member-store');
+
+  const matched = await findMatchingCooperativeMember({
+    memberNo: authoritativeMemberNo,
+    email: borrowerEmail,
+    contactNumber: contact,
+    dateOfBirth: step1.dateOfBirth,
+  });
+
+  if (matched) {
+    // If the matched member is already linked to a different user, raise conflict!
+    if (matched.linkedUserId && matched.linkedUserId !== borrowerId) {
+      throw new Error(
+        `Cooperative member ${matched.memberNo} is already linked to another user account (User ID: ${matched.linkedUserId}). Cannot link to User ID ${borrowerId}.`
       );
-      borrowerId = insertUserRes.insertId;
     }
-
-    // Automatically create or link provisional borrower-only cooperative member record
-    try {
-      const { createProvisionalBorrowerMember, linkMemberToUserAccount, findMatchingCooperativeMember } = await import('@/lib/coop-member-store');
-      const matched = await findMatchingCooperativeMember({
-        memberNo: item.policyNo,
-        email: borrowerEmail,
-        contactNumber: contact,
-      });
-
-      if (matched) {
-        if (!matched.linkedUserId) {
-          await linkMemberToUserAccount(matched.memberNo, borrowerId).catch(() => {});
-        }
-      } else {
-        await createProvisionalBorrowerMember({
-          linkedUserId: borrowerId,
-          name: borrowerName,
-          email: borrowerEmail,
-          contactNumber: contact,
-          address,
-          recordedByName: item.evaluatedByOfficer || 'Account Officer',
-          recordedByRole: 'account_officer',
-        }).catch(() => {});
-      }
-    } catch (e) {
-      console.error('Coop member auto-bridge error in /api/assessments:', e);
+    if (!matched.linkedUserId) {
+      await linkMemberToUserAccount(matched.memberNo, borrowerId);
     }
+  } else {
+    // Create provisional borrower-only membership with authoritative profile fields (NO fabricated dummy data)
+    await createProvisionalBorrowerMember({
+      linkedUserId: borrowerId,
+      name: borrowerName,
+      email: borrowerEmail,
+      contactNumber: contact || step2.mobileNumber || '',
+      address: address || step2.addressLine1 || '',
+      firstName: step1.firstName,
+      middleName: step1.middleName,
+      lastName: step1.lastName,
+      suffix: step1.suffix,
+      gender: step1.sex === 'Female' ? 'Female' : step1.sex === 'Male' ? 'Male' : null,
+      dateOfBirth: step1.dateOfBirth || null,
+      civilStatus: step1.civilStatus || null,
+      barangay: step2.barangay || '',
+      city: step2.city || '',
+      province: step2.province || '',
+      occupation: item.livelihood || item.fullProfile?.step4?.occupation || '',
+      monthlyIncome: Number(item.monthlyNetIncome || item.fullProfile?.step4?.monthlyNetIncome) || 0,
+      validIdType: primaryGovId?.idType || null,
+      validIdNumber: primaryGovId?.idNumber || null,
+      applicantSignature: item.applicantSignature || null,
+      applicantPhoto: item.applicantFacePhoto || null,
+      holdingIdPhoto: item.borrowerHoldingIdPhoto || null,
+      recordedByName: item.evaluatedByOfficer || 'Account Officer',
+      recordedByRole: 'account_officer',
+    });
+  }
 
     // 2. Map application status to DB enum ('pending', 'under_review', 'approved', 'rejected', 'disbursed', 'completed')
     // Note: pending_ao_disbursement is NOT yet disbursed in MySQL — it maps to 'approved' with disbursed_at = null.
@@ -216,6 +245,7 @@ async function syncToMySql(item: AssessmentRecord) {
     }
   } catch (err) {
     console.error('MySQL sync error in /api/assessments:', err);
+    throw err;
   }
 }
 

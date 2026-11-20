@@ -198,6 +198,7 @@ export default function NewBorrowerRegistrationPage() {
   const [detectedMember, setDetectedMember] = useState<any | null>(null);
   const [isDetectingMember, setIsDetectingMember] = useState<boolean>(false);
   const [detectedMemberDismissed, setDetectedMemberDismissed] = useState<boolean>(false);
+  const autoAppliedMemberRef = useRef<string | null>(null);
 
   // Step 2: Contact Information
   const [step2, setStep2] = useState({
@@ -677,6 +678,11 @@ export default function NewBorrowerRegistrationPage() {
           const data = await res.json();
           if (data.success && data.matched && data.member) {
             setDetectedMember(data.member);
+            // Automatically prefill and transition to Step 3 once per matched member
+            if (autoAppliedMemberRef.current !== data.member.memberNo) {
+              autoAppliedMemberRef.current = data.member.memberNo;
+              handleApplyDetectedMember(data.member);
+            }
           } else {
             setDetectedMember(null);
           }

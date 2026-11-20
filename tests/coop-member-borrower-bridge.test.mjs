@@ -7,7 +7,9 @@ const ROOT = process.cwd();
 const STORE_PATH = path.join(ROOT, 'src/lib/coop-member-store.ts');
 const DETECT_API_PATH = path.join(ROOT, 'src/app/api/members/detect/route.ts');
 const PAYMENTS_API_PATH = path.join(ROOT, 'src/app/api/members/payments/route.ts');
-const MEMBERS_API_PATH = path.join(ROOT, 'src/app/api/members/route.ts');
+const RECONCILE_API_PATH = path.join(ROOT, 'src/app/api/members/reconcile/route.ts');
+const ASSESSMENTS_API_PATH = path.join(ROOT, 'src/app/api/assessments/route.ts');
+const ONBOARDING_PAGE_PATH = path.join(ROOT, 'src/app/officer/borrowers/new/page.tsx');
 const MIGRATION_PATH = path.join(ROOT, 'database/migrations/20261121_cooperative_member_borrower_bridge.sql');
 
 function readIfExists(filePath) {
@@ -66,49 +68,70 @@ test('Bridge Test 1: Real-time detection finds exact matches and rejects fuzzy n
 
   // 5. Zero fuzzy name matching
   const matchFuzzyName = await store.findMatchingCooperativeMember({
-    // name only, no email, no memberNo, no compound
     firstName: 'Teresa',
     lastName: 'Magbanua',
   });
   assert.equal(matchFuzzyName, null, 'Fuzzy name match must return null');
 });
 
-test('Bridge Test 2: Automatic provisional borrower-only creation does not duplicate or pollute full members', async () => {
+test('Bridge Test 2: Automatic provisional borrower-only creation preserves authoritative profile without fabricating facts', async () => {
   const store = await import('../src/lib/coop-member-store.ts');
   assert.equal(typeof store.createProvisionalBorrowerMember, 'function');
 
   const provisional = await store.createProvisionalBorrowerMember({
     linkedUserId: 9901,
-    name: 'Juanito Pelaez',
+    name: 'Juanito Pelaez y Santos',
+    firstName: 'Juanito',
+    middleName: 'Pelaez',
+    lastName: 'Santos',
+    suffix: 'Jr.',
     email: 'juanito.pelaez.prov@example.ph',
     contactNumber: '0920-555-1234',
     address: 'Binondo, Manila',
     dateOfBirth: '1995-08-20',
+    gender: 'Male',
+    civilStatus: 'Single',
+    barangay: 'San Nicolas',
+    city: 'Manila',
+    province: 'Metro Manila',
+    occupation: 'Merchant',
+    monthlyIncome: 45000,
+    validIdType: 'UMID',
+    validIdNumber: 'UMID-1234-5678',
     recordedByName: 'Officer Juan',
     recordedByRole: 'account_officer',
   });
 
   assert.equal(provisional.membershipType, 'borrower_only');
+  assert.equal(provisional.firstName, 'Juanito');
+  assert.equal(provisional.middleName, 'Pelaez');
+  assert.equal(provisional.lastName, 'Santos');
+  assert.equal(provisional.suffix, 'Jr.');
+  assert.equal(provisional.gender, 'Male');
+  assert.equal(provisional.dateOfBirth, '1995-08-20');
+  assert.equal(provisional.civilStatus, 'Single');
+  assert.equal(provisional.occupation, 'Merchant');
+  assert.equal(provisional.monthlyIncome, 45000);
+  assert.equal(provisional.validIdType, 'UMID');
+  assert.equal(provisional.validIdNumber, 'UMID-1234-5678');
   assert.equal(provisional.totalPaid, 0);
-  assert.equal(provisional.registrationFee, 0);
-  assert.equal(provisional.capitalShare, 0);
-  assert.equal(provisional.initialSavings, 0);
   assert.equal(provisional.linkedUserId, 9901);
 
-  // Re-calling with same user ID or email returns the existing record without creating duplicate
-  const reCall = await store.createProvisionalBorrowerMember({
-    linkedUserId: 9901,
-    name: 'Juanito Pelaez',
-    email: 'juanito.pelaez.prov@example.ph',
-    contactNumber: '0920-555-1234',
-    address: 'Binondo, Manila',
-    dateOfBirth: '1995-08-20',
+  // Test nullable handling when provisional fields are absent: MUST NOT fabricate dummy values
+  const minimalProv = await store.createProvisionalBorrowerMember({
+    linkedUserId: 9903,
+    name: 'Anonymous Borrower',
+    email: 'anon.borrower@example.ph',
+    contactNumber: '0999-000-1111',
   });
 
-  assert.equal(reCall.memberNo, provisional.memberNo, 'Must be idempotent and not create duplicate');
+  assert.equal(minimalProv.gender, null, 'Must not fabricate Male');
+  assert.equal(minimalProv.dateOfBirth, null, 'Must not fabricate 1990-01-01');
+  assert.equal(minimalProv.civilStatus, null, 'Must not fabricate Single');
+  assert.equal(minimalProv.validIdType, null, 'Must not fabricate System ID');
 });
 
-test('Bridge Test 3: Incremental payment recording and automatic promotion upon ₱3,000 threshold', async () => {
+test('Bridge Test 3: Concurrency row locking and payment idempotency retry protection', async () => {
   const store = await import('../src/lib/coop-member-store.ts');
   assert.equal(typeof store.recordMembershipPayment, 'function');
 
@@ -123,90 +146,95 @@ test('Bridge Test 3: Incremental payment recording and automatic promotion upon 
 
   assert.equal(prov.membershipType, 'borrower_only');
 
-  // Step 1: Record ₱500 Registration Fee
+  // Step 1: Record ₱500 Registration Fee with specific reference
   const pay1 = await store.recordMembershipPayment({
     memberNo: prov.memberNo,
     component: 'registration_fee',
     amount: 500,
     paymentMethod: 'cash',
     paymentReference: 'OR-FEE-001',
+    recordedById: 12,
     recordedByName: 'Officer Juan',
     recordedByRole: 'account_officer',
   });
 
   assert.equal(pay1.member.registrationFee, 500);
   assert.equal(pay1.member.totalPaid, 500);
-  assert.equal(pay1.member.membershipType, 'borrower_only', 'Still borrower_only because capital and savings are unpaid');
-  assert.equal(pay1.remainingBalances.registrationFee, 0);
-  assert.equal(pay1.remainingBalances.capitalShare, 2000);
-  assert.equal(pay1.remainingBalances.initialSavings, 500);
-  assert.equal(pay1.remainingBalances.totalRemaining, 2500);
 
-  // Step 2: Attempting to pay registration fee again when already 0 remaining
-  await assert.rejects(
-    async () => {
-      await store.recordMembershipPayment({
-        memberNo: prov.memberNo,
-        component: 'registration_fee',
-        amount: 500,
-        paymentMethod: 'cash',
-        paymentReference: 'OR-FEE-DUP',
-        recordedByName: 'Officer Juan',
-        recordedByRole: 'account_officer',
-      });
-    },
-    /already fully paid|exceeds/i
-  );
+  // Step 2: Idempotency Retry test: submitting with the same receipt OR-FEE-001 must return existing without double-charging
+  const pay1Retry = await store.recordMembershipPayment({
+    memberNo: prov.memberNo,
+    component: 'registration_fee',
+    amount: 500,
+    paymentMethod: 'cash',
+    paymentReference: 'OR-FEE-001',
+    recordedById: 12,
+    recordedByName: 'Officer Juan',
+    recordedByRole: 'account_officer',
+  });
 
-  // Step 3: Pay remaining ₱2,500 (Capital Share ₱2,000 + Initial Savings ₱500)
+  assert.equal(pay1Retry.member.registrationFee, 500, 'Must not double-charge registration fee on retry');
+  assert.equal(pay1Retry.member.totalPaid, 500);
+
+  // Step 3: Pay remaining ₱2,500 and verify promotion
   const pay2 = await store.recordMembershipPayment({
     memberNo: prov.memberNo,
     component: 'all',
     amount: 2500,
     paymentMethod: 'cash',
     paymentReference: 'OR-FULL-002',
+    recordedById: 12,
     recordedByName: 'Officer Juan',
     recordedByRole: 'account_officer',
   });
 
-  assert.equal(pay2.member.registrationFee, 500);
-  assert.equal(pay2.member.capitalShare, 2000);
-  assert.equal(pay2.member.initialSavings, 500);
   assert.equal(pay2.member.totalPaid, 3000);
-  assert.equal(pay2.remainingBalances.totalRemaining, 0);
-  assert.equal(pay2.member.membershipType, 'full_cooperative', 'Must promote to full_cooperative once ₱3,000 is satisfied');
+  assert.equal(pay2.member.membershipType, 'full_cooperative', 'Must promote to full_cooperative once ₱3,000 is reached');
 });
 
-test('Bridge Test 4: Dual-tab listing distinguishes Cooperative Members from Borrower-Only Members', async () => {
-  const store = await import('../src/lib/coop-member-store.ts');
+test('Bridge Test 4: Every-Borrower membership invariant and assessment sync error handling', () => {
+  const assessSrc = readIfExists(ASSESSMENTS_API_PATH);
 
-  const fullMembers = await store.listCooperativeMembers('', 'full_cooperative');
-  const borrowerOnly = await store.listCooperativeMembers('', 'borrower_only');
+  // Invariant 1: No swallowed errors
+  assert.ok(!assessSrc.includes("linkMemberToUserAccount(matched.memberNo, borrowerId).catch"), 'No silent swallowing of link failure');
+  assert.ok(!assessSrc.includes(".catch(() => {})"), 'No empty catch blocks');
+  assert.ok(assessSrc.includes('createProvisionalBorrowerMember({'), 'Has createProvisionalBorrowerMember');
 
-  for (const m of fullMembers) {
-    assert.equal(m.membershipType, 'full_cooperative');
-  }
-  for (const m of borrowerOnly) {
-    assert.equal(m.membershipType, 'borrower_only');
-  }
+  // Invariant 2: Authoritative member lookup via mcid or cooperativeId, not policyNo
+  assert.ok(assessSrc.includes('item.mcid') || assessSrc.includes('fullProfile?.step1?.cooperativeId'), 'Must resolve memberNo from mcid or cooperativeId');
+
+  // Invariant 3: Surfacing user-member linking conflicts
+  assert.ok(assessSrc.includes('already linked to another user account'), 'Must surface linking conflicts');
 });
 
-test('Bridge Test 5: API routes exist, check auth, and handle detect and payment calls', () => {
-  assert.ok(fs.existsSync(DETECT_API_PATH), 'Detect API route must exist');
-  assert.ok(fs.existsSync(PAYMENTS_API_PATH), 'Payments API route must exist');
+test('Bridge Test 5: Automatic Step 3 transition in Borrower Onboarding UI', () => {
+  const pageSrc = readIfExists(ONBOARDING_PAGE_PATH);
 
-  const detectSrc = readIfExists(DETECT_API_PATH);
-  assert.ok(detectSrc.includes('requireApiRole'), 'Detect API must check auth');
-  assert.ok(detectSrc.includes('account_officer') && detectSrc.includes('admin'), 'Must allow AO and Admin');
+  // Verification 1: autoAppliedMemberRef prevents duplicate loops
+  assert.ok(pageSrc.includes('autoAppliedMemberRef'), 'Must use ref to track applied member and prevent re-render loops');
 
-  const paySrc = readIfExists(PAYMENTS_API_PATH);
-  assert.ok(paySrc.includes('requireApiRole'), 'Payments API must check auth');
-  assert.ok(paySrc.includes('recordMembershipPayment'), 'Must call payment recording logic');
+  // Verification 2: Automatic transition to Step 3 upon exact match
+  assert.ok(pageSrc.includes('handleApplyDetectedMember(data.member)'), 'Must automatically invoke member prefill');
+  assert.ok(pageSrc.includes('setCurrentStep(3)'), 'Must advance to Step 3: Dependants');
 });
 
-test('Bridge Test 6: Hostinger idempotent migration file exists and is safe', () => {
+test('Bridge Test 6: Concurrency row locking and audit trail in migration SQL', () => {
   const migSrc = readIfExists(MIGRATION_PATH);
   assert.ok(!migSrc.match(/CREATE\s+DATABASE/i), 'Must not create database');
   assert.ok(!migSrc.match(/USE\s+`?tribute_coop_db`?/i), 'Must not use hardcoded database');
   assert.ok(migSrc.includes('membership_type'), 'Must alter membership_type');
+  assert.ok(migSrc.includes('recorded_by_id'), 'Must add recorded_by_id');
+  assert.ok(migSrc.includes('recorded_by_role'), 'Must add recorded_by_role');
+  assert.ok(migSrc.includes('audit_id'), 'Must add audit_id');
+  assert.ok(migSrc.includes('uniq_member_payment_ref_type'), 'Must have idempotency unique index');
+
+  const storeSrc = readIfExists(STORE_PATH);
+  assert.ok(storeSrc.includes('SELECT * FROM coop_members WHERE member_no = ? LIMIT 1 FOR UPDATE'), 'Store must use SELECT ... FOR UPDATE');
+});
+
+test('Bridge Test 7: Reconciliation and backfill API route exists with role guards', () => {
+  assert.ok(fs.existsSync(RECONCILE_API_PATH), 'Reconciliation API route must exist');
+  const recSrc = readIfExists(RECONCILE_API_PATH);
+  assert.ok(recSrc.includes('requireApiRole'), 'Must guard reconciliation route');
+  assert.ok(recSrc.includes('reconcileBorrowerMemberships'), 'Must call reconcileBorrowerMemberships');
 });

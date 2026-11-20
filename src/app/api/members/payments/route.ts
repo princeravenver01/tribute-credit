@@ -14,23 +14,45 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { memberNo, component, amount, paymentMethod, paymentReference } = body;
+    const { memberNo, component, amount, paymentMethod, paymentReference, idempotencyKey } = body;
 
-    if (!memberNo || !component || typeof amount !== 'number' || amount <= 0) {
+    const parsedAmount = typeof amount === 'number' ? amount : parseFloat(String(amount));
+    if (!memberNo || !component || typeof parsedAmount !== 'number' || !Number.isFinite(parsedAmount) || parsedAmount <= 0) {
       return NextResponse.json(
-        { error: 'memberNo, valid component, and positive amount are required.' },
+        { error: 'Valid memberNo, component, and positive finite decimal amount are required.' },
         { status: 400 }
       );
     }
 
+    const validComponents = ['registration_fee', 'capital_share', 'savings_deposit', 'all'];
+    if (!validComponents.includes(component)) {
+      return NextResponse.json(
+        { error: `Invalid component "${component}". Must be one of: ${validComponents.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    const validMethods = ['cash', 'online', 'bank_transfer'];
+    const method = paymentMethod || 'cash';
+    if (!validMethods.includes(method)) {
+      return NextResponse.json(
+        { error: `Invalid paymentMethod "${method}". Must be one of: ${validMethods.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    const ref = (paymentReference?.trim() || idempotencyKey?.trim() || `REC-${Date.now().toString().slice(-6)}`);
+
     const input: MemberPaymentInput = {
-      memberNo,
+      memberNo: String(memberNo).trim(),
       component,
-      amount,
-      paymentMethod: paymentMethod || 'cash',
-      paymentReference,
+      amount: parsedAmount,
+      paymentMethod: method,
+      paymentReference: ref,
+      recordedById: auth.session.userId || null,
       recordedByName: auth.session.name || 'Cooperative Officer',
       recordedByRole: auth.session.role as 'admin' | 'account_officer',
+      auditId: `AUD-PAY-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`,
     };
 
     const result = await recordMembershipPayment(input);
@@ -38,6 +60,14 @@ export async function POST(req: Request) {
       success: true,
       member: result.member,
       remainingBalances: result.remainingBalances,
+      audit: {
+        recordedById: input.recordedById,
+        recordedByName: input.recordedByName,
+        recordedByRole: input.recordedByRole,
+        auditId: input.auditId,
+        paymentReference: ref,
+        paymentMethod: method,
+      },
     });
   } catch (err: unknown) {
     if (err instanceof DatabasePersistenceError) {

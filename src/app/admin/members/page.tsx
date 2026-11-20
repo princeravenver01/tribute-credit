@@ -39,6 +39,12 @@ export default function AdminMembersPage() {
   const [paySubmitting, setPaySubmitting] = useState<boolean>(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [paySuccess, setPaySuccess] = useState<string | null>(null);
+  const [payAuditDetail, setPayAuditDetail] = useState<{
+    auditId?: string;
+    recordedByName?: string;
+    recordedByRole?: string;
+    paymentReference?: string;
+  } | null>(null);
 
   const fetchMembers = async (query = '', type?: string) => {
     setLoading(true);
@@ -149,16 +155,20 @@ export default function AdminMembersPage() {
           ? `🎉 Payment Recorded! Member has met all requirements and has been promoted to Full Cooperative Member!`
           : `✓ Payment of ₱${payAmount.toLocaleString()} recorded successfully.`
       );
+      if (data.audit) {
+        setPayAuditDetail(data.audit);
+      }
 
       // Refresh list
       setTimeout(() => {
         fetchMembers(searchQuery, activeTab);
         if (data.member.membershipType === 'full_cooperative') {
           setPayingMember(null);
+          setPayAuditDetail(null);
         } else {
           setPayingMember(data.member);
         }
-      }, 1200);
+      }, 1500);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Failed to record payment';
       setPayError(msg);
@@ -467,6 +477,11 @@ export default function AdminMembersPage() {
                 <div style={{ padding: '0.75rem', backgroundColor: '#f0fdf4', borderLeft: '4px solid #16a34a', color: '#166534', marginBottom: '1rem', borderRadius: '4px', fontSize: '0.875rem' }}>
                   <CheckCircle2 size={16} style={{ display: 'inline', marginRight: '6px' }} />
                   {paySuccess}
+                  {payAuditDetail && (
+                    <div style={{ marginTop: '6px', fontSize: '0.75rem', color: '#14532d', borderTop: '1px solid #bbf7d0', paddingTop: '4px' }}>
+                      <strong>Audit ID:</strong> {payAuditDetail.auditId} | <strong>Actor:</strong> {payAuditDetail.recordedByName} ({payAuditDetail.recordedByRole}) | <strong>Ref:</strong> {payAuditDetail.paymentReference}
+                    </div>
+                  )}
                 </div>
               )}
 
