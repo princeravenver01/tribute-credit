@@ -7,11 +7,11 @@ import { Sidebar } from '@/components/common/Sidebar';
 import { AppHeader } from '@/components/common/AppHeader';
 import { SignaturePad } from '@/components/common/SignaturePad';
 import { ProofCaptureInput } from '@/components/common/ProofCaptureInput';
-import { 
-  ArrowLeft, 
-  CheckCircle2, 
-  AlertCircle, 
-  UserPlus, 
+import {
+  ArrowLeft,
+  CheckCircle2,
+  AlertCircle,
+  UserPlus,
   Info,
   Check
 } from 'lucide-react';
@@ -113,10 +113,10 @@ export default function AdminRegisterMemberPage() {
 
   return (
     <div className={styles.pageContainer}>
-      <Sidebar 
-        role="admin" 
-        isMobileOpen={mobileMenuOpen} 
-        onCloseMobile={() => setMobileMenuOpen(false)} 
+      <Sidebar
+        role="admin"
+        isMobileOpen={mobileMenuOpen}
+        onCloseMobile={() => setMobileMenuOpen(false)}
         onOpenMobile={() => setMobileMenuOpen(true)}
       />
 

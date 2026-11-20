@@ -8,11 +8,11 @@ import { OfficerMobileNav } from '@/components/officer/OfficerMobileNav';
 import { AppHeader } from '@/components/common/AppHeader';
 import { SignaturePad } from '@/components/common/SignaturePad';
 import { ProofCaptureInput } from '@/components/common/ProofCaptureInput';
-import { 
-  ArrowLeft, 
-  CheckCircle2, 
-  AlertCircle, 
-  UserPlus, 
+import {
+  ArrowLeft,
+  CheckCircle2,
+  AlertCircle,
+  UserPlus,
   Info,
   Check
 } from 'lucide-react';

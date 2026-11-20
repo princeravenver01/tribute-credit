@@ -1,11 +1,11 @@
 -- Migration: Add cooperative members and transaction ledger
 -- Executed idempotently for Tribute Credit Cooperative
-
-USE `tribute_coop_db`;
+-- Compatible with Hostinger MySQL (provider-prefixed database names) and local XAMPP/Docker
 
 CREATE TABLE IF NOT EXISTS `coop_members` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `member_no` VARCHAR(50) UNIQUE NOT NULL,
+  `linked_user_id` INT NULL UNIQUE,
   `first_name` VARCHAR(100) NOT NULL,
   `middle_name` VARCHAR(100) NULL,
   `last_name` VARCHAR(100) NOT NULL,
@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS `coop_members` (
   `province` VARCHAR(100) NOT NULL,
   `occupation` VARCHAR(100) NOT NULL,
   `monthly_income` DECIMAL(12,2) NOT NULL DEFAULT 0.00,
-  
+
   -- Mandatory Evidence Items
   `signature_data` LONGTEXT NOT NULL,
   `signature_auth_id` VARCHAR(100) NOT NULL,
@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS `coop_members` (
   `id_selfie_timestamp` TIMESTAMP NOT NULL,
   `valid_id_type` VARCHAR(100) NOT NULL,
   `valid_id_number` VARCHAR(100) NOT NULL,
-  
+
   -- Fixed Fees
   `registration_fee` DECIMAL(12,2) NOT NULL DEFAULT 500.00,
   `capital_share` DECIMAL(12,2) NOT NULL DEFAULT 2000.00,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS `coop_members` (
   `total_paid` DECIMAL(12,2) NOT NULL DEFAULT 3000.00,
   `payment_method` ENUM('cash', 'online', 'bank_transfer') NOT NULL DEFAULT 'cash',
   `payment_reference` VARCHAR(100) NULL,
-  
+
   -- Audit & Staff Association
   `registered_by_id` INT NULL,
   `registered_by_name` VARCHAR(150) NOT NULL,
@@ -50,6 +50,7 @@ CREATE TABLE IF NOT EXISTS `coop_members` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX (`member_no`),
+  INDEX (`linked_user_id`),
   INDEX (`email`),
   INDEX (`registration_status`)
 ) ENGINE=InnoDB;

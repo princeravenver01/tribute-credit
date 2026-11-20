@@ -112,6 +112,7 @@ INSERT IGNORE INTO `loan_products` (`id`, `name`, `description`, `interest_rate`
 CREATE TABLE IF NOT EXISTS `coop_members` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `member_no` VARCHAR(50) UNIQUE NOT NULL,
+  `linked_user_id` INT NULL UNIQUE,
   `first_name` VARCHAR(100) NOT NULL,
   `middle_name` VARCHAR(100) NULL,
   `last_name` VARCHAR(100) NOT NULL,
@@ -150,6 +151,7 @@ CREATE TABLE IF NOT EXISTS `coop_members` (
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX (`member_no`),
+  INDEX (`linked_user_id`),
   INDEX (`email`),
   INDEX (`registration_status`)
 ) ENGINE=InnoDB;

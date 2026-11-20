@@ -5,14 +5,14 @@ import Link from 'next/link';
 import { OfficerSidebar } from '@/components/officer/OfficerSidebar';
 import { OfficerMobileNav } from '@/components/officer/OfficerMobileNav';
 import { AppHeader } from '@/components/common/AppHeader';
-import { 
-  Users, 
-  UserPlus, 
-  Search, 
-  X, 
-  Eye, 
-  FileCheck2, 
-  ShieldCheck, 
+import {
+  Users,
+  UserPlus,
+  Search,
+  X,
+  Eye,
+  FileCheck2,
+  ShieldCheck,
   RefreshCw
 } from 'lucide-react';
 import type { CooperativeMember } from '@/lib/coop-member-store';
@@ -72,11 +72,11 @@ export default function OfficerMembersPage() {
   return (
     <div className={styles.pageContainer}>
       <OfficerSidebar isMobileOpen={mobileMenuOpen} onCloseMobile={() => setMobileMenuOpen(false)} />
-      
+
       <div className={styles.mainContent}>
-        <AppHeader 
+        <AppHeader
           panelType="officer"
-          pageTitle="Cooperative Membership Registry" 
+          pageTitle="Cooperative Membership Registry"
           pageSubtitle="Tribute Credit Cooperative Member Directory & Share Capital Records"
           onOpenMobileSidebar={() => setMobileMenuOpen(true)}
         />
@@ -88,9 +88,9 @@ export default function OfficerMembersPage() {
               <p>Authoritative cooperative membership records, initial fee tracking, and verified identity dossiers.</p>
             </div>
             <div className={styles.headerActions}>
-              <button 
-                type="button" 
-                onClick={() => fetchMembers(searchQuery)} 
+              <button
+                type="button"
+                onClick={() => fetchMembers(searchQuery)}
                 className={styles.secondaryBtn}
                 title="Refresh Member List"
               >
@@ -144,9 +144,9 @@ export default function OfficerMembersPage() {
               Search
             </button>
             {searchQuery && (
-              <button 
-                type="button" 
-                onClick={() => { setSearchQuery(''); fetchMembers(''); }} 
+              <button
+                type="button"
+                onClick={() => { setSearchQuery(''); fetchMembers(''); }}
                 className={styles.secondaryBtn}
               >
                 Clear
@@ -192,10 +192,10 @@ export default function OfficerMembersPage() {
                         <td>
                           <div className={styles.memberCell}>
                             {member.photoUrl ? (
-                              <img 
-                                src={member.photoUrl} 
-                                alt={member.fullName} 
-                                className={styles.memberAvatar} 
+                              <img
+                                src={member.photoUrl}
+                                alt={member.fullName}
+                                className={styles.memberAvatar}
                               />
                             ) : (
                               <div className={styles.memberInitials}>
@@ -276,8 +276,8 @@ export default function OfficerMembersPage() {
                 <h2>Cooperative Member Dossier</h2>
                 <span className={styles.memberNo}>{selectedMember.memberNo}</span>
               </div>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setSelectedMember(null)}
                 className={styles.closeBtn}
               >
@@ -354,10 +354,10 @@ export default function OfficerMembersPage() {
                   {/* Evidence 1: Profile Photo */}
                   <div className={styles.evidenceCard}>
                     <div className={styles.evidenceCardTitle}>1. Member Profile Photo</div>
-                    <img 
-                      src={selectedMember.photoUrl} 
-                      alt="Profile Photo" 
-                      className={styles.evidenceImage} 
+                    <img
+                      src={selectedMember.photoUrl}
+                      alt="Profile Photo"
+                      className={styles.evidenceImage}
                     />
                     <div className={styles.evidenceMeta}>
                       Verified on: {new Date(selectedMember.photoTimestamp || selectedMember.createdAt).toLocaleString()}
@@ -367,10 +367,10 @@ export default function OfficerMembersPage() {
                   {/* Evidence 2: ID Selfie */}
                   <div className={styles.evidenceCard}>
                     <div className={styles.evidenceCardTitle}>2. Selfie Holding Valid ID</div>
-                    <img 
-                      src={selectedMember.idSelfieUrl} 
-                      alt="ID Selfie" 
-                      className={styles.evidenceImage} 
+                    <img
+                      src={selectedMember.idSelfieUrl}
+                      alt="ID Selfie"
+                      className={styles.evidenceImage}
                     />
                     <div className={styles.evidenceMeta}>
                       ID: {selectedMember.validIdType} - {selectedMember.validIdNumber}
@@ -380,10 +380,10 @@ export default function OfficerMembersPage() {
                   {/* Evidence 3: E-Signature */}
                   <div className={styles.evidenceCard}>
                     <div className={styles.evidenceCardTitle}>3. Member Digital Signature</div>
-                    <img 
-                      src={selectedMember.signatureData} 
-                      alt="Signature" 
-                      className={styles.evidenceImage} 
+                    <img
+                      src={selectedMember.signatureData}
+                      alt="Signature"
+                      className={styles.evidenceImage}
                       style={{ backgroundColor: '#ffffff' }}
                     />
                     <div className={styles.evidenceMeta}>
