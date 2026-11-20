@@ -39,6 +39,31 @@ export default function AdminMembersPage() {
   const [paySubmitting, setPaySubmitting] = useState<boolean>(false);
   const [payError, setPayError] = useState<string | null>(null);
   const [paySuccess, setPaySuccess] = useState<string | null>(null);
+  const [isReconciling, setIsReconciling] = useState<boolean>(false);
+  const [reconcileMessage, setReconcileMessage] = useState<string | null>(null);
+
+  const handleSyncExistingBorrowers = async () => {
+    setIsReconciling(true);
+    setReconcileMessage(null);
+    try {
+      const res = await fetch('/api/members/reconcile', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const s = data.summary;
+        setReconcileMessage(
+          `✓ Sync Complete: Evaluated ${s.totalEvaluated} borrowers (${s.newlyCreated} newly linked, ${s.alreadyExisted} already up to date).`
+        );
+        fetchMembers(searchQuery, activeTab);
+      } else {
+        setReconcileMessage(`Sync notice: ${data.error || 'Failed to sync borrowers.'}`);
+      }
+    } catch {
+      setReconcileMessage('Failed to complete borrower reconciliation sync.');
+    } finally {
+      setIsReconciling(false);
+      setTimeout(() => setReconcileMessage(null), 6000);
+    }
+  };
   const [payAuditDetail, setPayAuditDetail] = useState<{
     auditId?: string;
     recordedByName?: string;
@@ -206,6 +231,16 @@ export default function AdminMembersPage() {
             <div className={styles.headerActions}>
               <button
                 type="button"
+                onClick={handleSyncExistingBorrowers}
+                disabled={isReconciling}
+                className={styles.secondaryBtn}
+                title="Synchronize and backfill unlinked borrowers into membership roll"
+              >
+                <RefreshCw size={16} className={isReconciling ? styles.spinning : ''} />
+                <span>{isReconciling ? 'Syncing...' : 'Sync Borrowers'}</span>
+              </button>
+              <button
+                type="button"
                 onClick={() => fetchMembers(searchQuery, activeTab)}
                 className={styles.secondaryBtn}
                 title="Refresh Member List"
@@ -219,6 +254,12 @@ export default function AdminMembersPage() {
               </Link>
             </div>
           </div>
+
+          {reconcileMessage && (
+            <div style={{ backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '10px 14px', borderRadius: '8px', marginBottom: '1rem', fontSize: '0.875rem' }}>
+              {reconcileMessage}
+            </div>
+          )}
 
           {/* Navigation Tabs */}
           <div className={styles.tabsContainer}>

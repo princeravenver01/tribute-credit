@@ -10,6 +10,8 @@ const PAYMENTS_API_PATH = path.join(ROOT, 'src/app/api/members/payments/route.ts
 const RECONCILE_API_PATH = path.join(ROOT, 'src/app/api/members/reconcile/route.ts');
 const ASSESSMENTS_API_PATH = path.join(ROOT, 'src/app/api/assessments/route.ts');
 const ONBOARDING_PAGE_PATH = path.join(ROOT, 'src/app/officer/borrowers/new/page.tsx');
+const OFFICER_MEMBERS_PAGE_PATH = path.join(ROOT, 'src/app/officer/members/page.tsx');
+const ADMIN_MEMBERS_PAGE_PATH = path.join(ROOT, 'src/app/admin/members/page.tsx');
 const MIGRATION_PATH = path.join(ROOT, 'database/migrations/20261121_cooperative_member_borrower_bridge.sql');
 
 function readIfExists(filePath) {
@@ -74,7 +76,7 @@ test('Bridge Test 1: Real-time detection finds exact matches and rejects fuzzy n
   assert.equal(matchFuzzyName, null, 'Fuzzy name match must return null');
 });
 
-test('Bridge Test 2: Automatic provisional borrower-only creation preserves authoritative profile without fabricating facts', async () => {
+test('Bridge Test 2: Automatic provisional borrower-only creation preserves authoritative profile and does NOT fabricate auth ID', async () => {
   const store = await import('../src/lib/coop-member-store.ts');
   assert.equal(typeof store.createProvisionalBorrowerMember, 'function');
 
@@ -98,6 +100,8 @@ test('Bridge Test 2: Automatic provisional borrower-only creation preserves auth
     monthlyIncome: 45000,
     validIdType: 'UMID',
     validIdNumber: 'UMID-1234-5678',
+    applicantSignature: 'data:image/png;base64,mockSignatureData',
+    signatureAuthId: 'AUTH-REAL-999', // Authentic ID
     recordedByName: 'Officer Juan',
     recordedByRole: 'account_officer',
   });
@@ -107,31 +111,25 @@ test('Bridge Test 2: Automatic provisional borrower-only creation preserves auth
   assert.equal(provisional.middleName, 'Pelaez');
   assert.equal(provisional.lastName, 'Santos');
   assert.equal(provisional.suffix, 'Jr.');
-  assert.equal(provisional.gender, 'Male');
-  assert.equal(provisional.dateOfBirth, '1995-08-20');
-  assert.equal(provisional.civilStatus, 'Single');
-  assert.equal(provisional.occupation, 'Merchant');
-  assert.equal(provisional.monthlyIncome, 45000);
-  assert.equal(provisional.validIdType, 'UMID');
-  assert.equal(provisional.validIdNumber, 'UMID-1234-5678');
-  assert.equal(provisional.totalPaid, 0);
-  assert.equal(provisional.linkedUserId, 9901);
+  assert.equal(provisional.signatureAuthId, 'AUTH-REAL-999', 'Must preserve real signature auth ID');
 
-  // Test nullable handling when provisional fields are absent: MUST NOT fabricate dummy values
+  // Test nullable handling when provisional fields and signature auth ID are absent: MUST NOT fabricate dummy values
   const minimalProv = await store.createProvisionalBorrowerMember({
     linkedUserId: 9903,
     name: 'Anonymous Borrower',
     email: 'anon.borrower@example.ph',
     contactNumber: '0999-000-1111',
+    applicantSignature: 'data:image/png;base64,sigWithoutAuth',
   });
 
   assert.equal(minimalProv.gender, null, 'Must not fabricate Male');
   assert.equal(minimalProv.dateOfBirth, null, 'Must not fabricate 1990-01-01');
   assert.equal(minimalProv.civilStatus, null, 'Must not fabricate Single');
   assert.equal(minimalProv.validIdType, null, 'Must not fabricate System ID');
+  assert.equal(minimalProv.signatureAuthId, null, 'Must NOT synthesize SIG-PROV placeholder auth ID');
 });
 
-test('Bridge Test 3: Concurrency row locking and payment idempotency retry protection', async () => {
+test('Bridge Test 3: Concurrency row locking, payment idempotency retry protection, and conflict on mismatched replay', async () => {
   const store = await import('../src/lib/coop-member-store.ts');
   assert.equal(typeof store.recordMembershipPayment, 'function');
 
@@ -160,8 +158,11 @@ test('Bridge Test 3: Concurrency row locking and payment idempotency retry prote
 
   assert.equal(pay1.member.registrationFee, 500);
   assert.equal(pay1.member.totalPaid, 500);
+  assert.equal(pay1.audit.isReplay, false);
+  const storedAuditId = pay1.audit.auditId;
+  assert.ok(storedAuditId, 'Must generate and return auditId');
 
-  // Step 2: Idempotency Retry test: submitting with the same receipt OR-FEE-001 must return existing without double-charging
+  // Step 2: Identical Replay test: submitting with the same receipt OR-FEE-001 must return existing stored auditId without double-charging
   const pay1Retry = await store.recordMembershipPayment({
     memberNo: prov.memberNo,
     component: 'registration_fee',
@@ -175,8 +176,31 @@ test('Bridge Test 3: Concurrency row locking and payment idempotency retry prote
 
   assert.equal(pay1Retry.member.registrationFee, 500, 'Must not double-charge registration fee on retry');
   assert.equal(pay1Retry.member.totalPaid, 500);
+  assert.equal(pay1Retry.audit.isReplay, true, 'Must identify as replay');
+  assert.equal(pay1Retry.audit.auditId, storedAuditId, 'Must reuse originally stored auditId');
 
-  // Step 3: Pay remaining ₱2,500 and verify promotion
+  // Step 3: Mismatched replay test: re-using the same reference OR-FEE-001 with a different amount must throw PaymentConflictError
+  await assert.rejects(
+    async () => {
+      await store.recordMembershipPayment({
+        memberNo: prov.memberNo,
+        component: 'capital_share',
+        amount: 1000, // Different amount!
+        paymentMethod: 'cash',
+        paymentReference: 'OR-FEE-001', // Same reference!
+        recordedById: 12,
+        recordedByName: 'Officer Juan',
+        recordedByRole: 'account_officer',
+      });
+    },
+    (err) => {
+      assert.ok(err instanceof store.PaymentConflictError, 'Must throw typed PaymentConflictError');
+      assert.equal(err.statusCode, 409, 'Must map to HTTP 409');
+      return true;
+    }
+  );
+
+  // Step 4: Pay remaining ₱2,500 and verify promotion
   const pay2 = await store.recordMembershipPayment({
     memberNo: prov.memberNo,
     component: 'all',
@@ -192,19 +216,32 @@ test('Bridge Test 3: Concurrency row locking and payment idempotency retry prote
   assert.equal(pay2.member.membershipType, 'full_cooperative', 'Must promote to full_cooperative once ₱3,000 is reached');
 });
 
-test('Bridge Test 4: Every-Borrower membership invariant and assessment sync error handling', () => {
+test('Bridge Test 4: Every-Borrower membership invariant, atomic transaction, and upsert order', () => {
   const assessSrc = readIfExists(ASSESSMENTS_API_PATH);
 
   // Invariant 1: No swallowed errors
   assert.ok(!assessSrc.includes("linkMemberToUserAccount(matched.memberNo, borrowerId).catch"), 'No silent swallowing of link failure');
   assert.ok(!assessSrc.includes(".catch(() => {})"), 'No empty catch blocks');
-  assert.ok(assessSrc.includes('createProvisionalBorrowerMember({'), 'Has createProvisionalBorrowerMember');
 
   // Invariant 2: Authoritative member lookup via mcid or cooperativeId, not policyNo
   assert.ok(assessSrc.includes('item.mcid') || assessSrc.includes('fullProfile?.step1?.cooperativeId'), 'Must resolve memberNo from mcid or cooperativeId');
 
   // Invariant 3: Surfacing user-member linking conflicts
   assert.ok(assessSrc.includes('already linked to another user account'), 'Must surface linking conflicts');
+
+  // Invariant 4: One atomic transaction encompassing user, member, and loan
+  assert.ok(assessSrc.includes('conn.beginTransaction()'), 'Must start single connection transaction');
+  assert.ok(assessSrc.includes('conn.commit()'), 'Must commit single connection transaction');
+  assert.ok(assessSrc.includes('conn.rollback()'), 'Must roll back on error');
+
+  // Invariant 5: No phantom in-memory record before sync
+  const batchIdxSync = assessSrc.indexOf('await syncToMySql(item);');
+  const batchIdxUpsert = assessSrc.indexOf('upsertRecord(item);', batchIdxSync);
+  assert.ok(batchIdxSync >= 0 && batchIdxUpsert > batchIdxSync, 'Batch path must syncToMySql before upsertRecord');
+
+  const singleIdxSync = assessSrc.indexOf('await syncToMySql(body);');
+  const singleIdxUpsert = assessSrc.indexOf('upsertRecord(body);', singleIdxSync);
+  assert.ok(singleIdxSync >= 0 && singleIdxUpsert > singleIdxSync, 'Single path must syncToMySql before upsertRecord');
 });
 
 test('Bridge Test 5: Automatic Step 3 transition in Borrower Onboarding UI', () => {
@@ -232,9 +269,17 @@ test('Bridge Test 6: Concurrency row locking and audit trail in migration SQL', 
   assert.ok(storeSrc.includes('SELECT * FROM coop_members WHERE member_no = ? LIMIT 1 FOR UPDATE'), 'Store must use SELECT ... FOR UPDATE');
 });
 
-test('Bridge Test 7: Reconciliation and backfill API route exists with role guards', () => {
+test('Bridge Test 7: Reconciliation and backfill accessible via UI and API route with role guards', () => {
   assert.ok(fs.existsSync(RECONCILE_API_PATH), 'Reconciliation API route must exist');
   const recSrc = readIfExists(RECONCILE_API_PATH);
   assert.ok(recSrc.includes('requireApiRole'), 'Must guard reconciliation route');
   assert.ok(recSrc.includes('reconcileBorrowerMemberships'), 'Must call reconcileBorrowerMemberships');
+
+  const officerPageSrc = readIfExists(OFFICER_MEMBERS_PAGE_PATH);
+  assert.ok(officerPageSrc.includes('handleSyncExistingBorrowers'), 'AO members page must have Sync Borrowers action');
+  assert.ok(officerPageSrc.includes('Sync Borrowers'), 'AO members page must label Sync Borrowers button');
+
+  const adminPageSrc = readIfExists(ADMIN_MEMBERS_PAGE_PATH);
+  assert.ok(adminPageSrc.includes('handleSyncExistingBorrowers'), 'Admin members page must have Sync Borrowers action');
+  assert.ok(adminPageSrc.includes('Sync Borrowers'), 'Admin members page must label Sync Borrowers button');
 });

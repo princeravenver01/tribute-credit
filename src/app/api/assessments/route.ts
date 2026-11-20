@@ -40,6 +40,7 @@ interface AssessmentRecord {
   maxAdjustmentsReached?: boolean;
   finalContractAmount?: number;
   applicantSignature?: string;
+  applicantSignatureAuthId?: string;
   applicantFacePhoto?: string;
   borrowerHoldingIdPhoto?: string;
   borrowerSignatures?: any[];
@@ -77,94 +78,167 @@ if (!global.__tributeAssessmentsStore) {
   global.__tributeAssessmentsStore = [];
 }
 
-// Helper: sync an assessment record to MySQL tribute_coop_db
+import bcrypt from 'bcryptjs';
+
+// Helper: sync an assessment record to MySQL tribute_coop_db atomically
 async function syncToMySql(item: AssessmentRecord) {
+  const loanCode = item.applicationId || item.id;
+  if (!loanCode) return;
+
+  const { isDatabaseConfigured } = await import('@/lib/coop-member-store');
+  if (!isDatabaseConfigured()) {
+    return;
+  }
+
+  const db = await import('@/lib/db');
+  const pool = db.getDbPool();
+  const conn = await pool.getConnection();
+
   try {
-    const loanCode = item.applicationId || item.id;
-    if (!loanCode) return;
+    await conn.beginTransaction();
 
     // 1. Resolve or create user/borrower in MySQL users table
-  const borrowerEmail = item.borrowerEmail || `${loanCode.toLowerCase().replace(/[^a-z0-9]/g, '')}@tribute.coop`;
-  const borrowerName = item.borrowerName || 'Borrower Member';
-  const contact = item.contactNumber || '';
-  const address = item.location || '';
+    const borrowerEmail = (item.borrowerEmail || `${loanCode.toLowerCase().replace(/[^a-z0-9]/g, '')}@tribute.coop`).toLowerCase().trim();
+    const borrowerName = item.borrowerName || 'Borrower Member';
+    const contact = item.contactNumber || '';
+    const address = item.location || '';
 
-  // Check if user exists
-  const existingUsers: any = await query(
-    'SELECT id FROM users WHERE email = ? OR name = ? LIMIT 1',
-    [borrowerEmail, borrowerName]
-  );
+    // Deterministic identity lookup by email ONLY (never name-only)
+    const [existingUsers] = (await conn.execute(
+      'SELECT id FROM users WHERE email = ? LIMIT 1 FOR UPDATE',
+      [borrowerEmail]
+    )) as unknown as [Record<string, unknown>[]];
 
-  let borrowerId: number;
-  if (existingUsers && existingUsers.length > 0) {
-    borrowerId = existingUsers[0].id;
-  } else {
-    const insertUserRes: any = await query(
-      'INSERT INTO users (member_no, name, email, password, role, contact_number, address, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [item.policyNo || `MEM-${Date.now().toString().slice(-6)}`, borrowerName, borrowerEmail, '$2b$10$tributeTempHashPlaceholder', 'borrower', contact, address, 'active']
-    );
-    borrowerId = insertUserRes.insertId;
-  }
+    let borrowerId: number;
+    if (existingUsers && existingUsers.length > 0) {
+      borrowerId = existingUsers[0].id as number;
+    } else {
+      // Create valid strong temporary password hash via bcrypt
+      const tempPasswordHash = await bcrypt.hash(`TributeTemp#${Date.now().toString(36)}`, 10);
+      const [insertUserRes] = (await conn.execute(
+        'INSERT INTO users (member_no, name, email, password, role, contact_number, address, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [item.policyNo || `MEM-${Date.now().toString().slice(-6)}`, borrowerName, borrowerEmail, tempPasswordHash, 'borrower', contact, address, 'active']
+      )) as unknown as [{ insertId: number }];
+      borrowerId = insertUserRes.insertId;
+    }
 
-  // 2. Strict Every-Borrower Cooperative Membership Resolution / Creation
-  // Correct member identifier lookup: prefer mcid or fullProfile.step1.cooperativeId, NOT policyNo
-  const authoritativeMemberNo = (item.mcid || item.fullProfile?.step1?.cooperativeId || item.cidNumber)?.trim();
-  const step1 = item.fullProfile?.step1 || {};
-  const step2 = item.fullProfile?.step2 || {};
-  const govIds = item.fullProfile?.govIds || [];
-  const primaryGovId = Array.isArray(govIds) && govIds.length > 0 ? govIds[0] : null;
+    // 2. Strict Every-Borrower Cooperative Membership Resolution / Creation
+    const authoritativeMemberNo = (item.mcid || item.fullProfile?.step1?.cooperativeId || item.cidNumber)?.trim();
+    const step1 = item.fullProfile?.step1 || {};
+    const step2 = item.fullProfile?.step2 || {};
+    const govIds = item.fullProfile?.govIds || [];
+    const primaryGovId = Array.isArray(govIds) && govIds.length > 0 ? govIds[0] : null;
 
-  const { createProvisionalBorrowerMember, linkMemberToUserAccount, findMatchingCooperativeMember } = await import('@/lib/coop-member-store');
+    // Check if coop_members row exists
+    let matchedMemberNo: string | null = null;
+    let matchedLinkedUserId: number | null = null;
 
-  const matched = await findMatchingCooperativeMember({
-    memberNo: authoritativeMemberNo,
-    email: borrowerEmail,
-    contactNumber: contact,
-    dateOfBirth: step1.dateOfBirth,
-  });
+    if (authoritativeMemberNo) {
+      const [byNo] = (await conn.execute(
+        'SELECT member_no, linked_user_id FROM coop_members WHERE member_no = ? LIMIT 1 FOR UPDATE',
+        [authoritativeMemberNo]
+      )) as unknown as [Record<string, unknown>[]];
+      if (byNo && byNo.length > 0) {
+        matchedMemberNo = byNo[0].member_no as string;
+        matchedLinkedUserId = (byNo[0].linked_user_id as number) || null;
+      }
+    }
 
-  if (matched) {
-    // If the matched member is already linked to a different user, raise conflict!
-    if (matched.linkedUserId && matched.linkedUserId !== borrowerId) {
-      throw new Error(
-        `Cooperative member ${matched.memberNo} is already linked to another user account (User ID: ${matched.linkedUserId}). Cannot link to User ID ${borrowerId}.`
+    if (!matchedMemberNo && borrowerEmail) {
+      const [byEmail] = (await conn.execute(
+        'SELECT member_no, linked_user_id FROM coop_members WHERE email = ? LIMIT 1 FOR UPDATE',
+        [borrowerEmail]
+      )) as unknown as [Record<string, unknown>[]];
+      if (byEmail && byEmail.length > 0) {
+        matchedMemberNo = byEmail[0].member_no as string;
+        matchedLinkedUserId = (byEmail[0].linked_user_id as number) || null;
+      }
+    }
+
+    if (matchedMemberNo) {
+      if (matchedLinkedUserId && matchedLinkedUserId !== borrowerId) {
+        throw new Error(
+          `Cooperative member ${matchedMemberNo} is already linked to another user account (User ID: ${matchedLinkedUserId}). Cannot link to User ID ${borrowerId}.`
+        );
+      }
+      if (!matchedLinkedUserId) {
+        await conn.execute(
+          'UPDATE coop_members SET linked_user_id = ? WHERE member_no = ?',
+          [borrowerId, matchedMemberNo]
+        );
+      }
+    } else {
+      // Insert provisional borrower-only cooperative member using authoritative profile fields
+      const { generateMemberNo } = await import('@/lib/coop-member-store');
+      const memberNo = generateMemberNo();
+      const parts = borrowerName.trim().split(/\s+/);
+      const firstName = step1.firstName?.trim() || parts[0] || 'Borrower';
+      const middleName = step1.middleName?.trim() || (parts.length > 2 ? parts.slice(1, -1).join(' ') : null);
+      const lastName = step1.lastName?.trim() || (parts.length > 1 ? parts[parts.length - 1] : 'Member');
+      const suffix = step1.suffix?.trim() || null;
+      const fullName = borrowerName.trim() || [firstName, middleName, lastName, suffix].filter(Boolean).join(' ');
+      const gender = step1.sex === 'Female' ? 'Female' : step1.sex === 'Male' ? 'Male' : null;
+      const dateOfBirth = step1.dateOfBirth?.trim() || null;
+      const civilStatus = step1.civilStatus || null;
+      const contactNumber = contact || step2.mobileNumber || '';
+      const fullAddress = address || step2.addressLine1 || '';
+      const barangay = step2.barangay || '';
+      const city = step2.city || '';
+      const province = step2.province || '';
+      const occupation = item.livelihood || item.fullProfile?.step4?.occupation || '';
+      const monthlyIncome = Number(item.monthlyNetIncome || item.fullProfile?.step4?.monthlyNetIncome) || 0;
+      const validIdType = primaryGovId?.idType || null;
+      const validIdNumber = primaryGovId?.idNumber || null;
+      const signatureData = item.applicantSignature || null;
+      // Real signature auth id from profile or null (NEVER fabricated)
+      const signatureAuthId = item.fullProfile?.step1?.signatureAuthId || item.applicantSignatureAuthId || null;
+      const photoUrl = item.applicantFacePhoto || null;
+      const idSelfieUrl = item.borrowerHoldingIdPhoto || null;
+      const nowIso = new Date().toISOString();
+
+      await conn.execute(
+        `INSERT INTO coop_members
+         (member_no, linked_user_id, membership_type, first_name, middle_name, last_name, suffix, full_name, gender, date_of_birth, civil_status,
+          email, contact_number, address, barangay, city, province, occupation, monthly_income,
+          signature_data, signature_auth_id, signature_timestamp, photo_url, photo_timestamp,
+          id_selfie_url, id_selfie_timestamp, valid_id_type, valid_id_number,
+          registration_fee, capital_share, initial_savings, total_paid, payment_method, payment_reference,
+          registered_by_id, registered_by_name, registered_by_role, registration_status)
+         VALUES (?, ?, 'borrower_only', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0.00, 0.00, 0.00, 0.00, 'cash', 'PENDING-ONBOARDING', NULL, ?, 'account_officer', 'active')`,
+        [
+          memberNo,
+          borrowerId,
+          firstName,
+          middleName,
+          lastName,
+          suffix,
+          fullName,
+          gender,
+          dateOfBirth,
+          civilStatus,
+          borrowerEmail,
+          contactNumber,
+          fullAddress,
+          barangay,
+          city,
+          province,
+          occupation,
+          monthlyIncome,
+          signatureData,
+          signatureAuthId,
+          signatureData ? new Date(nowIso) : null,
+          photoUrl,
+          photoUrl ? new Date(nowIso) : null,
+          idSelfieUrl,
+          idSelfieUrl ? new Date(nowIso) : null,
+          validIdType,
+          validIdNumber,
+          item.evaluatedByOfficer || 'Account Officer',
+        ]
       );
     }
-    if (!matched.linkedUserId) {
-      await linkMemberToUserAccount(matched.memberNo, borrowerId);
-    }
-  } else {
-    // Create provisional borrower-only membership with authoritative profile fields (NO fabricated dummy data)
-    await createProvisionalBorrowerMember({
-      linkedUserId: borrowerId,
-      name: borrowerName,
-      email: borrowerEmail,
-      contactNumber: contact || step2.mobileNumber || '',
-      address: address || step2.addressLine1 || '',
-      firstName: step1.firstName,
-      middleName: step1.middleName,
-      lastName: step1.lastName,
-      suffix: step1.suffix,
-      gender: step1.sex === 'Female' ? 'Female' : step1.sex === 'Male' ? 'Male' : null,
-      dateOfBirth: step1.dateOfBirth || null,
-      civilStatus: step1.civilStatus || null,
-      barangay: step2.barangay || '',
-      city: step2.city || '',
-      province: step2.province || '',
-      occupation: item.livelihood || item.fullProfile?.step4?.occupation || '',
-      monthlyIncome: Number(item.monthlyNetIncome || item.fullProfile?.step4?.monthlyNetIncome) || 0,
-      validIdType: primaryGovId?.idType || null,
-      validIdNumber: primaryGovId?.idNumber || null,
-      applicantSignature: item.applicantSignature || null,
-      applicantPhoto: item.applicantFacePhoto || null,
-      holdingIdPhoto: item.borrowerHoldingIdPhoto || null,
-      recordedByName: item.evaluatedByOfficer || 'Account Officer',
-      recordedByRole: 'account_officer',
-    });
-  }
 
-    // 2. Map application status to DB enum ('pending', 'under_review', 'approved', 'rejected', 'disbursed', 'completed')
-    // Note: pending_ao_disbursement is NOT yet disbursed in MySQL — it maps to 'approved' with disbursed_at = null.
+    // 3. Map application status and write loan_applications row
     let dbStatus: 'pending' | 'under_review' | 'approved' | 'rejected' | 'disbursed' = 'pending';
     if (
       item.status === 'admin_approved' ||
@@ -195,14 +269,13 @@ async function syncToMySql(item: AssessmentRecord) {
     const officerNotes = item.officerNotes || item.aiRecommendationNote || '';
     const rejectionReason = item.status === 'admin_rejected' ? (item.adminNotes || 'Declined during Credit Committee review') : null;
 
-    // Check if loan_application row exists
-    const existingLoan: any = await query(
-      'SELECT id FROM loan_applications WHERE loan_code = ? LIMIT 1',
+    const [existingLoans] = (await conn.execute(
+      'SELECT id FROM loan_applications WHERE loan_code = ? LIMIT 1 FOR UPDATE',
       [loanCode]
-    );
+    )) as unknown as [Record<string, unknown>[]];
 
-    if (existingLoan && existingLoan.length > 0) {
-      await query(
+    if (existingLoans && existingLoans.length > 0) {
+      await conn.execute(
         `UPDATE loan_applications SET 
           amount_requested = ?,
           status = ?,
@@ -222,30 +295,35 @@ async function syncToMySql(item: AssessmentRecord) {
         ]
       );
     } else {
-      await query(
+      await conn.execute(
         `INSERT INTO loan_applications 
           (loan_code, borrower_id, product_id, amount_requested, term_months, interest_rate, purpose, monthly_amortization, status, assigned_officer_id, officer_notes, approved_by_admin_id, rejection_reason) 
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           loanCode,
           borrowerId,
-          1, // default product
+          1,
           finalAmount,
           termMonths,
           3.00,
           purpose,
           monthlyAmort,
           dbStatus,
-          2, // Officer Juan
+          2,
           officerNotes,
           (dbStatus === 'approved' || dbStatus === 'disbursed') ? 1 : null,
           rejectionReason
         ]
       );
     }
+
+    await conn.commit();
   } catch (err) {
-    console.error('MySQL sync error in /api/assessments:', err);
+    await conn.rollback();
+    console.error('Atomic MySQL sync error in /api/assessments:', err);
     throw err;
+  } finally {
+    conn.release();
   }
 }
 
@@ -370,9 +448,10 @@ export async function POST(req: Request) {
 
     if (body.action === 'save_batch' && Array.isArray(body.items)) {
       if (!global.__tributeAssessmentsStore) global.__tributeAssessmentsStore = [];
+      // Only upsert into memory AFTER syncToMySql transaction succeeds
       for (const item of body.items) {
-        upsertRecord(item);
         await syncToMySql(item);
+        upsertRecord(item);
       }
       return NextResponse.json({
         success: true,
@@ -380,10 +459,10 @@ export async function POST(req: Request) {
       });
     }
 
-    // Default single record upsert
+    // Default single record upsert: sync first, then upsert in memory
     if (body.id || body.applicationId) {
-      upsertRecord(body);
       await syncToMySql(body);
+      upsertRecord(body);
       return NextResponse.json({
         success: true,
         data: global.__tributeAssessmentsStore,

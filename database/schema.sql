@@ -169,7 +169,7 @@ CREATE TABLE IF NOT EXISTS `coop_member_transactions` (
   `recorded_by_name` VARCHAR(150) NOT NULL,
   `recorded_by_id` INT NULL,
   `recorded_by_role` ENUM('admin', 'account_officer') NOT NULL DEFAULT 'account_officer',
-  `audit_id` VARCHAR(64) NULL,
+  `audit_id` VARCHAR(64) NOT NULL UNIQUE,
   `payment_method` ENUM('cash', 'online', 'bank_transfer') NOT NULL DEFAULT 'cash',
   `payment_reference` VARCHAR(100) NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

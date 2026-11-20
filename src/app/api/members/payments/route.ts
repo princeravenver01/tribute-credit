@@ -3,6 +3,7 @@ import { requireApiRole } from '@/lib/server-auth';
 import {
   recordMembershipPayment,
   DatabasePersistenceError,
+  PaymentConflictError,
   type MemberPaymentInput,
 } from '@/lib/coop-member-store';
 
@@ -60,16 +61,12 @@ export async function POST(req: Request) {
       success: true,
       member: result.member,
       remainingBalances: result.remainingBalances,
-      audit: {
-        recordedById: input.recordedById,
-        recordedByName: input.recordedByName,
-        recordedByRole: input.recordedByRole,
-        auditId: input.auditId,
-        paymentReference: ref,
-        paymentMethod: method,
-      },
+      audit: result.audit,
     });
   } catch (err: unknown) {
+    if (err instanceof PaymentConflictError) {
+      return NextResponse.json({ error: err.message, code: 'PAYMENT_CONFLICT' }, { status: 409 });
+    }
     if (err instanceof DatabasePersistenceError) {
       return NextResponse.json({ error: err.message, code: 'DATABASE_ERROR' }, { status: 500 });
     }

@@ -162,6 +162,7 @@ export interface ProvisionalBorrowerInput {
   validIdType?: string | null;
   validIdNumber?: string | null;
   applicantSignature?: string | null;
+  signatureAuthId?: string | null;
   applicantPhoto?: string | null;
   holdingIdPhoto?: string | null;
   recordedById?: number | null;
@@ -197,6 +198,16 @@ export interface MemberPaymentInput {
   auditId?: string;
 }
 
+export interface PaymentAuditInfo {
+  recordedById?: number | null;
+  recordedByName: string;
+  recordedByRole: 'admin' | 'account_officer';
+  auditId: string;
+  paymentReference: string;
+  paymentMethod: 'cash' | 'online' | 'bank_transfer';
+  isReplay: boolean;
+}
+
 export interface PaymentResult {
   member: CooperativeMember;
   remainingBalances: {
@@ -205,6 +216,16 @@ export interface PaymentResult {
     initialSavings: number;
     totalRemaining: number;
   };
+  audit: PaymentAuditInfo;
+}
+
+export class PaymentConflictError extends Error {
+  code = 'PAYMENT_CONFLICT';
+  statusCode = 409;
+  constructor(message: string) {
+    super(message);
+    this.name = 'PaymentConflictError';
+  }
 }
 
 // In-Memory store fallback for environments without configured DB (e.g. unit test runner)
@@ -409,7 +430,8 @@ export async function createProvisionalBorrowerMember(
   const validIdNumber = input.validIdNumber?.trim() || null;
 
   const signatureData = input.applicantSignature || null;
-  const signatureAuthId = signatureData ? `SIG-PROV-${Date.now().toString(36).toUpperCase()}` : null;
+  // NEVER fabricate SIG-PROV; carry real authId if present, otherwise null
+  const signatureAuthId = input.signatureAuthId?.trim() || null;
   const photoUrl = input.applicantPhoto || null;
   const idSelfieUrl = input.holdingIdPhoto || null;
 
@@ -571,6 +593,63 @@ export async function createProvisionalBorrowerMember(
           await conn.rollback();
         } catch {}
       }
+      // Handle ER_DUP_ENTRY duplicate race by reading the existing record
+      const isDupEntry = err && typeof err === 'object' && ('code' in err && (err as { code: string }).code === 'ER_DUP_ENTRY');
+      if (isDupEntry) {
+        try {
+          const [winnerRows] = (await pool.execute(
+            `SELECT * FROM coop_members WHERE email = ? ${input.linkedUserId ? 'OR linked_user_id = ?' : ''} LIMIT 1`,
+            input.linkedUserId ? [normalizedEmail, input.linkedUserId] : [normalizedEmail]
+          )) as unknown as [Record<string, unknown>[]];
+
+          if (winnerRows && winnerRows.length > 0) {
+            const r = winnerRows[0];
+            return {
+              id: r.id as number | string,
+              memberNo: r.member_no as string,
+              linkedUserId: (r.linked_user_id as number) || null,
+              membershipType: (r.membership_type as MembershipType) || 'borrower_only',
+              firstName: r.first_name as string,
+              middleName: (r.middle_name as string) || undefined,
+              lastName: r.last_name as string,
+              suffix: (r.suffix as string) || undefined,
+              fullName: r.full_name as string,
+              gender: (r.gender as CooperativeMember['gender']) || null,
+              dateOfBirth: r.date_of_birth ? new Date(r.date_of_birth as string).toISOString().slice(0, 10) : null,
+              civilStatus: (r.civil_status as CooperativeMember['civilStatus']) || null,
+              email: r.email as string,
+              contactNumber: (r.contact_number as string) || '',
+              address: (r.address as string) || '',
+              barangay: (r.barangay as string) || '',
+              city: (r.city as string) || '',
+              province: (r.province as string) || '',
+              occupation: (r.occupation as string) || '',
+              monthlyIncome: Number(r.monthly_income) || 0,
+              signatureData: (r.signature_data as string) || null,
+              signatureAuthId: (r.signature_auth_id as string) || null,
+              signatureTimestamp: r.signature_timestamp ? new Date(r.signature_timestamp as string).toISOString() : null,
+              photoUrl: (r.photo_url as string) || null,
+              photoTimestamp: r.photo_timestamp ? new Date(r.photo_timestamp as string).toISOString() : null,
+              idSelfieUrl: (r.id_selfie_url as string) || null,
+              idSelfieTimestamp: r.id_selfie_timestamp ? new Date(r.id_selfie_timestamp as string).toISOString() : null,
+              validIdType: (r.valid_id_type as string) || null,
+              validIdNumber: (r.valid_id_number as string) || null,
+              registrationFee: Number(r.registration_fee) || 0,
+              capitalShare: Number(r.capital_share) || 0,
+              initialSavings: Number(r.initial_savings) || 0,
+              totalPaid: Number(r.total_paid) || 0,
+              paymentMethod: (r.payment_method as CooperativeMember['paymentMethod']) || 'cash',
+              paymentReference: (r.payment_reference as string) || undefined,
+              registeredById: (r.registered_by_id as number) || undefined,
+              registeredByName: (r.registered_by_name as string) || 'Loan Onboarding System',
+              registeredByRole: (r.registered_by_role as CooperativeMember['registeredByRole']) || 'account_officer',
+              registrationStatus: (r.registration_status as CooperativeMember['registrationStatus']) || 'active',
+              createdAt: r.created_at ? new Date(r.created_at as string).toISOString() : nowIso,
+              updatedAt: r.updated_at ? new Date(r.updated_at as string).toISOString() : nowIso,
+            };
+          }
+        } catch {}
+      }
       const msg = err instanceof Error ? err.message : String(err);
       throw new DatabasePersistenceError(`Failed to create provisional borrower member: ${msg}`);
     } finally {
@@ -669,7 +748,24 @@ export async function recordMembershipPayment(input: MemberPaymentInput): Promis
       )) as unknown as [Record<string, unknown>[]];
 
       if (existingTxns && existingTxns.length > 0) {
-        // Idempotent retry detected: return current state without double charging!
+        // Compare retry fingerprint with original payment
+        const origTotalAmount = existingTxns.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+        const origMethod = (existingTxns[0].payment_method as string) || 'cash';
+        const origAuditId = (existingTxns[0].audit_id as string) || '';
+        const origActorId = (existingTxns[0].recorded_by_id as number) || null;
+        const origActorName = (existingTxns[0].recorded_by_name as string) || 'Cooperative Officer';
+        const origActorRole = (existingTxns[0].recorded_by_role as CooperativeMember['registeredByRole']) || 'account_officer';
+
+        // Check if amount or method differs -> 409 Conflict!
+        const amountDiff = Math.abs(origTotalAmount - input.amount);
+        if (amountDiff > 0.009 || (input.paymentMethod && input.paymentMethod !== origMethod)) {
+          await conn.rollback();
+          throw new PaymentConflictError(
+            `Payment reference "${payRef}" was already recorded for member ${input.memberNo} with a different payload (Original: ₱${origTotalAmount} via ${origMethod}, Attempted: ₱${input.amount} via ${payMethod}).`
+          );
+        }
+
+        // Identical replay: commit and return the originally stored audit metadata without double charging
         await conn.commit();
         const curFee = Number(m.registration_fee) || 0;
         const curCap = Number(m.capital_share) || 0;
@@ -727,6 +823,15 @@ export async function recordMembershipPayment(input: MemberPaymentInput): Promis
             capitalShare: Math.max(0, MEMBER_FEES.CAPITAL_SHARE - curCap),
             initialSavings: Math.max(0, MEMBER_FEES.INITIAL_SAVINGS - curSav),
             totalRemaining: Math.max(0, MEMBER_FEES.TOTAL_PAYMENT - curTotal),
+          },
+          audit: {
+            recordedById: origActorId,
+            recordedByName: origActorName,
+            recordedByRole: origActorRole,
+            auditId: origAuditId,
+            paymentReference: payRef,
+            paymentMethod: origMethod as 'cash' | 'online' | 'bank_transfer',
+            isReplay: true,
           },
         };
       }
@@ -877,6 +982,15 @@ export async function recordMembershipPayment(input: MemberPaymentInput): Promis
           initialSavings: Math.max(0, MEMBER_FEES.INITIAL_SAVINGS - newSav),
           totalRemaining: Math.max(0, MEMBER_FEES.TOTAL_PAYMENT - newTotal),
         },
+        audit: {
+          recordedById: actorId,
+          recordedByName: actorName,
+          recordedByRole: actorRole,
+          auditId,
+          paymentReference: payRef,
+          paymentMethod: payMethod,
+          isReplay: false,
+        },
       };
     } catch (err: unknown) {
       if (conn) {
@@ -899,11 +1013,23 @@ export async function recordMembershipPayment(input: MemberPaymentInput): Promis
   }
 
   globalThis.__tributeCoopMemberTransactions = globalThis.__tributeCoopMemberTransactions || [];
-  const existingTxn = globalThis.__tributeCoopMemberTransactions.find(
+  const existingTxns = globalThis.__tributeCoopMemberTransactions.filter(
     (t) => t.memberNo === input.memberNo && t.paymentReference === payRef
   );
-  if (existingTxn) {
-    // Idempotent retry: return current without duplicate charge
+  if (existingTxns.length > 0) {
+    const origTotalAmount = existingTxns.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
+    const origMethod = existingTxns[0].paymentMethod || 'cash';
+    const origAuditId = existingTxns[0].auditId || '';
+    const origActorId = existingTxns[0].recordedById || null;
+    const origActorName = existingTxns[0].recordedByName || 'Cooperative Officer';
+    const origActorRole = existingTxns[0].recordedByRole || 'account_officer';
+
+    if (Math.abs(origTotalAmount - input.amount) > 0.009 || (input.paymentMethod && input.paymentMethod !== origMethod)) {
+      throw new PaymentConflictError(
+        `Payment reference "${payRef}" was already recorded for member ${input.memberNo} with a different payload (Original: ₱${origTotalAmount} via ${origMethod}, Attempted: ₱${input.amount} via ${payMethod}).`
+      );
+    }
+
     return {
       member,
       remainingBalances: {
@@ -911,6 +1037,15 @@ export async function recordMembershipPayment(input: MemberPaymentInput): Promis
         capitalShare: Math.max(0, MEMBER_FEES.CAPITAL_SHARE - (member.capitalShare || 0)),
         initialSavings: Math.max(0, MEMBER_FEES.INITIAL_SAVINGS - (member.initialSavings || 0)),
         totalRemaining: Math.max(0, MEMBER_FEES.TOTAL_PAYMENT - (member.totalPaid || 0)),
+      },
+      audit: {
+        recordedById: origActorId,
+        recordedByName: origActorName,
+        recordedByRole: origActorRole,
+        auditId: origAuditId,
+        paymentReference: payRef,
+        paymentMethod: origMethod,
+        isReplay: true,
       },
     };
   }
@@ -1032,6 +1167,15 @@ export async function recordMembershipPayment(input: MemberPaymentInput): Promis
       capitalShare: Math.max(0, MEMBER_FEES.CAPITAL_SHARE - newCap),
       initialSavings: Math.max(0, MEMBER_FEES.INITIAL_SAVINGS - newSav),
       totalRemaining: Math.max(0, MEMBER_FEES.TOTAL_PAYMENT - newTotal),
+    },
+    audit: {
+      recordedById: actorId,
+      recordedByName: actorName,
+      recordedByRole: actorRole,
+      auditId,
+      paymentReference: payRef,
+      paymentMethod: payMethod,
+      isReplay: false,
     },
   };
 }
@@ -1437,6 +1581,7 @@ export async function registerCooperativeMember(input: RegisterMemberInput): Pro
 }
 
 // Reconciliation / Backfill: ensures every existing borrower has a corresponding coop_members row
+// Prioritizes authoritative application fullProfile data over raw users fallback
 export async function reconcileBorrowerMemberships(options?: {
   recordedByName?: string;
   recordedByRole?: 'admin' | 'account_officer';
@@ -1482,12 +1627,43 @@ export async function reconcileBorrowerMemberships(options?: {
             if (existingRows && existingRows.length > 0) {
               alreadyExisted++;
             } else {
+              // Search in-memory and database loan applications for authoritative fullProfile
+              let authProfile: Record<string, Record<string, string | number | undefined>> | null = null;
+              if (global.__tributeAssessmentsStore && Array.isArray(global.__tributeAssessmentsStore)) {
+                const match = global.__tributeAssessmentsStore.find(
+                  (a) => a.borrowerEmail?.toLowerCase() === email || a.borrowerName.toLowerCase() === name.toLowerCase()
+                );
+                if (match && match.fullProfile) {
+                  authProfile = match.fullProfile as Record<string, Record<string, string | number | undefined>>;
+                }
+              }
+
+              const step1 = authProfile?.step1 || {};
+              const step2 = authProfile?.step2 || {};
+              const govIds = (authProfile?.govIds as unknown as Array<{ idType?: string; idNumber?: string }>) || [];
+              const primaryGovId = Array.isArray(govIds) && govIds.length > 0 ? govIds[0] : null;
+
               await createProvisionalBorrowerMember({
                 linkedUserId: userId,
-                name,
+                name: (step1.firstName && step1.lastName ? `${step1.firstName} ${step1.lastName}` : name),
                 email,
-                contactNumber: contact,
-                address,
+                contactNumber: contact || String(step2.mobileNumber || ''),
+                address: address || String(step2.addressLine1 || ''),
+                firstName: typeof step1.firstName === 'string' ? step1.firstName : undefined,
+                middleName: typeof step1.middleName === 'string' ? step1.middleName : undefined,
+                lastName: typeof step1.lastName === 'string' ? step1.lastName : undefined,
+                suffix: typeof step1.suffix === 'string' ? step1.suffix : undefined,
+                gender: step1.sex === 'Female' ? 'Female' : step1.sex === 'Male' ? 'Male' : null,
+                dateOfBirth: typeof step1.dateOfBirth === 'string' ? step1.dateOfBirth : null,
+                civilStatus: (step1.civilStatus as CooperativeMember['civilStatus']) || null,
+                barangay: typeof step2.barangay === 'string' ? step2.barangay : '',
+                city: typeof step2.city === 'string' ? step2.city : '',
+                province: typeof step2.province === 'string' ? step2.province : '',
+                occupation: typeof authProfile?.step4?.occupation === 'string' ? authProfile.step4.occupation : '',
+                monthlyIncome: Number(authProfile?.step4?.monthlyNetIncome) || 0,
+                validIdType: primaryGovId?.idType || null,
+                validIdNumber: primaryGovId?.idNumber || null,
+                signatureAuthId: typeof step1.signatureAuthId === 'string' ? step1.signatureAuthId : null,
                 recordedById: actorId,
                 recordedByName: actorName,
                 recordedByRole: actorRole,

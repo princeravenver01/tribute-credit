@@ -54,7 +54,20 @@ ALTER TABLE `coop_members`
   MODIFY COLUMN `valid_id_type` VARCHAR(100) NULL,
   MODIFY COLUMN `valid_id_number` VARCHAR(100) NULL;
 
--- 2. Audit & Idempotency columns for coop_member_transactions
+-- 2. Ensure coop_members email unique constraint safely exists
+-- If an index or constraint on email does not exist, add it
+SET @idxEmail = 'uniq_coop_members_email';
+SET @prepEmail = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'coop_members' AND INDEX_NAME = 'email') > 0
+  OR (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = 'coop_members' AND INDEX_NAME = @idxEmail) > 0,
+  'SELECT 1',
+  'ALTER TABLE `coop_members` ADD UNIQUE INDEX `uniq_coop_members_email` (`email`)'
+));
+PREPARE stmtEmail FROM @prepEmail;
+EXECUTE stmtEmail;
+DEALLOCATE PREPARE stmtEmail;
+
+-- 3. Audit & Idempotency columns for coop_member_transactions
 SET @txntable = 'coop_member_transactions';
 
 -- Add recorded_by_id
@@ -89,6 +102,22 @@ SET @prep = (SELECT IF(
 PREPARE stmt FROM @prep;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+-- Backfill audit_id for legacy rows before creating unique index
+UPDATE `coop_member_transactions`
+SET `audit_id` = CONCAT('AUD-LEGACY-', `id`, '-', SUBSTRING(MD5(CONCAT(`member_no`, `reference_no`, `id`)), 1, 8))
+WHERE `audit_id` IS NULL OR `audit_id` = '';
+
+-- Add unique index for audit_id if not exists
+SET @idxAudit = 'uniq_tx_audit_id';
+SET @prepAudit = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @txntable AND INDEX_NAME = @idxAudit) > 0,
+  'SELECT 1',
+  'ALTER TABLE `coop_member_transactions` ADD UNIQUE INDEX `uniq_tx_audit_id` (`audit_id`)'
+));
+PREPARE stmtAudit FROM @prepAudit;
+EXECUTE stmtAudit;
+DEALLOCATE PREPARE stmtAudit;
 
 -- Add payment_method
 SET @col = 'payment_method';
