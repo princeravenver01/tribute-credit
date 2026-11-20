@@ -169,10 +169,12 @@ CREATE TABLE IF NOT EXISTS `coop_member_transactions` (
   `recorded_by_name` VARCHAR(150) NOT NULL,
   `recorded_by_id` INT NULL,
   `recorded_by_role` ENUM('admin', 'account_officer') NOT NULL DEFAULT 'account_officer',
-  `audit_id` VARCHAR(64) NOT NULL UNIQUE,
+  `audit_id` VARCHAR(64) NOT NULL,
   `payment_method` ENUM('cash', 'online', 'bank_transfer') NOT NULL DEFAULT 'cash',
   `payment_reference` VARCHAR(100) NULL,
+  `request_component` ENUM('registration_fee', 'capital_share', 'savings_deposit', 'all') NOT NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE KEY `uniq_member_payment_ref_type` (`member_no`, `payment_reference`, `transaction_type`),
+  UNIQUE KEY `uniq_tx_audit_component` (`audit_id`, `transaction_type`),
   FOREIGN KEY (`member_id`) REFERENCES `coop_members`(`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB;

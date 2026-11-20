@@ -179,7 +179,28 @@ test('Bridge Test 3: Concurrency row locking, payment idempotency retry protecti
   assert.equal(pay1Retry.audit.isReplay, true, 'Must identify as replay');
   assert.equal(pay1Retry.audit.auditId, storedAuditId, 'Must reuse originally stored auditId');
 
-  // Step 3: Mismatched replay test: re-using the same reference OR-FEE-001 with a different amount must throw PaymentConflictError
+  // Step 3: Same amount but a different component is not an identical replay.
+  await assert.rejects(
+    async () => {
+      await store.recordMembershipPayment({
+        memberNo: prov.memberNo,
+        component: 'capital_share',
+        amount: 500,
+        paymentMethod: 'cash',
+        paymentReference: 'OR-FEE-001',
+        recordedById: 12,
+        recordedByName: 'Officer Juan',
+        recordedByRole: 'account_officer',
+      });
+    },
+    (err) => {
+      assert.ok(err instanceof store.PaymentConflictError, 'Changed component must be a payment conflict');
+      assert.equal(err.statusCode, 409, 'Changed component must map to HTTP 409');
+      return true;
+    }
+  );
+
+  // Step 4: Re-using the same reference with a different amount must also conflict.
   await assert.rejects(
     async () => {
       await store.recordMembershipPayment({
@@ -200,7 +221,7 @@ test('Bridge Test 3: Concurrency row locking, payment idempotency retry protecti
     }
   );
 
-  // Step 4: Pay remaining ₱2,500 and verify promotion
+  // Step 5: Pay remaining ₱2,500 and verify promotion
   const pay2 = await store.recordMembershipPayment({
     memberNo: prov.memberNo,
     component: 'all',
@@ -264,9 +285,14 @@ test('Bridge Test 6: Concurrency row locking and audit trail in migration SQL', 
   assert.ok(migSrc.includes('recorded_by_role'), 'Must add recorded_by_role');
   assert.ok(migSrc.includes('audit_id'), 'Must add audit_id');
   assert.ok(migSrc.includes('uniq_member_payment_ref_type'), 'Must have idempotency unique index');
+  assert.ok(migSrc.includes('request_component'), 'Must persist the originally requested payment component');
+  assert.ok(migSrc.includes('uniq_tx_audit_component'), 'Must allow one audit group with at most one row per component');
+  assert.ok(migSrc.includes('DROP INDEX `uniq_tx_audit_id`'), 'Must remove the invalid single-column audit uniqueness constraint');
 
   const storeSrc = readIfExists(STORE_PATH);
   assert.ok(storeSrc.includes('SELECT * FROM coop_members WHERE member_no = ? LIMIT 1 FOR UPDATE'), 'Store must use SELECT ... FOR UPDATE');
+  assert.ok(storeSrc.includes('input.component !== origComponent'), 'Replay fingerprint must include the requested component');
+  assert.ok(storeSrc.includes("requestComponent: 'all'"), 'Full member registration ledger must carry its payment request component');
 });
 
 test('Bridge Test 7: Reconciliation and backfill accessible via UI and API route with role guards', () => {

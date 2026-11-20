@@ -108,14 +108,19 @@ UPDATE `coop_member_transactions`
 SET `audit_id` = CONCAT('AUD-LEGACY-', `id`, '-', SUBSTRING(MD5(CONCAT(`member_no`, `reference_no`, `id`)), 1, 8))
 WHERE `audit_id` IS NULL OR `audit_id` = '';
 
--- Add unique index for audit_id if not exists
+ALTER TABLE `coop_member_transactions`
+  MODIFY COLUMN `audit_id` VARCHAR(64) NOT NULL;
+
+-- A single payment can allocate to multiple ledger components, so audit_id is a
+-- payment-group identifier rather than a per-row unique value. Remove the older
+-- single-column unique index if this migration was run previously.
 SET @idxAudit = 'uniq_tx_audit_id';
-SET @prepAudit = (SELECT IF(
+SET @dropAudit = (SELECT IF(
   (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @txntable AND INDEX_NAME = @idxAudit) > 0,
-  'SELECT 1',
-  'ALTER TABLE `coop_member_transactions` ADD UNIQUE INDEX `uniq_tx_audit_id` (`audit_id`)'
+  'ALTER TABLE `coop_member_transactions` DROP INDEX `uniq_tx_audit_id`',
+  'SELECT 1'
 ));
-PREPARE stmtAudit FROM @prepAudit;
+PREPARE stmtAudit FROM @dropAudit;
 EXECUTE stmtAudit;
 DEALLOCATE PREPARE stmtAudit;
 
@@ -140,6 +145,37 @@ SET @prep = (SELECT IF(
 PREPARE stmt FROM @prep;
 EXECUTE stmt;
 DEALLOCATE PREPARE stmt;
+
+-- Preserve the originally requested component so an idempotency replay must
+-- match amount, method, and component—not merely reuse the same receipt number.
+SET @col = 'request_component';
+SET @prep = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @txntable AND COLUMN_NAME = @col) > 0,
+  'SELECT 1',
+  'ALTER TABLE `coop_member_transactions` ADD COLUMN `request_component` ENUM(\'registration_fee\', \'capital_share\', \'savings_deposit\', \'all\') NULL AFTER `payment_reference`'
+));
+PREPARE stmt FROM @prep;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+UPDATE `coop_member_transactions`
+SET `request_component` = `transaction_type`
+WHERE `request_component` IS NULL;
+
+ALTER TABLE `coop_member_transactions`
+  MODIFY COLUMN `request_component` ENUM('registration_fee', 'capital_share', 'savings_deposit', 'all') NOT NULL;
+
+-- One audit group may have one row per allocated component, but never duplicate
+-- the same component within that immutable payment audit.
+SET @idxAuditComponent = 'uniq_tx_audit_component';
+SET @prepAuditComponent = (SELECT IF(
+  (SELECT COUNT(*) FROM INFORMATION_SCHEMA.STATISTICS WHERE TABLE_SCHEMA = @dbname AND TABLE_NAME = @txntable AND INDEX_NAME = @idxAuditComponent) > 0,
+  'SELECT 1',
+  'ALTER TABLE `coop_member_transactions` ADD UNIQUE INDEX `uniq_tx_audit_component` (`audit_id`, `transaction_type`)'
+));
+PREPARE stmtAuditComponent FROM @prepAuditComponent;
+EXECUTE stmtAuditComponent;
+DEALLOCATE PREPARE stmtAuditComponent;
 
 -- Ensure unique index for idempotency protection on payment transactions
 SET @idxname = 'uniq_member_payment_ref_type';

@@ -183,6 +183,7 @@ export interface MemberTransactionRecord {
   auditId?: string;
   paymentMethod?: 'cash' | 'online' | 'bank_transfer';
   paymentReference?: string;
+  requestComponent?: 'registration_fee' | 'capital_share' | 'savings_deposit' | 'all';
   createdAt: string;
 }
 
@@ -751,17 +752,26 @@ export async function recordMembershipPayment(input: MemberPaymentInput): Promis
         // Compare retry fingerprint with original payment
         const origTotalAmount = existingTxns.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
         const origMethod = (existingTxns[0].payment_method as string) || 'cash';
+        const origComponent =
+          (existingTxns[0].request_component as MemberPaymentInput['component'] | null) ||
+          (existingTxns.length > 1
+            ? 'all'
+            : (existingTxns[0].transaction_type as MemberPaymentInput['component']));
         const origAuditId = (existingTxns[0].audit_id as string) || '';
         const origActorId = (existingTxns[0].recorded_by_id as number) || null;
         const origActorName = (existingTxns[0].recorded_by_name as string) || 'Cooperative Officer';
         const origActorRole = (existingTxns[0].recorded_by_role as CooperativeMember['registeredByRole']) || 'account_officer';
 
-        // Check if amount or method differs -> 409 Conflict!
+        // A replay is identical only when its amount, component, and method all match.
         const amountDiff = Math.abs(origTotalAmount - input.amount);
-        if (amountDiff > 0.009 || (input.paymentMethod && input.paymentMethod !== origMethod)) {
+        if (
+          amountDiff > 0.009 ||
+          input.component !== origComponent ||
+          (input.paymentMethod && input.paymentMethod !== origMethod)
+        ) {
           await conn.rollback();
           throw new PaymentConflictError(
-            `Payment reference "${payRef}" was already recorded for member ${input.memberNo} with a different payload (Original: ₱${origTotalAmount} via ${origMethod}, Attempted: ₱${input.amount} via ${payMethod}).`
+            `Payment reference "${payRef}" was already recorded for member ${input.memberNo} with a different payload (Original: ${origComponent}, ₱${origTotalAmount} via ${origMethod}; Attempted: ${input.component}, ₱${input.amount} via ${payMethod}).`
           );
         }
 
@@ -892,25 +902,25 @@ export async function recordMembershipPayment(input: MemberPaymentInput): Promis
       if (allocFee > 0) {
         await conn.execute(
           `INSERT INTO coop_member_transactions
-           (member_id, member_no, transaction_type, amount, reference_no, recorded_by_name, recorded_by_id, recorded_by_role, audit_id, payment_method, payment_reference)
-           VALUES (?, ?, 'registration_fee', ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [m.id as number, m.member_no as string, allocFee, `FEE-${payRef}`, actorName, actorId, actorRole, auditId, payMethod, payRef]
+           (member_id, member_no, transaction_type, amount, reference_no, recorded_by_name, recorded_by_id, recorded_by_role, audit_id, payment_method, payment_reference, request_component)
+           VALUES (?, ?, 'registration_fee', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [m.id as number, m.member_no as string, allocFee, `FEE-${payRef}`, actorName, actorId, actorRole, auditId, payMethod, payRef, input.component]
         );
       }
       if (allocCap > 0) {
         await conn.execute(
           `INSERT INTO coop_member_transactions
-           (member_id, member_no, transaction_type, amount, reference_no, recorded_by_name, recorded_by_id, recorded_by_role, audit_id, payment_method, payment_reference)
-           VALUES (?, ?, 'capital_share', ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [m.id as number, m.member_no as string, allocCap, `CS-${payRef}`, actorName, actorId, actorRole, auditId, payMethod, payRef]
+           (member_id, member_no, transaction_type, amount, reference_no, recorded_by_name, recorded_by_id, recorded_by_role, audit_id, payment_method, payment_reference, request_component)
+           VALUES (?, ?, 'capital_share', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [m.id as number, m.member_no as string, allocCap, `CS-${payRef}`, actorName, actorId, actorRole, auditId, payMethod, payRef, input.component]
         );
       }
       if (allocSav > 0) {
         await conn.execute(
           `INSERT INTO coop_member_transactions
-           (member_id, member_no, transaction_type, amount, reference_no, recorded_by_name, recorded_by_id, recorded_by_role, audit_id, payment_method, payment_reference)
-           VALUES (?, ?, 'savings_deposit', ?, ?, ?, ?, ?, ?, ?, ?)`,
-          [m.id as number, m.member_no as string, allocSav, `SAV-${payRef}`, actorName, actorId, actorRole, auditId, payMethod, payRef]
+           (member_id, member_no, transaction_type, amount, reference_no, recorded_by_name, recorded_by_id, recorded_by_role, audit_id, payment_method, payment_reference, request_component)
+           VALUES (?, ?, 'savings_deposit', ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [m.id as number, m.member_no as string, allocSav, `SAV-${payRef}`, actorName, actorId, actorRole, auditId, payMethod, payRef, input.component]
         );
       }
 
@@ -1019,14 +1029,21 @@ export async function recordMembershipPayment(input: MemberPaymentInput): Promis
   if (existingTxns.length > 0) {
     const origTotalAmount = existingTxns.reduce((sum, tx) => sum + (Number(tx.amount) || 0), 0);
     const origMethod = existingTxns[0].paymentMethod || 'cash';
+    const origComponent =
+      existingTxns[0].requestComponent ||
+      (existingTxns.length > 1 ? 'all' : existingTxns[0].transactionType);
     const origAuditId = existingTxns[0].auditId || '';
     const origActorId = existingTxns[0].recordedById || null;
     const origActorName = existingTxns[0].recordedByName || 'Cooperative Officer';
     const origActorRole = existingTxns[0].recordedByRole || 'account_officer';
 
-    if (Math.abs(origTotalAmount - input.amount) > 0.009 || (input.paymentMethod && input.paymentMethod !== origMethod)) {
+    if (
+      Math.abs(origTotalAmount - input.amount) > 0.009 ||
+      input.component !== origComponent ||
+      (input.paymentMethod && input.paymentMethod !== origMethod)
+    ) {
       throw new PaymentConflictError(
-        `Payment reference "${payRef}" was already recorded for member ${input.memberNo} with a different payload (Original: ₱${origTotalAmount} via ${origMethod}, Attempted: ₱${input.amount} via ${payMethod}).`
+        `Payment reference "${payRef}" was already recorded for member ${input.memberNo} with a different payload (Original: ${origComponent}, ₱${origTotalAmount} via ${origMethod}; Attempted: ${input.component}, ₱${input.amount} via ${payMethod}).`
       );
     }
 
@@ -1124,6 +1141,7 @@ export async function recordMembershipPayment(input: MemberPaymentInput): Promis
       auditId,
       paymentMethod: payMethod,
       paymentReference: payRef,
+      requestComponent: input.component,
       createdAt: nowIso,
     });
   }
@@ -1140,6 +1158,7 @@ export async function recordMembershipPayment(input: MemberPaymentInput): Promis
       auditId,
       paymentMethod: payMethod,
       paymentReference: payRef,
+      requestComponent: input.component,
       createdAt: nowIso,
     });
   }
@@ -1156,6 +1175,7 @@ export async function recordMembershipPayment(input: MemberPaymentInput): Promis
       auditId,
       paymentMethod: payMethod,
       paymentReference: payRef,
+      requestComponent: input.component,
       createdAt: nowIso,
     });
   }
@@ -1298,6 +1318,8 @@ export async function registerCooperativeMember(input: RegisterMemberInput): Pro
   const normalizedEmail = input.email.toLowerCase().trim();
   const nowIso = new Date().toISOString();
   const signatureAuthId = `AUTH-SIG-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+  const paymentReference = input.paymentReference?.trim() || `REC-${Date.now().toString().slice(-6)}`;
+  const registrationAuditId = `AUD-MEMBER-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
 
   const fullName = [input.firstName, input.middleName, input.lastName, input.suffix]
     .filter(Boolean)
@@ -1376,7 +1398,7 @@ export async function registerCooperativeMember(input: RegisterMemberInput): Pro
             MEMBER_FEES.INITIAL_SAVINGS,
             MEMBER_FEES.TOTAL_PAYMENT,
             input.paymentMethod || 'cash',
-            input.paymentReference?.trim() || `REC-${Date.now().toString().slice(-6)}`,
+            paymentReference,
             input.registeredById || null,
             input.registeredByName || 'Cooperative Registrar',
             input.registeredByRole || 'account_officer',
@@ -1384,20 +1406,24 @@ export async function registerCooperativeMember(input: RegisterMemberInput): Pro
         )) as unknown as [{ insertId: number }];
 
         const newId = insertRes.insertId;
-        const payRef = input.paymentReference?.trim() || `REC-${Date.now().toString().slice(-6)}`;
+        const payRef = paymentReference;
         const regName = input.registeredByName || 'Cooperative Registrar';
+        const regId = input.registeredById || null;
+        const regRole = input.registeredByRole || 'account_officer';
+        const method = input.paymentMethod || 'cash';
 
         // 3. Insert all three ledger entries in same atomic transaction
         await conn.execute(
-          `INSERT INTO coop_member_transactions (member_id, member_no, transaction_type, amount, reference_no, recorded_by_name)
+          `INSERT INTO coop_member_transactions
+           (member_id, member_no, transaction_type, amount, reference_no, recorded_by_name, recorded_by_id, recorded_by_role, audit_id, payment_method, payment_reference, request_component)
            VALUES
-           (?, ?, 'registration_fee', 500.00, ?, ?),
-           (?, ?, 'capital_share', 2000.00, ?, ?),
-           (?, ?, 'savings_deposit', 500.00, ?, ?)`,
+           (?, ?, 'registration_fee', 500.00, ?, ?, ?, ?, ?, ?, ?, 'all'),
+           (?, ?, 'capital_share', 2000.00, ?, ?, ?, ?, ?, ?, ?, 'all'),
+           (?, ?, 'savings_deposit', 500.00, ?, ?, ?, ?, ?, ?, ?, 'all')`,
           [
-            newId, memberNo, `FEE-${payRef}`, regName,
-            newId, memberNo, `CS-${payRef}`, regName,
-            newId, memberNo, `SAV-${payRef}`, regName,
+            newId, memberNo, `FEE-${payRef}`, regName, regId, regRole, registrationAuditId, method, payRef,
+            newId, memberNo, `CS-${payRef}`, regName, regId, regRole, registrationAuditId, method, payRef,
+            newId, memberNo, `SAV-${payRef}`, regName, regId, regRole, registrationAuditId, method, payRef,
           ]
         );
 
@@ -1533,7 +1559,7 @@ export async function registerCooperativeMember(input: RegisterMemberInput): Pro
     initialSavings: MEMBER_FEES.INITIAL_SAVINGS,
     totalPaid: MEMBER_FEES.TOTAL_PAYMENT,
     paymentMethod: input.paymentMethod || 'cash',
-    paymentReference: input.paymentReference?.trim() || `REC-${Date.now().toString().slice(-6)}`,
+    paymentReference,
     registeredById: input.registeredById,
     registeredByName: input.registeredByName || 'Cooperative Registrar',
     registeredByRole: input.registeredByRole || 'account_officer',
@@ -1554,6 +1580,12 @@ export async function registerCooperativeMember(input: RegisterMemberInput): Pro
       amount: MEMBER_FEES.REGISTRATION_FEE,
       referenceNo: `FEE-${newMember.paymentReference}`,
       recordedByName: newMember.registeredByName,
+      recordedById: newMember.registeredById,
+      recordedByRole: newMember.registeredByRole,
+      auditId: registrationAuditId,
+      paymentMethod: newMember.paymentMethod,
+      paymentReference,
+      requestComponent: 'all',
       createdAt: nowIso,
     },
     {
@@ -1563,6 +1595,12 @@ export async function registerCooperativeMember(input: RegisterMemberInput): Pro
       amount: MEMBER_FEES.CAPITAL_SHARE,
       referenceNo: `CS-${newMember.paymentReference}`,
       recordedByName: newMember.registeredByName,
+      recordedById: newMember.registeredById,
+      recordedByRole: newMember.registeredByRole,
+      auditId: registrationAuditId,
+      paymentMethod: newMember.paymentMethod,
+      paymentReference,
+      requestComponent: 'all',
       createdAt: nowIso,
     },
     {
@@ -1572,6 +1610,12 @@ export async function registerCooperativeMember(input: RegisterMemberInput): Pro
       amount: MEMBER_FEES.INITIAL_SAVINGS,
       referenceNo: `SAV-${newMember.paymentReference}`,
       recordedByName: newMember.registeredByName,
+      recordedById: newMember.registeredById,
+      recordedByRole: newMember.registeredByRole,
+      auditId: registrationAuditId,
+      paymentMethod: newMember.paymentMethod,
+      paymentReference,
+      requestComponent: 'all',
       createdAt: nowIso,
     }
   );
