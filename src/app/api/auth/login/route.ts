@@ -111,7 +111,18 @@ export async function POST(req: Request) {
       [email],
     );
     user = users[0];
-  } catch {
+  } catch (error) {
+    const dbError = error as { code?: string; errno?: number; message?: string };
+    console.error('[auth/login] Database query failed:', {
+      code: dbError?.code ?? 'UNKNOWN',
+      errno: dbError?.errno,
+      message: dbError?.message ?? String(error),
+      host: process.env.DB_HOST || 'localhost (fallback)',
+      port: process.env.DB_PORT || '3306 (fallback)',
+      database: process.env.DB_NAME || 'tribute_coop_db (fallback)',
+      hasDbUser: Boolean(process.env.DB_USER),
+      hasDbPassword: Boolean(process.env.DB_PASSWORD),
+    });
     await recordAudit(null, 'AUTH_LOGIN_SERVICE_FAILURE', portal, ipAddress);
     return NextResponse.json(
       { error: 'We could not sign you in right now. Please try again.', code: 'SERVICE_UNAVAILABLE' },
