@@ -93,8 +93,13 @@ export async function POST(req: Request) {
   const limiterKey = email + '|' + ipAddress;
   const attempt = consumeLoginAttempt(limiterKey);
   if (!attempt.allowed) {
+    const waitMinutes = Math.max(1, Math.ceil(attempt.retryAfterSeconds / 60));
     return NextResponse.json(
-      { error: 'We could not sign you in right now. Please try again.', code: 'RATE_LIMITED' },
+      {
+        error: `Too many failed sign-in attempts. Please wait ${waitMinutes} minute${waitMinutes === 1 ? '' : 's'} and try again.`,
+        code: 'RATE_LIMITED',
+        retryAfterSeconds: attempt.retryAfterSeconds,
+      },
       { status: 429, headers: { 'Retry-After': String(attempt.retryAfterSeconds) } },
     );
   }

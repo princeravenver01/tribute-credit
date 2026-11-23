@@ -11,9 +11,16 @@ interface RoleLoginPageProps {
   portalKey: PortalKey;
 }
 
-function getErrorMessage(code?: string): string {
+function getErrorMessage(code?: string, retryAfterSeconds?: number): string {
   if (code === 'WRONG_PORTAL') return 'This account cannot access this portal.';
-  if (code === 'SERVICE_UNAVAILABLE' || code === 'RATE_LIMITED') {
+  if (code === 'RATE_LIMITED') {
+    if (typeof retryAfterSeconds === 'number' && retryAfterSeconds > 0) {
+      const waitMinutes = Math.max(1, Math.ceil(retryAfterSeconds / 60));
+      return `Too many failed sign-in attempts. Please wait ${waitMinutes} minute${waitMinutes === 1 ? '' : 's'} and try again.`;
+    }
+    return 'Too many failed sign-in attempts. Please wait a few minutes and try again.';
+  }
+  if (code === 'SERVICE_UNAVAILABLE') {
     return 'We could not sign you in right now. Please try again.';
   }
   return 'The email or password is incorrect.';
@@ -40,9 +47,9 @@ export default function RoleLoginPage({ portalKey }: RoleLoginPageProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
       });
-      const data = (await response.json()) as { code?: string };
+      const data = (await response.json()) as { code?: string; retryAfterSeconds?: number };
       if (!response.ok) {
-        setError(getErrorMessage(data.code));
+        setError(getErrorMessage(data.code, data.retryAfterSeconds));
         return;
       }
       router.replace(portal.dashboardPath);
