@@ -1,5 +1,51 @@
 import type { PoolConnection } from 'mysql2/promise';
 
+let coopMemberSchemaEnsured = false;
+
+/**
+ * Ensures `coop_members` has all columns required by the current application
+ * (idempotent, runs at most once per server process before any transaction).
+ */
+export async function ensureCoopMemberSchema(conn: PoolConnection): Promise<void> {
+  if (coopMemberSchemaEnsured) return;
+
+  const [cols] = (await conn.execute('SHOW COLUMNS FROM coop_members')) as unknown as [
+    Array<{ Field: string }>
+  ];
+  const existing = new Set(cols.map((c) => c.Field));
+
+  const missingColumnDefs: Array<{ name: string; ddl: string }> = [
+    {
+      name: 'linked_user_id',
+      ddl: 'ADD COLUMN `linked_user_id` INT NULL UNIQUE AFTER `member_no`',
+    },
+    {
+      name: 'membership_type',
+      ddl: "ADD COLUMN `membership_type` ENUM('full_cooperative', 'borrower_only') NOT NULL DEFAULT 'full_cooperative' AFTER `linked_user_id`",
+    },
+    {
+      name: 'signature_auth_id',
+      ddl: 'ADD COLUMN `signature_auth_id` VARCHAR(100) NULL AFTER `signature_data`',
+    },
+    {
+      name: 'valid_id_type',
+      ddl: 'ADD COLUMN `valid_id_type` VARCHAR(100) NULL AFTER `id_selfie_timestamp`',
+    },
+    {
+      name: 'valid_id_number',
+      ddl: 'ADD COLUMN `valid_id_number` VARCHAR(100) NULL AFTER `valid_id_type`',
+    },
+  ];
+
+  for (const col of missingColumnDefs) {
+    if (!existing.has(col.name)) {
+      await conn.execute(`ALTER TABLE coop_members ${col.ddl}`);
+    }
+  }
+
+  coopMemberSchemaEnsured = true;
+}
+
 export const MEMBER_FEES = {
   REGISTRATION_FEE: 500,
   CAPITAL_SHARE: 2000,

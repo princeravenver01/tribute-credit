@@ -85,7 +85,7 @@ async function syncToMySql(item: AssessmentRecord, actor?: { userId: number; rol
   const loanCode = item.applicationId || item.id;
   if (!loanCode) return;
 
-  const { isDatabaseConfigured } = await import('@/lib/coop-member-store');
+  const { isDatabaseConfigured, ensureCoopMemberSchema } = await import('@/lib/coop-member-store');
   if (!isDatabaseConfigured()) {
     return;
   }
@@ -95,6 +95,7 @@ async function syncToMySql(item: AssessmentRecord, actor?: { userId: number; rol
   const conn = await pool.getConnection();
 
   try {
+    await ensureCoopMemberSchema(conn);
     await conn.beginTransaction();
 
     // 1. Resolve or create user/borrower in MySQL users table
