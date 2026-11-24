@@ -958,7 +958,115 @@ export default function NewBorrowerRegistrationPage() {
     setAiTimerSeconds(0);
   };
 
-  // Step 1 Policy lock
+  // Step 1 Policy lock & real-time LCAP verification
+  const [lcapVerifyState, setLcapVerifyState] = useState<{
+    status: 'idle' | 'checking' | 'matched' | 'mismatch' | 'not_found' | 'error';
+    message: string;
+    policyHolder?: {
+      policyNumber: string;
+      firstName: string;
+      middleName?: string;
+      lastName: string;
+      birthdate?: string;
+    };
+    birthdateMatches?: boolean | null;
+  }>({ status: 'idle', message: '' });
+
+  useEffect(() => {
+    const policy = step1.tgswsPolicyNumber.trim();
+    if (!policy || policy === 'LCAP-' || policy.length <= 5) {
+      setLcapVerifyState({ status: 'idle', message: '' });
+      return;
+    }
+
+    const controller = new AbortController();
+    setLcapVerifyState((prev) => ({
+      ...prev,
+      status: 'checking',
+      message: 'Verifying LCAP policy against Tribute Grace database...',
+    }));
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/policies/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          signal: controller.signal,
+          body: JSON.stringify({
+            policyNumber: policy,
+            firstName: step1.firstName,
+            middleName: step1.middleName,
+            lastName: step1.lastName,
+            birthdate: step1.dateOfBirth,
+          }),
+        });
+
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          setLcapVerifyState({
+            status: 'error',
+            message: data.error || 'Could not verify LCAP policy right now.',
+          });
+          return;
+        }
+
+        if (!data.found) {
+          setLcapVerifyState({
+            status: 'not_found',
+            message: `Policy "${policy}" does not exist in the Tribute Grace database.`,
+          });
+          return;
+        }
+
+        const holder = data.policyHolder;
+        const holderFullName = [holder.firstName, holder.middleName, holder.lastName].filter(Boolean).join(' ');
+
+        if (!step1.firstName.trim() || !step1.lastName.trim()) {
+          setLcapVerifyState({
+            status: 'mismatch',
+            message: `Policy found (${holderFullName}). Enter borrower's First & Last Name to verify match.`,
+            policyHolder: holder,
+            birthdateMatches: data.birthdateMatches,
+          });
+          return;
+        }
+
+        if (data.nameMatches) {
+          const birthNote =
+            data.birthdateMatches === false
+              ? ' (Note: Birthdate differs from policy record)'
+              : data.birthdateMatches === true
+              ? ' • Birthdate matched'
+              : '';
+          setLcapVerifyState({
+            status: 'matched',
+            message: `Verified LCAP Policy — Matches policy holder: ${holderFullName}${birthNote}`,
+            policyHolder: holder,
+            birthdateMatches: data.birthdateMatches,
+          });
+        } else {
+          setLcapVerifyState({
+            status: 'mismatch',
+            message: `Name mismatch — Policy belongs to "${holderFullName}"${holder.birthdate ? ` (DOB: ${holder.birthdate})` : ''}, which does not match the borrower name entered.`,
+            policyHolder: holder,
+            birthdateMatches: data.birthdateMatches,
+          });
+        }
+      } catch (err) {
+        if ((err as { name?: string })?.name === 'AbortError') return;
+        setLcapVerifyState({
+          status: 'error',
+          message: 'Unable to reach Tribute Grace policy verification service.',
+        });
+      }
+    }, 450);
+
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
+    };
+  }, [step1.tgswsPolicyNumber, step1.firstName, step1.middleName, step1.lastName, step1.dateOfBirth]);
+
   const handleTgswsChange = (val: string) => {
     if (!val.startsWith('LCAP-')) {
       setStep1({ ...step1, tgswsPolicyNumber: 'LCAP-' });
@@ -1283,6 +1391,17 @@ export default function NewBorrowerRegistrationPage() {
     if (!step1.dateOfBirth) {
       setErrorMsg('Date of birth is required in Step 1.');
       return false;
+    }
+    const enteredPolicy = step1.tgswsPolicyNumber.trim();
+    if (enteredPolicy && enteredPolicy !== 'LCAP-') {
+      if (lcapVerifyState.status === 'not_found') {
+        setErrorMsg(`TGSWS Policy "${enteredPolicy}" was not found in Tribute Grace. Please enter a valid LCAP policy number.`);
+        return false;
+      }
+      if (lcapVerifyState.status === 'mismatch') {
+        setErrorMsg('TGSWS Policy holder name does not match the borrower being registered.');
+        return false;
+      }
     }
     setErrorMsg('');
     return true;
@@ -1892,6 +2011,33 @@ export default function NewBorrowerRegistrationPage() {
               <div>
                 <label style={labelStyle}>TGSWS Policy Number <span style={{ color: '#0284c7' }}>(Prefix: LCAP-)</span></label>
                 <input type="text" value={step1.tgswsPolicyNumber} onChange={(e) => handleTgswsChange(e.target.value)} style={{ ...inputStyle, fontFamily: 'monospace' }} />
+                {lcapVerifyState.status !== 'idle' && (
+                  <div style={{
+                    marginTop: '6px',
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    fontSize: '11.5px',
+                    fontWeight: '700',
+                    backgroundColor:
+                      lcapVerifyState.status === 'matched' ? '#dcfce7'
+                      : lcapVerifyState.status === 'checking' ? '#eff6ff'
+                      : lcapVerifyState.status === 'error' ? '#fef3c7'
+                      : '#fee2e2',
+                    color:
+                      lcapVerifyState.status === 'matched' ? '#15803d'
+                      : lcapVerifyState.status === 'checking' ? '#1d4ed8'
+                      : lcapVerifyState.status === 'error' ? '#92400e'
+                      : '#b91c1c',
+                    border: `1px solid ${
+                      lcapVerifyState.status === 'matched' ? '#86efac'
+                      : lcapVerifyState.status === 'checking' ? '#bfdbfe'
+                      : lcapVerifyState.status === 'error' ? '#fcd34d'
+                      : '#fca5a5'
+                    }`
+                  }}>
+                    {lcapVerifyState.message}
+                  </div>
+                )}
               </div>
               <div>
                 <label style={labelStyle}>Referral / Recommending Member</label>
