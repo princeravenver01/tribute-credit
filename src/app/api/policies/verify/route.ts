@@ -140,7 +140,8 @@ export async function POST(req: Request) {
     };
 
     const policyNumber = typeof body.policyNumber === 'string' ? body.policyNumber.trim() : '';
-    if (!policyNumber || policyNumber === 'LCAP-') {
+    const strippedId = policyNumber.replace(/^LCAP-/i, '').trim();
+    if (!policyNumber || policyNumber === 'LCAP-' || !strippedId) {
       return NextResponse.json({ error: 'Policy number is required.' }, { status: 400 });
     }
 
@@ -161,14 +162,17 @@ export async function POST(req: Request) {
       }
     }
 
-    const { policyCol, firstCol, lastCol, middleCol, birthCol } = colsInfo;
+    const { firstCol, lastCol, middleCol, birthCol } = colsInfo;
+
+    const numericId = Number(strippedId);
+    const lookupValue = Number.isInteger(numericId) && String(numericId) === strippedId ? numericId : strippedId;
 
     const [rows] = (await pool.execute(
-      `SELECT \`${policyCol}\` AS policy_number, \`${firstCol}\` AS first_name, \`${lastCol}\` AS last_name, \`${middleCol}\` AS middle_name, \`${birthCol}\` AS birthdate
+      `SELECT id AS policy_number, \`${firstCol}\` AS first_name, \`${lastCol}\` AS last_name, \`${middleCol}\` AS middle_name, \`${birthCol}\` AS birthdate
        FROM policies
-       WHERE LOWER(TRIM(\`${policyCol}\`)) COLLATE utf8mb4_unicode_ci = LOWER(TRIM(?)) COLLATE utf8mb4_unicode_ci
+       WHERE id = ?
        LIMIT 1`,
-      [policyNumber]
+      [lookupValue]
     )) as unknown as [Array<Record<string, unknown>>];
 
     if (!rows || rows.length === 0) {
