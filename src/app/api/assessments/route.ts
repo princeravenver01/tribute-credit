@@ -451,8 +451,14 @@ export async function GET() {
       ORDER BY la.created_at DESC
     `);
 
+    const dbLoanCodes = new Set<string>(
+      Array.isArray(rows) ? rows.map((r: { loan_code: string }) => r.loan_code) : []
+    );
+    global.__tributeAssessmentsStore = (global.__tributeAssessmentsStore || []).filter(
+      (item) => dbLoanCodes.has(item.applicationId || item.id)
+    );
+
     if (rows && rows.length > 0) {
-      if (!global.__tributeAssessmentsStore) global.__tributeAssessmentsStore = [];
       for (const row of rows) {
         const mappedStatus = row.workflow_status || (
           row.status === 'approved'
