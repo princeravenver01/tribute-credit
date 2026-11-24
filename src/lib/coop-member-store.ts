@@ -10,9 +10,9 @@ export async function ensureCoopMemberSchema(conn: PoolConnection): Promise<void
   if (coopMemberSchemaEnsured) return;
 
   const [cols] = (await conn.execute('SHOW COLUMNS FROM coop_members')) as unknown as [
-    Array<{ Field: string }>
+    Array<{ Field: string; Null: string }>
   ];
-  const existing = new Set(cols.map((c) => c.Field));
+  const existing = new Map(cols.map((c) => [c.Field, c]));
 
   const missingColumnDefs: Array<{ name: string; ddl: string }> = [
     {
@@ -39,6 +39,30 @@ export async function ensureCoopMemberSchema(conn: PoolConnection): Promise<void
 
   for (const col of missingColumnDefs) {
     if (!existing.has(col.name)) {
+      await conn.execute(`ALTER TABLE coop_members ${col.ddl}`);
+    }
+  }
+
+  // Ensure columns that are nullable for provisional borrower_only members allow NULL
+  const nullableColumnDefs: Array<{ name: string; ddl: string }> = [
+    { name: 'middle_name', ddl: 'MODIFY COLUMN `middle_name` VARCHAR(100) NULL' },
+    { name: 'suffix', ddl: 'MODIFY COLUMN `suffix` VARCHAR(20) NULL' },
+    { name: 'gender', ddl: "MODIFY COLUMN `gender` ENUM('Male', 'Female', 'Other') NULL" },
+    { name: 'date_of_birth', ddl: 'MODIFY COLUMN `date_of_birth` DATE NULL' },
+    { name: 'civil_status', ddl: "MODIFY COLUMN `civil_status` ENUM('Single', 'Married', 'Widowed', 'Separated', 'Divorced') NULL" },
+    { name: 'signature_data', ddl: 'MODIFY COLUMN `signature_data` LONGTEXT NULL' },
+    { name: 'signature_timestamp', ddl: 'MODIFY COLUMN `signature_timestamp` TIMESTAMP NULL' },
+    { name: 'photo_url', ddl: 'MODIFY COLUMN `photo_url` LONGTEXT NULL' },
+    { name: 'photo_timestamp', ddl: 'MODIFY COLUMN `photo_timestamp` TIMESTAMP NULL' },
+    { name: 'id_selfie_url', ddl: 'MODIFY COLUMN `id_selfie_url` LONGTEXT NULL' },
+    { name: 'id_selfie_timestamp', ddl: 'MODIFY COLUMN `id_selfie_timestamp` TIMESTAMP NULL' },
+    { name: 'payment_reference', ddl: 'MODIFY COLUMN `payment_reference` VARCHAR(100) NULL' },
+    { name: 'registered_by_id', ddl: 'MODIFY COLUMN `registered_by_id` INT NULL' },
+  ];
+
+  for (const col of nullableColumnDefs) {
+    const info = existing.get(col.name);
+    if (info && info.Null === 'NO') {
       await conn.execute(`ALTER TABLE coop_members ${col.ddl}`);
     }
   }
