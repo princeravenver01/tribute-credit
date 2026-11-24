@@ -116,9 +116,21 @@ async function syncToMySql(item: AssessmentRecord, actor?: { userId: number; rol
     } else {
       // Create valid strong temporary password hash via bcrypt
       const tempPasswordHash = await bcrypt.hash(`TributeTemp#${Date.now().toString(36)}`, 10);
+      const rawPolicyNo = item.policyNo?.trim();
+      let userMemberNo: string | null =
+        rawPolicyNo && rawPolicyNo !== 'LCAP-' ? rawPolicyNo : null;
+      if (userMemberNo) {
+        const [dupMember] = (await conn.execute(
+          'SELECT id FROM users WHERE member_no = ? LIMIT 1',
+          [userMemberNo]
+        )) as unknown as [Record<string, unknown>[]];
+        if (dupMember && dupMember.length > 0) {
+          userMemberNo = null;
+        }
+      }
       const [insertUserRes] = (await conn.execute(
         'INSERT INTO users (member_no, name, email, password, role, contact_number, address, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [item.policyNo || `MEM-${Date.now().toString().slice(-6)}`, borrowerName, borrowerEmail, tempPasswordHash, 'borrower', contact, address, 'active']
+        [userMemberNo, borrowerName, borrowerEmail, tempPasswordHash, 'borrower', contact, address, 'active']
       )) as unknown as [{ insertId: number }];
       borrowerId = insertUserRes.insertId;
     }
