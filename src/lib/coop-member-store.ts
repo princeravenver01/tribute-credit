@@ -70,6 +70,64 @@ export async function ensureCoopMemberSchema(conn: PoolConnection): Promise<void
     }
   }
 
+  // Ensure coop_member_transactions table & required columns exist
+  await conn.execute(`
+    CREATE TABLE IF NOT EXISTS \`coop_member_transactions\` (
+      \`id\` INT AUTO_INCREMENT PRIMARY KEY,
+      \`member_id\` INT NOT NULL,
+      \`member_no\` VARCHAR(50) NOT NULL,
+      \`transaction_type\` ENUM('registration_fee', 'capital_share', 'savings_deposit') NOT NULL,
+      \`amount\` DECIMAL(12,2) NOT NULL,
+      \`reference_no\` VARCHAR(100) NOT NULL,
+      \`recorded_by_name\` VARCHAR(150) NOT NULL,
+      \`recorded_by_id\` INT NULL,
+      \`recorded_by_role\` ENUM('admin', 'account_officer') NOT NULL DEFAULT 'account_officer',
+      \`audit_id\` VARCHAR(64) NOT NULL,
+      \`payment_method\` ENUM('cash', 'online', 'bank_transfer') NOT NULL DEFAULT 'cash',
+      \`payment_reference\` VARCHAR(100) NULL,
+      \`request_component\` ENUM('registration_fee', 'capital_share', 'savings_deposit', 'all') NOT NULL,
+      \`created_at\` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (\`member_id\`) REFERENCES \`coop_members\`(\`id\`) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+  `);
+
+  const [txCols] = (await conn.execute('SHOW COLUMNS FROM coop_member_transactions')) as unknown as [
+    Array<{ Field: string }>
+  ];
+  const existingTxCols = new Set(txCols.map((c) => c.Field));
+  const missingTxColumnDefs: Array<{ name: string; ddl: string }> = [
+    {
+      name: 'recorded_by_id',
+      ddl: 'ADD COLUMN `recorded_by_id` INT NULL AFTER `recorded_by_name`',
+    },
+    {
+      name: 'recorded_by_role',
+      ddl: "ADD COLUMN `recorded_by_role` ENUM('admin', 'account_officer') NOT NULL DEFAULT 'account_officer' AFTER `recorded_by_id`",
+    },
+    {
+      name: 'audit_id',
+      ddl: "ADD COLUMN `audit_id` VARCHAR(64) NOT NULL DEFAULT '' AFTER `recorded_by_role`",
+    },
+    {
+      name: 'payment_method',
+      ddl: "ADD COLUMN `payment_method` ENUM('cash', 'online', 'bank_transfer') NOT NULL DEFAULT 'cash' AFTER `audit_id`",
+    },
+    {
+      name: 'payment_reference',
+      ddl: 'ADD COLUMN `payment_reference` VARCHAR(100) NULL AFTER `payment_method`',
+    },
+    {
+      name: 'request_component',
+      ddl: "ADD COLUMN `request_component` ENUM('registration_fee', 'capital_share', 'savings_deposit', 'all') NOT NULL DEFAULT 'all' AFTER `payment_reference`",
+    },
+  ];
+
+  for (const col of missingTxColumnDefs) {
+    if (!existingTxCols.has(col.name)) {
+      await conn.execute(`ALTER TABLE coop_member_transactions ${col.ddl}`);
+    }
+  }
+
   coopMemberSchemaEnsured = true;
 }
 
@@ -516,6 +574,7 @@ export async function createProvisionalBorrowerMember(
 
     try {
       conn = await pool.getConnection();
+      await ensureCoopMemberSchema(conn);
       await conn.beginTransaction();
 
       // Check for concurrent race insertion before insert
@@ -801,6 +860,7 @@ export async function recordMembershipPayment(input: MemberPaymentInput): Promis
 
     try {
       conn = await pool.getConnection();
+      await ensureCoopMemberSchema(conn);
       await conn.beginTransaction();
 
       // 1. SELECT FOR UPDATE to lock target coop_members row
@@ -1287,6 +1347,7 @@ export async function linkMemberToUserAccount(
     const conn = await pool.getConnection();
 
     try {
+      await ensureCoopMemberSchema(conn);
       await conn.beginTransaction();
 
       // Check if user already linked
@@ -1413,7 +1474,8 @@ export async function registerCooperativeMember(input: RegisterMemberInput): Pro
 
       try {
         conn = await pool.getConnection();
-        await conn.beginTransaction();
+        await ensureCoopMemberSchema(conn);
+      await conn.beginTransaction();
 
         // 1. Duplicate email check within transaction
         const [existing] = (await conn.execute(
