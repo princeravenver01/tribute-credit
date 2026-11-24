@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { OfficerSidebar } from '@/components/officer/OfficerSidebar';
@@ -52,6 +52,47 @@ export default function OfficerRegisterMemberPage() {
   const [signatureData, setSignatureData] = useState<string>('');
   const [photoUrl, setPhotoUrl] = useState<string>('');
   const [idSelfieUrl, setIdSelfieUrl] = useState<string>('');
+
+  // Philippine PSGC Cascading Location Dropdowns
+  const [provincesList, setProvincesList] = useState<{ name: string; region: string }[]>([]);
+  const [municipalitiesList, setMunicipalitiesList] = useState<{ name: string; rawName: string; city: boolean }[]>([]);
+  const [barangaysList, setBarangaysList] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch('/api/locations/ph?type=provinces')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.provinces) setProvincesList(data.provinces);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!formData.province) {
+      setMunicipalitiesList([]);
+      setBarangaysList([]);
+      return;
+    }
+    fetch(`/api/locations/ph?type=municipalities&province=${encodeURIComponent(formData.province)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.municipalities) setMunicipalitiesList(data.municipalities);
+      })
+      .catch(() => {});
+  }, [formData.province]);
+
+  useEffect(() => {
+    if (!formData.city || !formData.province) {
+      setBarangaysList([]);
+      return;
+    }
+    fetch(`/api/locations/ph?type=barangays&municipality=${encodeURIComponent(formData.city)}&province=${encodeURIComponent(formData.province)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.barangays) setBarangaysList(data.barangays);
+      })
+      .catch(() => {});
+  }, [formData.city, formData.province]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -320,40 +361,57 @@ export default function OfficerRegisterMemberPage() {
 
                 <div className={styles.grid3}>
                   <div className={styles.formGroup}>
-                    <label>Barangay <span className={styles.required}>*</span></label>
-                    <input
-                      type="text"
-                      name="barangay"
+                    <label>Province <span className={styles.required}>*</span></label>
+                    <select
+                      name="province"
                       required
-                      className={styles.input}
-                      value={formData.barangay}
-                      onChange={handleInputChange}
-                      placeholder="e.g. Commonwealth"
-                    />
+                      className={styles.select}
+                      value={formData.province}
+                      onChange={(e) => {
+                        const nextProvince = e.target.value;
+                        setFormData((prev) => ({ ...prev, province: nextProvince, city: '', barangay: '' }));
+                      }}
+                    >
+                      <option value="">Select Province</option>
+                      {provincesList.map((p) => (
+                        <option key={p.name} value={p.name}>{p.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className={styles.formGroup}>
                     <label>City / Municipality <span className={styles.required}>*</span></label>
-                    <input
-                      type="text"
+                    <select
                       name="city"
                       required
-                      className={styles.input}
+                      className={styles.select}
                       value={formData.city}
-                      onChange={handleInputChange}
-                      placeholder="e.g. Quezon City"
-                    />
+                      disabled={!formData.province}
+                      onChange={(e) => {
+                        const nextCity = e.target.value;
+                        setFormData((prev) => ({ ...prev, city: nextCity, barangay: '' }));
+                      }}
+                    >
+                      <option value="">{formData.province ? 'Select City / Municipality' : 'Select Province First'}</option>
+                      {municipalitiesList.map((m) => (
+                        <option key={m.name} value={m.name}>{m.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className={styles.formGroup}>
-                    <label>Province <span className={styles.required}>*</span></label>
-                    <input
-                      type="text"
-                      name="province"
+                    <label>Barangay <span className={styles.required}>*</span></label>
+                    <select
+                      name="barangay"
                       required
-                      className={styles.input}
-                      value={formData.province}
+                      className={styles.select}
+                      value={formData.barangay}
+                      disabled={!formData.city}
                       onChange={handleInputChange}
-                      placeholder="e.g. Metro Manila"
-                    />
+                    >
+                      <option value="">{formData.city ? 'Select Barangay' : 'Select City / Municipality First'}</option>
+                      {barangaysList.map((b) => (
+                        <option key={b} value={b}>{b}</option>
+                      ))}
+                    </select>
                   </div>
                 </div>
               </div>
