@@ -78,6 +78,27 @@ if (!global.__tributeAssessmentsStore) {
   global.__tributeAssessmentsStore = [];
 }
 
+let loanApplicationSchemaEnsured = false;
+
+async function ensureLoanApplicationSchema(executor: { execute: (sql: string) => Promise<unknown> }) {
+  if (loanApplicationSchemaEnsured) return;
+  const [cols] = (await executor.execute('SHOW COLUMNS FROM loan_applications')) as unknown as [
+    Array<{ Field: string }>
+  ];
+  const existing = new Set(cols.map((c) => c.Field));
+  if (!existing.has('workflow_status')) {
+    await executor.execute(
+      'ALTER TABLE loan_applications ADD COLUMN `workflow_status` VARCHAR(64) NULL AFTER `status`'
+    );
+  }
+  if (!existing.has('payload_json')) {
+    await executor.execute(
+      'ALTER TABLE loan_applications ADD COLUMN `payload_json` LONGTEXT NULL AFTER `rejection_reason`'
+    );
+  }
+  loanApplicationSchemaEnsured = true;
+}
+
 import bcrypt from 'bcryptjs';
 
 // Helper: sync an assessment record to MySQL tribute_coop_db atomically
@@ -96,6 +117,7 @@ async function syncToMySql(item: AssessmentRecord, actor?: { userId: number; rol
 
   try {
     await ensureCoopMemberSchema(conn);
+    await ensureLoanApplicationSchema(conn);
     await conn.beginTransaction();
 
     // 1. Resolve or create user/borrower in MySQL users table
@@ -314,23 +336,29 @@ async function syncToMySql(item: AssessmentRecord, actor?: { userId: number; rol
       }
     }
 
+    const serializedPayload = JSON.stringify(item);
+
     if (existingLoans && existingLoans.length > 0) {
       await conn.execute(
         `UPDATE loan_applications SET 
           amount_requested = ?,
           status = ?,
+          workflow_status = ?,
           assigned_officer_id = COALESCE(assigned_officer_id, ?),
           officer_notes = ?,
           rejection_reason = ?,
+          payload_json = ?,
           approved_by_admin_id = ?,
           disbursed_at = ?
          WHERE loan_code = ?`,
         [
           finalAmount,
           dbStatus,
+          item.status || null,
           resolvedOfficerId,
           officerNotes,
           rejectionReason,
+          serializedPayload,
           (dbStatus === 'approved' || dbStatus === 'disbursed') ? resolvedAdminId : null,
           dbStatus === 'disbursed' ? new Date() : null,
           loanCode
@@ -360,8 +388,8 @@ async function syncToMySql(item: AssessmentRecord, actor?: { userId: number; rol
 
       await conn.execute(
         `INSERT INTO loan_applications 
-          (loan_code, borrower_id, product_id, amount_requested, term_months, interest_rate, purpose, monthly_amortization, status, assigned_officer_id, officer_notes, approved_by_admin_id, rejection_reason) 
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          (loan_code, borrower_id, product_id, amount_requested, term_months, interest_rate, purpose, monthly_amortization, status, workflow_status, assigned_officer_id, officer_notes, approved_by_admin_id, rejection_reason, payload_json) 
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           loanCode,
           borrowerId,
@@ -372,10 +400,12 @@ async function syncToMySql(item: AssessmentRecord, actor?: { userId: number; rol
           purpose,
           monthlyAmort,
           dbStatus,
+          item.status || null,
           resolvedOfficerId,
           officerNotes,
           (dbStatus === 'approved' || dbStatus === 'disbursed') ? resolvedAdminId : null,
-          rejectionReason
+          rejectionReason,
+          serializedPayload
         ]
       );
     }
@@ -395,6 +425,9 @@ export async function GET() {
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status });
 
   try {
+    const db = await import('@/lib/db');
+    await ensureLoanApplicationSchema(db.getDbPool());
+
     const rows: any = await query(`
       SELECT 
         la.id as db_id,
@@ -402,9 +435,11 @@ export async function GET() {
         la.amount_requested,
         la.term_months,
         la.status,
+        la.workflow_status,
         la.purpose,
         la.officer_notes,
         la.rejection_reason,
+        la.payload_json,
         la.created_at,
         u.name as borrower_name,
         u.member_no,
@@ -419,19 +454,30 @@ export async function GET() {
     if (rows && rows.length > 0) {
       if (!global.__tributeAssessmentsStore) global.__tributeAssessmentsStore = [];
       for (const row of rows) {
-        const mappedStatus = row.status === 'approved' 
-          ? 'admin_approved' 
-          : row.status === 'rejected' 
-          ? 'admin_rejected' 
-          : row.status === 'disbursed'
-          ? 'disbursed'
-          : row.status === 'under_review'
-          ? 'pending_admin'
-          : row.status === 'pending'
-          ? 'pending_assessment'
-          : 'pending_assessment';
+        const mappedStatus = row.workflow_status || (
+          row.status === 'approved'
+            ? 'admin_approved'
+            : row.status === 'rejected'
+            ? 'admin_rejected'
+            : row.status === 'disbursed'
+            ? 'disbursed'
+            : row.status === 'under_review'
+            ? 'pending_admin'
+            : row.status === 'pending'
+            ? 'pending_assessment'
+            : 'pending_assessment'
+        );
 
-        const record: AssessmentRecord = {
+        let parsedPayload: Partial<AssessmentRecord> | null = null;
+        if (typeof row.payload_json === 'string' && row.payload_json.trim()) {
+          try {
+            parsedPayload = JSON.parse(row.payload_json) as Partial<AssessmentRecord>;
+          } catch {
+            parsedPayload = null;
+          }
+        }
+
+        const fallbackRecord: AssessmentRecord = {
           id: `CA-${row.loan_code.replace(/[^0-9]/g, '') || row.db_id}`,
           applicationId: row.loan_code,
           borrowerName: row.borrower_name || 'Member Borrower',
@@ -476,6 +522,14 @@ export async function GET() {
           adminNotes: row.rejection_reason || undefined,
           borrowerEmail: row.borrower_email
         };
+
+        const record: AssessmentRecord = parsedPayload
+          ? {
+              ...fallbackRecord,
+              ...parsedPayload,
+              status: parsedPayload.status || mappedStatus,
+            }
+          : fallbackRecord;
 
         upsertRecord(record, true);
       }
