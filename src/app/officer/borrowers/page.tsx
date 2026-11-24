@@ -10,7 +10,7 @@ import {
   getCreditAssessments,
   saveCreditAssessment,
   generateNextLoanReference,
-  resolveAssessmentSyncStatus,
+  reconcileAssessmentsWithServer,
   CreditAssessmentItem
 } from '@/lib/credit-assessment-store';
 import {
@@ -198,27 +198,7 @@ export default function CurrentBorrowersPage() {
         if (res.ok) {
           const json = await res.json();
           if (json.data && Array.isArray(json.data)) {
-            for (const serverItem of json.data) {
-              const localIdx = list.findIndex(a => 
-                a.id === serverItem.id || 
-                (serverItem.applicationId && a.applicationId === serverItem.applicationId) ||
-                (serverItem.policyNo && serverItem.policyNo !== 'LCAP-' && a.policyNo === serverItem.policyNo) ||
-                (serverItem.borrowerName && a.borrowerName.toLowerCase() === serverItem.borrowerName.toLowerCase())
-              );
-              if (localIdx >= 0) {
-                const localItem = list[localIdx];
-                const mergedStatus = resolveAssessmentSyncStatus(localItem.status, serverItem.status);
-                list[localIdx] = {
-                  ...localItem,
-                  ...serverItem,
-                  status: mergedStatus,
-                  adminDisbursementRelease: localItem.adminDisbursementRelease || serverItem.adminDisbursementRelease,
-                  aoDisbursementConfirmation: localItem.aoDisbursementConfirmation || serverItem.aoDisbursementConfirmation,
-                };
-              } else {
-                list.unshift(serverItem);
-              }
-            }
+            list = reconcileAssessmentsWithServer(list, json.data);
           }
         }
       } catch (e) {}

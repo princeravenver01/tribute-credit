@@ -10,7 +10,7 @@ import { AdminBorrowerDetailsModal } from '@/components/admin/AdminBorrowerDetai
 import {
   getCreditAssessments,
   saveCreditAssessment,
-  resolveAssessmentSyncStatus,
+  reconcileAssessmentsWithServer,
   type CreditAssessmentItem,
 } from '@/lib/credit-assessment-store';
 import {
@@ -92,32 +92,14 @@ export default function AdminDisbursementHubPage() {
 
   useEffect(() => {
     const loadData = async () => {
-      const list = getCreditAssessments();
+      let list = getCreditAssessments();
 
       try {
         const res = await fetch('/api/assessments');
         if (res.ok) {
           const json = await res.json();
           if (json.data && Array.isArray(json.data)) {
-            for (const serverItem of json.data) {
-              const localIdx = list.findIndex(
-                (a) =>
-                  a.id === serverItem.id ||
-                  (serverItem.applicationId && a.applicationId === serverItem.applicationId)
-              );
-              if (localIdx >= 0) {
-                const local = list[localIdx];
-                list[localIdx] = {
-                  ...local,
-                  ...serverItem,
-                  status: resolveAssessmentSyncStatus(local.status, serverItem.status),
-                  adminDisbursementRelease: local.adminDisbursementRelease || serverItem.adminDisbursementRelease,
-                  aoDisbursementConfirmation: local.aoDisbursementConfirmation || serverItem.aoDisbursementConfirmation,
-                };
-              } else {
-                list.unshift(serverItem);
-              }
-            }
+            list = reconcileAssessmentsWithServer(list, json.data);
           }
         }
       } catch {}

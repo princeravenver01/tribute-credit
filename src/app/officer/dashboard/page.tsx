@@ -22,7 +22,7 @@ import {
   Sparkles
 } from 'lucide-react';
 
-import { getCreditAssessments } from '@/lib/credit-assessment-store';
+import { getCreditAssessments, reconcileAssessmentsWithServer } from '@/lib/credit-assessment-store';
 import theme from '@/components/officer/OfficerTheme.module.css';
 import styles from './dashboard.module.css';
 
@@ -58,18 +58,8 @@ export default function OfficerDashboardPage() {
             }
           }
 
-          // 2. Merge server items into local list
-          for (const serverItem of serverItems) {
-            const localIdx = list.findIndex(a => 
-              a.id === serverItem.id || 
-              (serverItem.applicationId && a.applicationId === serverItem.applicationId)
-            );
-            if (localIdx >= 0) {
-              list[localIdx] = { ...list[localIdx], ...serverItem };
-            } else {
-              list.unshift(serverItem);
-            }
-          }
+          // 2. Reconcile local list with authoritative server items (preserves pendingSync offline records)
+          list = reconcileAssessmentsWithServer(list, serverItems);
         }
       } catch (e) {}
 

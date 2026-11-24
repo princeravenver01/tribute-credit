@@ -8,6 +8,7 @@ import { AdminBorrowerDetailsModal } from '@/components/admin/AdminBorrowerDetai
 import {
   getCreditAssessments,
   resolveAssessmentSyncStatus,
+  reconcileAssessmentsWithServer,
   saveCreditAssessment,
   updateAssessmentStatus,
   CreditAssessmentItem
@@ -165,30 +166,19 @@ export default function AdminLoanApprovalsPage() {
         console.error('Error integrating draft in admin loans page:', e);
       }
 
-      // Merge with server-side assessments store (so regular and Incognito windows share data seamlessly)
+      // Reconcile with server-side assessments store (preserves offline pendingSync records)
+      let reconciledList = list;
       try {
         const res = await fetch('/api/assessments');
         if (res.ok) {
           const json = await res.json();
           if (json.data && Array.isArray(json.data)) {
-            for (const serverItem of json.data) {
-              const localIdx = list.findIndex(a => 
-                a.id === serverItem.id || 
-                (serverItem.applicationId && a.applicationId === serverItem.applicationId)
-              );
-              if (localIdx >= 0) {
-                const existing = list[localIdx];
-                const finalStatus = resolveAssessmentSyncStatus(existing.status, serverItem.status);
-                list[localIdx] = { ...existing, ...serverItem, status: finalStatus };
-              } else {
-                list.unshift(serverItem);
-              }
-            }
+            reconciledList = reconcileAssessmentsWithServer(list, json.data);
           }
         }
       } catch (e) {}
 
-      setAssessments([...list]);
+      setAssessments([...reconciledList]);
 
       let deepLinkedTarget: CreditAssessmentItem | null = null;
       if (typeof window !== 'undefined' && !handledDeepLinkRef.current) {

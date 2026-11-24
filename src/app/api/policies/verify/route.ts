@@ -4,23 +4,29 @@ import { requireApiRole } from '@/lib/server-auth';
 
 let tgPool: mysql.Pool | null = null;
 let cachedPolicyCol: string | null = null;
+let cachedFirstCol: string | null = null;
+let cachedLastCol: string | null = null;
 let cachedMiddleCol: string | null = null;
 let cachedBirthCol: string | null = null;
 
+function createTgPool(hostOverride?: string) {
+  return mysql.createPool({
+    host: hostOverride || process.env.TG_DB_HOST || process.env.DB_HOST || '127.0.0.1',
+    user: process.env.TG_DB_USER || 'u721094550_tribute_grace',
+    password: process.env.TG_DB_PASSWORD || 'AveeAthena2026!',
+    database: process.env.TG_DB_NAME || 'u721094550_tribute_grace',
+    port: Number(process.env.TG_DB_PORT || process.env.DB_PORT) || 3306,
+    ssl: process.env.TG_DB_SSL === 'true' ? {} : undefined,
+    waitForConnections: true,
+    connectionLimit: 5,
+    queueLimit: 0,
+    connectTimeout: 8000,
+  });
+}
+
 function getTgDbPool() {
   if (!tgPool) {
-    tgPool = mysql.createPool({
-      host: process.env.TG_DB_HOST || process.env.DB_HOST || 'localhost',
-      user: process.env.TG_DB_USER || 'u721094550_tribute_grace',
-      password: process.env.TG_DB_PASSWORD || 'AveeAthena2026!',
-      database: process.env.TG_DB_NAME || 'u721094550_tribute_grace',
-      port: Number(process.env.TG_DB_PORT || process.env.DB_PORT) || 3306,
-      ssl: process.env.TG_DB_SSL === 'true' ? {} : undefined,
-      waitForConnections: true,
-      connectionLimit: 5,
-      queueLimit: 0,
-      connectTimeout: 8000,
-    });
+    tgPool = createTgPool();
   }
   return tgPool;
 }
@@ -60,6 +66,8 @@ async function resolvePolicyColumns(pool: mysql.Pool) {
   if (cachedPolicyCol) {
     return {
       policyCol: cachedPolicyCol,
+      firstCol: cachedFirstCol || 'first_name',
+      lastCol: cachedLastCol || 'last_name',
       middleCol: cachedMiddleCol || 'middleName',
       birthCol: cachedBirthCol || 'birthdate',
     };
@@ -80,14 +88,27 @@ async function resolvePolicyColumns(pool: mysql.Pool) {
     'lcap_no',
     'code',
   ];
-  let policyCol =
+  const policyCol =
     policyCandidates.map((c) => lowerMap.get(c)).find(Boolean) ||
     fields.find((f) => /policy|lcap/i.test(f)) ||
     'policy_number';
 
+  const firstCol =
+    lowerMap.get('first_name') ||
+    lowerMap.get('firstname') ||
+    lowerMap.get('fname') ||
+    'first_name';
+
+  const lastCol =
+    lowerMap.get('last_name') ||
+    lowerMap.get('lastname') ||
+    lowerMap.get('lname') ||
+    'last_name';
+
   const middleCol =
     lowerMap.get('middlename') ||
     lowerMap.get('middle_name') ||
+    lowerMap.get('mname') ||
     'middleName';
 
   const birthCol =
@@ -97,10 +118,12 @@ async function resolvePolicyColumns(pool: mysql.Pool) {
     'birthdate';
 
   cachedPolicyCol = policyCol;
+  cachedFirstCol = firstCol;
+  cachedLastCol = lastCol;
   cachedMiddleCol = middleCol;
   cachedBirthCol = birthCol;
 
-  return { policyCol, middleCol, birthCol };
+  return { policyCol, firstCol, lastCol, middleCol, birthCol };
 }
 
 export async function POST(req: Request) {
@@ -121,11 +144,27 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Policy number is required.' }, { status: 400 });
     }
 
-    const pool = getTgDbPool();
-    const { policyCol, middleCol, birthCol } = await resolvePolicyColumns(pool);
+    let pool = getTgDbPool();
+    let colsInfo;
+    try {
+      colsInfo = await resolvePolicyColumns(pool);
+    } catch (firstErr) {
+      const configuredHost = process.env.TG_DB_HOST || process.env.DB_HOST || '127.0.0.1';
+      const altHost = configuredHost === '127.0.0.1' ? 'localhost' : '127.0.0.1';
+      const altPool = createTgPool(altHost);
+      try {
+        colsInfo = await resolvePolicyColumns(altPool);
+        tgPool = altPool;
+        pool = altPool;
+      } catch {
+        throw firstErr;
+      }
+    }
+
+    const { policyCol, firstCol, lastCol, middleCol, birthCol } = colsInfo;
 
     const [rows] = (await pool.execute(
-      `SELECT \`${policyCol}\` AS policy_number, first_name, last_name, \`${middleCol}\` AS middle_name, \`${birthCol}\` AS birthdate
+      `SELECT \`${policyCol}\` AS policy_number, \`${firstCol}\` AS first_name, \`${lastCol}\` AS last_name, \`${middleCol}\` AS middle_name, \`${birthCol}\` AS birthdate
        FROM policies
        WHERE LOWER(TRIM(\`${policyCol}\`)) = LOWER(TRIM(?))
        LIMIT 1`,
@@ -181,7 +220,10 @@ export async function POST(req: Request) {
       message: dbErr?.message ?? String(err),
     });
     return NextResponse.json(
-      { ok: false, error: 'Unable to verify against Tribute Grace policy database right now.' },
+      {
+        ok: false,
+        error: `Unable to verify against Tribute Grace policy database (${dbErr?.code || 'DB_ERROR'}: ${dbErr?.message || 'Connection failed'}).`,
+      },
       { status: 503 }
     );
   }

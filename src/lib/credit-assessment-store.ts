@@ -167,6 +167,7 @@ export interface CreditAssessmentItem {
 
   // Full Borrower Onboarding Profile (for comprehensive View Details Modal)
   mcid?: string; // e.g. 'TCID-A-00001'
+  pendingSync?: boolean; // True when created/updated offline and not yet acknowledged by server
   fullProfile?: {
     step1?: any;
     step2?: any;
@@ -356,10 +357,11 @@ export function saveCreditAssessment(assessment: CreditAssessmentItem): CreditAs
     (assessment.applicationId && a.applicationId === assessment.applicationId)
   );
   
+  const itemToSave: CreditAssessmentItem = { ...assessment, pendingSync: true };
   if (existingIndex >= 0) {
-    list[existingIndex] = { ...list[existingIndex], ...assessment };
+    list[existingIndex] = { ...list[existingIndex], ...itemToSave };
   } else {
-    list.unshift(assessment);
+    list.unshift(itemToSave);
   }
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
@@ -370,7 +372,19 @@ export function saveCreditAssessment(assessment: CreditAssessmentItem): CreditAs
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(assessment),
-    }).catch(() => {});
+    })
+      .then((res) => {
+        if (!res.ok) return;
+        const current = getCreditAssessments();
+        const idx = current.findIndex(
+          (a) => a.id === assessment.id || (assessment.applicationId && a.applicationId === assessment.applicationId)
+        );
+        if (idx >= 0 && current[idx].pendingSync) {
+          current[idx] = { ...current[idx], pendingSync: false };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+        }
+      })
+      .catch(() => {});
   } catch (e) {}
 
   try {
@@ -388,7 +402,8 @@ export function updateAssessmentStatus(
   const list = getCreditAssessments();
   const index = list.findIndex(a => a.id === idOrAppId || a.applicationId === idOrAppId);
   if (index >= 0) {
-    list[index] = { ...list[index], status, ...extra };
+    const updatedItem: CreditAssessmentItem = { ...list[index], status, ...extra, pendingSync: true };
+    list[index] = updatedItem;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
 
     // Sync to server
@@ -396,8 +411,20 @@ export function updateAssessmentStatus(
       fetch('/api/assessments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(list[index]),
-      }).catch(() => {});
+        body: JSON.stringify(updatedItem),
+      })
+        .then((res) => {
+          if (!res.ok) return;
+          const current = getCreditAssessments();
+          const idx = current.findIndex(
+            (a) => a.id === updatedItem.id || (updatedItem.applicationId && a.applicationId === updatedItem.applicationId)
+          );
+          if (idx >= 0 && current[idx].pendingSync) {
+            current[idx] = { ...current[idx], pendingSync: false };
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+          }
+        })
+        .catch(() => {});
     } catch (e) {}
 
     try {
@@ -405,5 +432,57 @@ export function updateAssessmentStatus(
     } catch (e) {}
   }
   return list;
+}
+
+/**
+ * Reconciles localStorage assessments with an authoritative server response while
+ * preserving offline-created/updated records (`pendingSync === true`).
+ * Only call this when `GET /api/assessments` succeeds (`res.ok`).
+ */
+export function reconcileAssessmentsWithServer(
+  localList: CreditAssessmentItem[],
+  serverItems: CreditAssessmentItem[]
+): CreditAssessmentItem[] {
+  const reconciled: CreditAssessmentItem[] = [];
+  const matchedLocalIndices = new Set<number>();
+
+  for (const serverItem of serverItems) {
+    const localIdx = localList.findIndex(
+      (a) =>
+        a.id === serverItem.id ||
+        (serverItem.applicationId && a.applicationId === serverItem.applicationId) ||
+        (serverItem.policyNo && serverItem.policyNo !== 'LCAP-' && a.policyNo === serverItem.policyNo)
+    );
+
+    if (localIdx >= 0) {
+      matchedLocalIndices.add(localIdx);
+      const local = localList[localIdx];
+      reconciled.push({
+        ...local,
+        ...serverItem,
+        status: resolveAssessmentSyncStatus(local.status, serverItem.status),
+        adminDisbursementRelease: local.adminDisbursementRelease || serverItem.adminDisbursementRelease,
+        aoDisbursementConfirmation: local.aoDisbursementConfirmation || serverItem.aoDisbursementConfirmation,
+        pendingSync: false,
+      });
+    } else {
+      reconciled.push({ ...serverItem, pendingSync: false });
+    }
+  }
+
+  // Keep offline-only records that haven't been acknowledged by the server yet
+  localList.forEach((localItem, idx) => {
+    if (!matchedLocalIndices.has(idx) && localItem.pendingSync) {
+      reconciled.push(localItem);
+    }
+  });
+
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(reconciled));
+    } catch {}
+  }
+
+  return reconciled;
 }
 

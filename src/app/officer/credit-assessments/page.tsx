@@ -12,6 +12,7 @@ import {
   saveCreditAssessment,
   updateAssessmentStatus,
   calculate5CsGrade,
+  reconcileAssessmentsWithServer,
   CreditAssessmentItem,
   FiveCsScorecard
 } from '@/lib/credit-assessment-store';
@@ -118,30 +119,19 @@ export default function CreditAssessmentsPage() {
         console.error('Error integrating draft in credit assessments page:', e);
       }
 
-      // Merge with server-side assessments store (so regular and Incognito windows share data seamlessly)
+      // Reconcile with server-side assessments store (preserves offline pendingSync records)
+      let reconciledList = list;
       try {
         const res = await fetch('/api/assessments');
         if (res.ok) {
           const json = await res.json();
           if (json.data && Array.isArray(json.data)) {
-            for (const serverItem of json.data) {
-              const localIdx = list.findIndex(a => 
-                a.id === serverItem.id || 
-                (serverItem.applicationId && a.applicationId === serverItem.applicationId) ||
-                (serverItem.policyNo && serverItem.policyNo !== 'LCAP-' && a.policyNo === serverItem.policyNo) ||
-                (serverItem.borrowerName && a.borrowerName.toLowerCase() === serverItem.borrowerName.toLowerCase())
-              );
-              if (localIdx >= 0) {
-                list[localIdx] = { ...list[localIdx], ...serverItem };
-              } else {
-                list.unshift(serverItem);
-              }
-            }
+            reconciledList = reconcileAssessmentsWithServer(list, json.data);
           }
         }
       } catch (e) {}
 
-      setAssessments([...list]);
+      setAssessments([...reconciledList]);
 
       // Check deep link parameter once after local + server records are merged
       if (typeof window !== 'undefined' && !handledDeepLinkRef.current) {
