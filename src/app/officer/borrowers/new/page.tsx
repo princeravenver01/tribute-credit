@@ -1067,6 +1067,43 @@ export default function NewBorrowerRegistrationPage() {
     };
   }, [step1.tgswsPolicyNumber, step1.firstName, step1.middleName, step1.lastName, step1.dateOfBirth]);
 
+  const [coopMembersList, setCoopMembersList] = useState<
+    Array<{ memberNo: string; fullName: string; membershipType?: string }>
+  >([]);
+  const [referralDropdownOpen, setReferralDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/members')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!active || !data?.members || !Array.isArray(data.members)) return;
+        const activeMembers = data.members
+          .filter((m: { registrationStatus?: string }) => !m.registrationStatus || m.registrationStatus === 'active')
+          .map((m: { memberNo: string; fullName: string; membershipType?: string }) => ({
+            memberNo: m.memberNo,
+            fullName: m.fullName,
+            membershipType: m.membershipType,
+          }));
+        setCoopMembersList(activeMembers);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const matchedReferralMember = coopMembersList.find((m) => {
+    const val = step1.referral.trim().toLowerCase();
+    if (!val) return false;
+    const formatted = `${m.fullName} (${m.memberNo})`.toLowerCase();
+    return (
+      val === formatted ||
+      val === m.memberNo.toLowerCase() ||
+      val === m.fullName.toLowerCase()
+    );
+  });
+
   const handleTgswsChange = (val: string) => {
     if (!val.startsWith('LCAP-')) {
       setStep1({ ...step1, tgswsPolicyNumber: 'LCAP-' });
@@ -1402,6 +1439,10 @@ export default function NewBorrowerRegistrationPage() {
         setErrorMsg('TGSWS Policy holder name does not match the borrower being registered.');
         return false;
       }
+    }
+    if (step1.referral.trim() && coopMembersList.length > 0 && !matchedReferralMember) {
+      setErrorMsg('Referral / Recommending Member must be selected from currently registered cooperative members.');
+      return false;
     }
     setErrorMsg('');
     return true;
@@ -2039,9 +2080,126 @@ export default function NewBorrowerRegistrationPage() {
                   </div>
                 )}
               </div>
-              <div>
+              <div style={{ position: 'relative' }}>
                 <label style={labelStyle}>Referral / Recommending Member</label>
-                <input type="text" placeholder="e.g. Member Name or Referral Code" value={step1.referral} onChange={(e) => setStep1({ ...step1, referral: e.target.value })} style={inputStyle} />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type="text"
+                    placeholder={coopMembersList.length > 0 ? 'Search registered coop member name or TCID...' : 'No registered coop members found'}
+                    value={step1.referral}
+                    onFocus={() => setReferralDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setReferralDropdownOpen(false), 180)}
+                    onChange={(e) => {
+                      setStep1({ ...step1, referral: e.target.value });
+                      setReferralDropdownOpen(true);
+                    }}
+                    style={{ ...inputStyle, paddingRight: step1.referral ? '32px' : undefined }}
+                  />
+                  {step1.referral && (
+                    <button
+                      type="button"
+                      onClick={() => setStep1({ ...step1, referral: '' })}
+                      style={{
+                        position: 'absolute',
+                        right: '8px',
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        border: 'none',
+                        background: 'transparent',
+                        color: '#64748b',
+                        cursor: 'pointer',
+                        fontSize: '14px',
+                        fontWeight: '700',
+                        padding: '2px 6px',
+                      }}
+                      title="Clear recommending member"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+
+                {referralDropdownOpen && coopMembersList.length > 0 && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    right: 0,
+                    zIndex: 40,
+                    marginTop: '4px',
+                    backgroundColor: '#ffffff',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: '8px',
+                    boxShadow: '0 10px 25px rgba(15, 23, 42, 0.12)',
+                    maxHeight: '210px',
+                    overflowY: 'auto',
+                  }}>
+                    {(() => {
+                      const q = step1.referral.trim().toLowerCase();
+                      const filtered = coopMembersList.filter((m) =>
+                        !q ||
+                        m.fullName.toLowerCase().includes(q) ||
+                        m.memberNo.toLowerCase().includes(q)
+                      );
+                      if (filtered.length === 0) {
+                        return (
+                          <div style={{ padding: '10px 12px', fontSize: '12px', color: '#64748b' }}>
+                            No registered cooperative member matches &ldquo;{step1.referral}&rdquo;.
+                          </div>
+                        );
+                      }
+                      return filtered.slice(0, 20).map((m) => (
+                        <button
+                          key={m.memberNo}
+                          type="button"
+                          onMouseDown={(e) => {
+                            e.preventDefault();
+                            setStep1({ ...step1, referral: `${m.fullName} (${m.memberNo})` });
+                            setReferralDropdownOpen(false);
+                          }}
+                          style={{
+                            width: '100%',
+                            textAlign: 'left',
+                            padding: '8px 12px',
+                            border: 'none',
+                            borderBottom: '1px solid #f1f5f9',
+                            backgroundColor: '#ffffff',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '12.5px',
+                          }}
+                        >
+                          <span style={{ fontWeight: '700', color: '#0f172a' }}>{m.fullName}</span>
+                          <span style={{ fontFamily: 'monospace', fontSize: '11px', color: '#047857', fontWeight: '700' }}>
+                            {m.memberNo}
+                          </span>
+                        </button>
+                      ));
+                    })()}
+                  </div>
+                )}
+
+                {step1.referral.trim() && (
+                  <div style={{
+                    marginTop: '6px',
+                    padding: '6px 10px',
+                    borderRadius: '6px',
+                    fontSize: '11.5px',
+                    fontWeight: '700',
+                    backgroundColor: matchedReferralMember ? '#dcfce7' : '#fef3c7',
+                    color: matchedReferralMember ? '#15803d' : '#92400e',
+                    border: `1px solid ${matchedReferralMember ? '#86efac' : '#fcd34d'}`,
+                  }}>
+                    {matchedReferralMember
+                      ? `✓ Verified Recommending Member: ${matchedReferralMember.fullName} (${matchedReferralMember.memberNo})`
+                      : coopMembersList.length > 0
+                      ? '⚠ Please select a registered cooperative member from the list.'
+                      : '⚠ Cooperative member list unavailable offline; verify manually.'}
+                  </div>
+                )}
               </div>
             </div>
 
