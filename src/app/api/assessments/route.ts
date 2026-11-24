@@ -81,7 +81,7 @@ if (!global.__tributeAssessmentsStore) {
 import bcrypt from 'bcryptjs';
 
 // Helper: sync an assessment record to MySQL tribute_coop_db atomically
-async function syncToMySql(item: AssessmentRecord) {
+async function syncToMySql(item: AssessmentRecord, actor?: { userId: number; role: string }) {
   const loanCode = item.applicationId || item.id;
   if (!loanCode) return;
 
@@ -270,15 +270,43 @@ async function syncToMySql(item: AssessmentRecord) {
     const rejectionReason = item.status === 'admin_rejected' ? (item.adminNotes || 'Declined during Credit Committee review') : null;
 
     const [existingLoans] = (await conn.execute(
-      'SELECT id FROM loan_applications WHERE loan_code = ? LIMIT 1 FOR UPDATE',
+      'SELECT id, assigned_officer_id, approved_by_admin_id FROM loan_applications WHERE loan_code = ? LIMIT 1 FOR UPDATE',
       [loanCode]
     )) as unknown as [Record<string, unknown>[]];
+
+    // Resolve valid foreign keys dynamically instead of hardcoding user/product IDs
+    let resolvedOfficerId: number | null =
+      (existingLoans?.[0]?.assigned_officer_id as number | null | undefined) ?? null;
+    if (!resolvedOfficerId) {
+      if (actor?.role === 'account_officer') {
+        resolvedOfficerId = actor.userId;
+      } else {
+        const [officers] = (await conn.execute(
+          "SELECT id FROM users WHERE role = 'account_officer' ORDER BY id ASC LIMIT 1"
+        )) as unknown as [Record<string, unknown>[]];
+        resolvedOfficerId = officers?.[0]?.id ? Number(officers[0].id) : null;
+      }
+    }
+
+    let resolvedAdminId: number | null =
+      (existingLoans?.[0]?.approved_by_admin_id as number | null | undefined) ?? null;
+    if ((dbStatus === 'approved' || dbStatus === 'disbursed') && !resolvedAdminId) {
+      if (actor?.role === 'admin') {
+        resolvedAdminId = actor.userId;
+      } else {
+        const [admins] = (await conn.execute(
+          "SELECT id FROM users WHERE role = 'admin' ORDER BY id ASC LIMIT 1"
+        )) as unknown as [Record<string, unknown>[]];
+        resolvedAdminId = admins?.[0]?.id ? Number(admins[0].id) : null;
+      }
+    }
 
     if (existingLoans && existingLoans.length > 0) {
       await conn.execute(
         `UPDATE loan_applications SET 
           amount_requested = ?,
           status = ?,
+          assigned_officer_id = COALESCE(assigned_officer_id, ?),
           officer_notes = ?,
           rejection_reason = ?,
           approved_by_admin_id = ?,
@@ -287,14 +315,36 @@ async function syncToMySql(item: AssessmentRecord) {
         [
           finalAmount,
           dbStatus,
+          resolvedOfficerId,
           officerNotes,
           rejectionReason,
-          (dbStatus === 'approved' || dbStatus === 'disbursed') ? 1 : null,
+          (dbStatus === 'approved' || dbStatus === 'disbursed') ? resolvedAdminId : null,
           dbStatus === 'disbursed' ? new Date() : null,
           loanCode
         ]
       );
     } else {
+      let resolvedProductId: number | null = null;
+      if (item.productName) {
+        const [matchedProducts] = (await conn.execute(
+          'SELECT id FROM loan_products WHERE name = ? LIMIT 1',
+          [item.productName]
+        )) as unknown as [Record<string, unknown>[]];
+        if (matchedProducts?.[0]?.id) resolvedProductId = Number(matchedProducts[0].id);
+      }
+      if (!resolvedProductId) {
+        const [anyProducts] = (await conn.execute(
+          'SELECT id FROM loan_products ORDER BY id ASC LIMIT 1'
+        )) as unknown as [Record<string, unknown>[]];
+        if (anyProducts?.[0]?.id) resolvedProductId = Number(anyProducts[0].id);
+      }
+      if (!resolvedProductId) {
+        const [insertedProduct] = (await conn.execute(
+          "INSERT INTO loan_products (name, description, interest_rate, term_months, min_amount, max_amount) VALUES ('Regular Emergency Loan', 'Default cooperative loan product', 1.50, 12, 2000.00, 50000.00)"
+        )) as unknown as [{ insertId: number }];
+        resolvedProductId = insertedProduct.insertId;
+      }
+
       await conn.execute(
         `INSERT INTO loan_applications 
           (loan_code, borrower_id, product_id, amount_requested, term_months, interest_rate, purpose, monthly_amortization, status, assigned_officer_id, officer_notes, approved_by_admin_id, rejection_reason) 
@@ -302,16 +352,16 @@ async function syncToMySql(item: AssessmentRecord) {
         [
           loanCode,
           borrowerId,
-          1,
+          resolvedProductId,
           finalAmount,
           termMonths,
           3.00,
           purpose,
           monthlyAmort,
           dbStatus,
-          2,
+          resolvedOfficerId,
           officerNotes,
-          (dbStatus === 'approved' || dbStatus === 'disbursed') ? 1 : null,
+          (dbStatus === 'approved' || dbStatus === 'disbursed') ? resolvedAdminId : null,
           rejectionReason
         ]
       );
@@ -450,7 +500,7 @@ export async function POST(req: Request) {
       if (!global.__tributeAssessmentsStore) global.__tributeAssessmentsStore = [];
       // Only upsert into memory AFTER syncToMySql transaction succeeds
       for (const item of body.items) {
-        await syncToMySql(item);
+        await syncToMySql(item, auth.session);
         upsertRecord(item);
       }
       return NextResponse.json({
@@ -461,7 +511,7 @@ export async function POST(req: Request) {
 
     // Default single record upsert: sync first, then upsert in memory
     if (body.id || body.applicationId) {
-      await syncToMySql(body);
+      await syncToMySql(body, auth.session);
       upsertRecord(body);
       return NextResponse.json({
         success: true,

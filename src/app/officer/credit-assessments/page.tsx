@@ -248,7 +248,8 @@ export default function CreditAssessmentsPage() {
       });
 
       if (!res.ok) {
-        throw new Error(`Server returned ${res.status}: Failed to persist assessment`);
+        const errBody = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(`Server returned ${res.status}: ${errBody?.error || 'Failed to persist assessment'}`);
       }
 
       // 2. Persist locally to storage
