@@ -10,6 +10,7 @@ import { AdminBorrowerDetailsModal } from '@/components/admin/AdminBorrowerDetai
 import {
   getCreditAssessments,
   saveCreditAssessment,
+  resolveAssessmentSyncStatus,
   type CreditAssessmentItem,
 } from '@/lib/credit-assessment-store';
 import {
@@ -109,6 +110,7 @@ export default function AdminDisbursementHubPage() {
                 list[localIdx] = {
                   ...local,
                   ...serverItem,
+                  status: resolveAssessmentSyncStatus(local.status, serverItem.status),
                   adminDisbursementRelease: local.adminDisbursementRelease || serverItem.adminDisbursementRelease,
                   aoDisbursementConfirmation: local.aoDisbursementConfirmation || serverItem.aoDisbursementConfirmation,
                 };
@@ -164,6 +166,7 @@ export default function AdminDisbursementHubPage() {
   };
 
   const readyCount = assessments.filter((a) => a.status === 'contract_ready').length;
+  const awaitingContractCount = assessments.filter((a) => a.status === 'admin_approved').length;
   const awaitingAoCount = assessments.filter((a) => a.status === 'pending_ao_disbursement').length;
   const disbursedCount = assessments.filter((a) => a.status === 'disbursed').length;
   const totalDisbursedAmount = assessments
@@ -322,6 +325,30 @@ export default function AdminDisbursementHubPage() {
             <span className={styles.statSub}>Counted strictly after AO confirmation</span>
           </div>
         </div>
+
+        {awaitingContractCount > 0 && readyCount === 0 && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              padding: '12px 16px',
+              borderRadius: '12px',
+              backgroundColor: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              color: '#1e40af',
+              fontSize: '13px',
+              fontWeight: 600,
+              marginBottom: '16px',
+            }}
+            role="status"
+          >
+            <Clock size={18} />
+            <span>
+              {awaitingContractCount} Admin-approved loan{awaitingContractCount === 1 ? ' is' : 's are'} still awaiting Step 7 Contract Execution by the Account Officer before appearing in Stage 1 Release.
+            </span>
+          </div>
+        )}
 
         {successMsg && (
           <div className={styles.alertSuccess} role="status">

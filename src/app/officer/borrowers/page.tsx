@@ -10,6 +10,7 @@ import {
   getCreditAssessments,
   saveCreditAssessment,
   generateNextLoanReference,
+  resolveAssessmentSyncStatus,
   CreditAssessmentItem
 } from '@/lib/credit-assessment-store';
 import {
@@ -205,7 +206,15 @@ export default function CurrentBorrowersPage() {
                 (serverItem.borrowerName && a.borrowerName.toLowerCase() === serverItem.borrowerName.toLowerCase())
               );
               if (localIdx >= 0) {
-                list[localIdx] = { ...list[localIdx], ...serverItem };
+                const localItem = list[localIdx];
+                const mergedStatus = resolveAssessmentSyncStatus(localItem.status, serverItem.status);
+                list[localIdx] = {
+                  ...localItem,
+                  ...serverItem,
+                  status: mergedStatus,
+                  adminDisbursementRelease: localItem.adminDisbursementRelease || serverItem.adminDisbursementRelease,
+                  aoDisbursementConfirmation: localItem.aoDisbursementConfirmation || serverItem.aoDisbursementConfirmation,
+                };
               } else {
                 list.unshift(serverItem);
               }
@@ -501,7 +510,9 @@ export default function CurrentBorrowersPage() {
                                   ? 'Active / Disbursed'
                                   : b.status === 'pending_ao_disbursement'
                                   ? 'Released by Admin — Awaiting AO Confirmation'
-                                  : 'Awaiting Payout'}
+                                  : b.status === 'contract_ready'
+                                  ? 'Awaiting Payout (Admin Release)'
+                                  : 'Approved — Pending Step 7 Contract'}
                               </span>
                             );
                           })()}
