@@ -166,7 +166,7 @@ export async function POST(req: Request) {
     const [rows] = (await pool.execute(
       `SELECT \`${policyCol}\` AS policy_number, \`${firstCol}\` AS first_name, \`${lastCol}\` AS last_name, \`${middleCol}\` AS middle_name, \`${birthCol}\` AS birthdate
        FROM policies
-       WHERE LOWER(TRIM(\`${policyCol}\`)) = LOWER(TRIM(?))
+       WHERE LOWER(TRIM(\`${policyCol}\`)) COLLATE utf8mb4_unicode_ci = LOWER(TRIM(?)) COLLATE utf8mb4_unicode_ci
        LIMIT 1`,
       [policyNumber]
     )) as unknown as [Array<Record<string, unknown>>];
