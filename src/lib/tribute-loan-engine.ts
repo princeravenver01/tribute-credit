@@ -10,7 +10,7 @@ export interface LoanProductRule {
   minTerm: number;
   maxTerm: number;
   monthlyInterestRate: number; // 6% per month flat
-  monthlyServiceChargeRate: number; // 1.5% per month of term
+  monthlyServiceChargeRate: number; // 0.1% * 1.5 = 0.15% per month of term
   cbuRate: number; // 5% for lifetime
   cbuMinimum: number; // Minimum ₱500 floor
 }
@@ -25,7 +25,7 @@ export const TRIBUTE_GRACE_PRODUCTS: Record<string, LoanProductRule> = {
     minTerm: 2,
     maxTerm: 6,
     monthlyInterestRate: 0.06, // 6% flat per month
-    monthlyServiceChargeRate: 0.015, // 1.5% per month
+    monthlyServiceChargeRate: 0.0015, // 0.1% * 1.5 = 0.15% per month
     cbuRate: 0.05, // 5% lifetime
     cbuMinimum: 500, // CBU should not go below ₱500
   },
@@ -38,7 +38,7 @@ export const TRIBUTE_GRACE_PRODUCTS: Record<string, LoanProductRule> = {
     minTerm: 2,
     maxTerm: 6,
     monthlyInterestRate: 0.06,
-    monthlyServiceChargeRate: 0.015,
+    monthlyServiceChargeRate: 0.0015,
     cbuRate: 0.05,
     cbuMinimum: 500,
   },
@@ -51,7 +51,7 @@ export const TRIBUTE_GRACE_PRODUCTS: Record<string, LoanProductRule> = {
     minTerm: 2,
     maxTerm: 6,
     monthlyInterestRate: 0.06,
-    monthlyServiceChargeRate: 0.015,
+    monthlyServiceChargeRate: 0.0015,
     cbuRate: 0.05,
     cbuMinimum: 500,
   },
@@ -79,7 +79,7 @@ export interface CalculationResult {
 /**
  * Confirmed calculation formula:
  * Total interest = P * 0.06 * M
- * Service charge = P * 0.015 * M (Deducted upfront from proceeds)
+ * Service charge = (P * 0.001) * 1.5 * M = P * 0.0015 * M (Deducted upfront from proceeds)
  * Capital Build Up (CBU):
  *   - 5% CBU for lifetime (paid during loan release, one time per loan only)
  *   - CBU floor: Should not go below ₱500 (Math.max(500, P * 0.05))
@@ -100,7 +100,7 @@ export function calculateTributeLoan(
   const interestRateMonthly = prod.monthlyInterestRate;
   const totalInterest = Math.round(P * interestRateMonthly * M * 100) / 100;
 
-  // Service charge = P * 0.015 * M
+  // Service charge = P * 0.001 * 1.5 * M (0.15% per month)
   const serviceCharge = Math.round(P * prod.monthlyServiceChargeRate * M * 100) / 100;
 
   // CBU commitment: 5% lifetime, paid during loan release, one time per loan only; minimum ₱500 floor

@@ -3033,7 +3033,7 @@ export default function NewBorrowerRegistrationPage() {
               <div>
                 <h2 style={{ fontSize: '19px', fontWeight: '800', color: '#0f172a' }}>Step 5: Loan Terms (Business Plan Matrix)</h2>
                 <p style={{ fontSize: '13px', color: '#64748b' }}>
-                  Product terms conforming to Tribute Grace financial rules (Interest: 6%/mo flat, Service Charge: 1.5%/mo of term, CBU: 5%).
+                  Product terms conforming to Tribute Grace financial rules (Interest: 6%/mo flat, Service Charge: 0.1% × 1.5/mo of term, CBU: 5%).
                 </p>
               </div>
             </div>
@@ -3148,7 +3148,7 @@ export default function NewBorrowerRegistrationPage() {
                   <p style={{ ...calcCardVal, color: '#0f172a' }}>₱ {tributeCalculations.totalInterest.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
                 </div>
                 <div style={calcCardStyle}>
-                  <span style={calcCardSub}>Service Charge (1.5% x {tributeCalculations.termMonths} mos)</span>
+                  <span style={calcCardSub}>Service Charge (0.1% × 1.5 × {tributeCalculations.termMonths} mos)</span>
                   <p style={{ ...calcCardVal, color: '#b45309' }}>₱ {tributeCalculations.serviceCharge.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</p>
                   <span style={{ fontSize: '10.5px', color: '#64748b' }}>Deducted at release</span>
                 </div>

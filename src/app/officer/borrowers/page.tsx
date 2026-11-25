@@ -2618,7 +2618,7 @@ export default function CurrentBorrowersPage() {
                       {/* Financial Breakdown Preview */}
                       <div style={{ backgroundColor: '#f8fbf9', border: '1px solid #dcece0', padding: '10px 14px', borderRadius: '10px', marginBottom: '14px', fontSize: '12px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                          <span style={{ color: '#475569' }}>Service Charge (1.5% &times; P &times; {renewalTerm} mos):</span>
+                          <span style={{ color: '#475569' }}>Service Charge (0.1% &times; 1.5 &times; P &times; {renewalTerm} mos):</span>
                           <strong>₱ {newCalc.serviceCharge.toLocaleString('en-PH', { minimumFractionDigits: 2 })}</strong>
                         </div>
                         {renewalOffsetBalance && currentRemBal > 0 && (

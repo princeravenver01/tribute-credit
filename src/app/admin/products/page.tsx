@@ -44,7 +44,7 @@ export default function AdminProductsPage() {
   const [minTerm, setMinTerm] = useState(2);
   const [maxTerm, setMaxTerm] = useState(6);
   const [interestPct, setInterestPct] = useState(6.0);
-  const [serviceChargePct, setServiceChargePct] = useState(1.5);
+  const [serviceChargePct, setServiceChargePct] = useState(0.15);
   const [cbuPct, setCbuPct] = useState(5.0);
   const [cbuMin, setCbuMin] = useState(500);
   const [status, setStatus] = useState<'active' | 'inactive'>('active');
