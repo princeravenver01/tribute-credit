@@ -137,6 +137,8 @@ export async function POST(req: Request) {
       middleName?: string;
       lastName?: string;
       birthdate?: string;
+      applicantRole?: 'policy_holder' | 'beneficiary';
+      beneficiaryId?: number | string;
     };
 
     const policyNumber = typeof body.policyNumber === 'string' ? body.policyNumber.trim() : '';
@@ -191,22 +193,62 @@ export async function POST(req: Request) {
     const policyMid = normalizeNamePart(row.middle_name);
     const policyBirth = normalizeDate(row.birthdate);
 
+    // Fetch living beneficiaries for this policy_id
+    let beneficiaryRows: Array<Record<string, unknown>> = [];
+    try {
+      const [bRows] = (await pool.execute(
+        `SELECT id, policy_id, first_name, last_name, middleName, relation, birthdate, contact_number
+         FROM beneficiaries
+         WHERE policy_id = ? AND (is_deceased = 0 OR is_deceased IS NULL)
+         ORDER BY id ASC`,
+        [lookupValue]
+      )) as unknown as [Array<Record<string, unknown>>];
+      beneficiaryRows = bRows || [];
+    } catch {
+      beneficiaryRows = [];
+    }
+
+    const beneficiaries = beneficiaryRows.map((b) => ({
+      id: Number(b.id),
+      firstName: String(b.first_name || ''),
+      middleName: String(b.middleName || ''),
+      lastName: String(b.last_name || ''),
+      relation: String(b.relation || ''),
+      birthdate: normalizeDate(b.birthdate) || undefined,
+      contactNumber: b.contact_number ? String(b.contact_number) : undefined,
+    }));
+
     const borrowerFirst = normalizeNamePart(body.firstName);
     const borrowerLast = normalizeNamePart(body.lastName);
     const borrowerMid = normalizeNamePart(body.middleName);
     const borrowerBirth = normalizeDate(body.birthdate);
 
-    const firstMatches = Boolean(borrowerFirst) && borrowerFirst === policyFirst;
-    const lastMatches = Boolean(borrowerLast) && borrowerLast === policyLast;
-    const midMatches = middleMatches(borrowerMid, policyMid);
-    const nameMatches = firstMatches && lastMatches && midMatches;
+    const applicantRole = body.applicantRole === 'beneficiary' ? 'beneficiary' : 'policy_holder';
+    const selectedBen =
+      applicantRole === 'beneficiary' && body.beneficiaryId !== undefined && body.beneficiaryId !== ''
+        ? beneficiaries.find((b) => b.id === Number(body.beneficiaryId))
+        : undefined;
+
+    const targetFirst = selectedBen ? normalizeNamePart(selectedBen.firstName) : policyFirst;
+    const targetLast = selectedBen ? normalizeNamePart(selectedBen.lastName) : policyLast;
+    const targetMid = selectedBen ? normalizeNamePart(selectedBen.middleName) : policyMid;
+    const targetBirth = selectedBen ? normalizeDate(selectedBen.birthdate) : policyBirth;
+
+    const firstMatches = Boolean(borrowerFirst) && borrowerFirst === targetFirst;
+    const lastMatches = Boolean(borrowerLast) && borrowerLast === targetLast;
+    const midMatches = middleMatches(borrowerMid, targetMid);
+    const nameMatches =
+      applicantRole === 'beneficiary' && !selectedBen
+        ? false
+        : firstMatches && lastMatches && midMatches;
 
     const birthdateMatches =
-      borrowerBirth && policyBirth ? borrowerBirth === policyBirth : null;
+      borrowerBirth && targetBirth ? borrowerBirth === targetBirth : null;
 
     return NextResponse.json({
       ok: true,
       found: true,
+      applicantRole,
       nameMatches,
       birthdateMatches,
       policyHolder: {
@@ -216,6 +258,8 @@ export async function POST(req: Request) {
         lastName: String(row.last_name || ''),
         birthdate: policyBirth || undefined,
       },
+      beneficiaries,
+      selectedBeneficiary: selectedBen || null,
     });
   } catch (err) {
     const dbErr = err as { code?: string; message?: string };

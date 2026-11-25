@@ -959,6 +959,8 @@ export default function NewBorrowerRegistrationPage() {
   };
 
   // Step 1 Policy lock & real-time LCAP verification
+  const [lcapApplicantRole, setLcapApplicantRole] = useState<'policy_holder' | 'beneficiary'>('policy_holder');
+  const [selectedBeneficiaryId, setSelectedBeneficiaryId] = useState<string>('');
   const [lcapVerifyState, setLcapVerifyState] = useState<{
     status: 'idle' | 'checking' | 'matched' | 'mismatch' | 'not_found' | 'error';
     message: string;
@@ -969,6 +971,15 @@ export default function NewBorrowerRegistrationPage() {
       lastName: string;
       birthdate?: string;
     };
+    beneficiaries?: Array<{
+      id: number;
+      firstName: string;
+      middleName: string;
+      lastName: string;
+      relation: string;
+      birthdate?: string;
+      contactNumber?: string;
+    }>;
     birthdateMatches?: boolean | null;
   }>({ status: 'idle', message: '' });
 
@@ -998,6 +1009,8 @@ export default function NewBorrowerRegistrationPage() {
             middleName: step1.middleName,
             lastName: step1.lastName,
             birthdate: step1.dateOfBirth,
+            applicantRole: lcapApplicantRole,
+            beneficiaryId: lcapApplicantRole === 'beneficiary' ? selectedBeneficiaryId : undefined,
           }),
         });
 
@@ -1019,13 +1032,34 @@ export default function NewBorrowerRegistrationPage() {
         }
 
         const holder = data.policyHolder;
-        const holderFullName = [holder.firstName, holder.middleName, holder.lastName].filter(Boolean).join(' ');
+        const beneficiariesList = Array.isArray(data.beneficiaries) ? data.beneficiaries : [];
+        const selectedBen =
+          lcapApplicantRole === 'beneficiary'
+            ? beneficiariesList.find((b: { id: number }) => String(b.id) === String(selectedBeneficiaryId))
+            : null;
+        const targetPerson = selectedBen || holder;
+        const targetFullName = [targetPerson.firstName, targetPerson.middleName, targetPerson.lastName].filter(Boolean).join(' ');
+
+        if (lcapApplicantRole === 'beneficiary' && !selectedBen) {
+          setLcapVerifyState({
+            status: 'mismatch',
+            message:
+              beneficiariesList.length > 0
+                ? 'Select which Beneficiary is applying for this loan.'
+                : 'No living beneficiaries found for this policy.',
+            policyHolder: holder,
+            beneficiaries: beneficiariesList,
+            birthdateMatches: data.birthdateMatches,
+          });
+          return;
+        }
 
         if (!step1.firstName.trim() || !step1.lastName.trim()) {
           setLcapVerifyState({
             status: 'mismatch',
-            message: `Policy found (${holderFullName}). Enter borrower's First & Last Name to verify match.`,
+            message: `Policy found (${[holder.firstName, holder.middleName, holder.lastName].filter(Boolean).join(' ')}). Enter borrower's First & Last Name to verify against ${lcapApplicantRole === 'beneficiary' ? 'selected Beneficiary' : 'Policy Holder'}.`,
             policyHolder: holder,
+            beneficiaries: beneficiariesList,
             birthdateMatches: data.birthdateMatches,
           });
           return;
@@ -1034,21 +1068,23 @@ export default function NewBorrowerRegistrationPage() {
         if (data.nameMatches) {
           const birthNote =
             data.birthdateMatches === false
-              ? ' (Note: Birthdate differs from policy record)'
+              ? ' (Note: Birthdate differs from record)'
               : data.birthdateMatches === true
               ? ' • Birthdate matched'
               : '';
           setLcapVerifyState({
             status: 'matched',
-            message: `Verified LCAP Policy — Matches policy holder: ${holderFullName}${birthNote}`,
+            message: `Verified LCAP Policy — Matches ${lcapApplicantRole === 'beneficiary' ? `Beneficiary (${selectedBen.relation})` : 'Policy Holder'}: ${targetFullName}${birthNote}`,
             policyHolder: holder,
+            beneficiaries: beneficiariesList,
             birthdateMatches: data.birthdateMatches,
           });
         } else {
           setLcapVerifyState({
             status: 'mismatch',
-            message: `Name mismatch — Policy belongs to "${holderFullName}"${holder.birthdate ? ` (DOB: ${holder.birthdate})` : ''}, which does not match the borrower name entered.`,
+            message: `Name mismatch — Selected ${lcapApplicantRole === 'beneficiary' ? `Beneficiary (${selectedBen.relation})` : 'Policy Holder'} is "${targetFullName}"${targetPerson.birthdate ? ` (DOB: ${targetPerson.birthdate})` : ''}, which does not match the borrower name entered.`,
             policyHolder: holder,
+            beneficiaries: beneficiariesList,
             birthdateMatches: data.birthdateMatches,
           });
         }
@@ -1065,7 +1101,7 @@ export default function NewBorrowerRegistrationPage() {
       clearTimeout(timer);
       controller.abort();
     };
-  }, [step1.tgswsPolicyNumber, step1.firstName, step1.middleName, step1.lastName, step1.dateOfBirth]);
+  }, [step1.tgswsPolicyNumber, step1.firstName, step1.middleName, step1.lastName, step1.dateOfBirth, lcapApplicantRole, selectedBeneficiaryId]);
 
   const [coopMembersList, setCoopMembersList] = useState<
     Array<{ memberNo: string; fullName: string; membershipType?: string }>
@@ -1435,8 +1471,12 @@ export default function NewBorrowerRegistrationPage() {
         setErrorMsg(`TGSWS Policy "${enteredPolicy}" was not found in Tribute Grace. Please enter a valid LCAP policy number.`);
         return false;
       }
+      if (lcapApplicantRole === 'beneficiary' && !selectedBeneficiaryId) {
+        setErrorMsg('Please select which Beneficiary from the policy is applying for this loan.');
+        return false;
+      }
       if (lcapVerifyState.status === 'mismatch') {
-        setErrorMsg('TGSWS Policy holder name does not match the borrower being registered.');
+        setErrorMsg(`TGSWS Policy ${lcapApplicantRole === 'beneficiary' ? 'beneficiary' : 'holder'} name does not match the borrower being registered.`);
         return false;
       }
     }
@@ -2077,6 +2117,79 @@ export default function NewBorrowerRegistrationPage() {
                     }`
                   }}>
                     {lcapVerifyState.message}
+                  </div>
+                )}
+
+                {lcapVerifyState.policyHolder && (
+                  <div style={{
+                    marginTop: '8px',
+                    padding: '10px 12px',
+                    borderRadius: '8px',
+                    backgroundColor: '#f8fafc',
+                    border: '1px solid #e2e8f0',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
+                  }}>
+                    <div style={{ fontSize: '11.5px', fontWeight: '700', color: '#334155' }}>
+                      Who is applying for this loan?
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLcapApplicantRole('policy_holder');
+                          setSelectedBeneficiaryId('');
+                        }}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          fontSize: '11.5px',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          border: `1px solid ${lcapApplicantRole === 'policy_holder' ? '#0284c7' : '#cbd5e1'}`,
+                          backgroundColor: lcapApplicantRole === 'policy_holder' ? '#e0f2fe' : '#ffffff',
+                          color: lcapApplicantRole === 'policy_holder' ? '#0369a1' : '#475569',
+                        }}
+                      >
+                        Policy Holder ({[lcapVerifyState.policyHolder.firstName, lcapVerifyState.policyHolder.lastName].filter(Boolean).join(' ')})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setLcapApplicantRole('beneficiary')}
+                        style={{
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          fontSize: '11.5px',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          border: `1px solid ${lcapApplicantRole === 'beneficiary' ? '#0284c7' : '#cbd5e1'}`,
+                          backgroundColor: lcapApplicantRole === 'beneficiary' ? '#e0f2fe' : '#ffffff',
+                          color: lcapApplicantRole === 'beneficiary' ? '#0369a1' : '#475569',
+                        }}
+                      >
+                        Beneficiary ({lcapVerifyState.beneficiaries?.length || 0})
+                      </button>
+                    </div>
+
+                    {lcapApplicantRole === 'beneficiary' && (
+                      <select
+                        value={selectedBeneficiaryId}
+                        onChange={(e) => setSelectedBeneficiaryId(e.target.value)}
+                        style={{ ...inputStyle, fontSize: '12.5px', padding: '7px 10px' }}
+                      >
+                        <option value="">
+                          {lcapVerifyState.beneficiaries && lcapVerifyState.beneficiaries.length > 0
+                            ? 'Select Beneficiary applying for loan...'
+                            : 'No living beneficiaries found on this policy'}
+                        </option>
+                        {(lcapVerifyState.beneficiaries || []).map((b) => (
+                          <option key={b.id} value={String(b.id)}>
+                            {[b.firstName, b.middleName, b.lastName].filter(Boolean).join(' ')} ({b.relation}){b.birthdate ? ` — DOB: ${b.birthdate}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    )}
                   </div>
                 )}
               </div>
