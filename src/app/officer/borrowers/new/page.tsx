@@ -1108,6 +1108,421 @@ export default function NewBorrowerRegistrationPage() {
   >([]);
   const [referralDropdownOpen, setReferralDropdownOpen] = useState(false);
 
+  // Legacy Active Borrowers CSV Import Modal state
+  const [csvModalOpen, setCsvModalOpen] = useState(false);
+  const [csvFileName, setCsvFileName] = useState('');
+  const [csvPreviewRows, setCsvPreviewRows] = useState<
+    Array<{
+      rowNum: number;
+      firstName: string;
+      middleName: string;
+      lastName: string;
+      suffix: string;
+      gender: string;
+      dateOfBirth: string;
+      civilStatus: string;
+      mobileNumber: string;
+      email: string;
+      address: string;
+      barangay: string;
+      city: string;
+      province: string;
+      occupation: string;
+      monthlyIncome: number;
+      policyNo: string;
+      mcid: string;
+      productName: string;
+      principal: number;
+      termMonths: number;
+      paymentMode: 'Daily' | 'Weekly' | 'Semi-Monthly' | 'Monthly';
+      dateReleased: string;
+      totalCollected: number;
+      loanCycle: number;
+      error?: string;
+    }>
+  >([]);
+  const [csvImporting, setCsvImporting] = useState(false);
+  const [csvImportResult, setCsvImportResult] = useState<{ ok: boolean; message: string } | null>(null);
+
+  const parseCsvLine = (line: string): string[] => {
+    const out: string[] = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          cur += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (ch === ',' && !inQuotes) {
+        out.push(cur.trim());
+        cur = '';
+      } else {
+        cur += ch;
+      }
+    }
+    out.push(cur.trim());
+    return out;
+  };
+
+  const handleDownloadCsvTemplate = () => {
+    const headers = [
+      'first_name',
+      'middle_name',
+      'last_name',
+      'suffix',
+      'gender',
+      'date_of_birth',
+      'civil_status',
+      'mobile_number',
+      'email',
+      'address',
+      'barangay',
+      'city',
+      'province',
+      'occupation',
+      'monthly_income',
+      'policy_no',
+      'mcid',
+      'product_name',
+      'principal_amount',
+      'term_months',
+      'payment_mode',
+      'date_released',
+      'total_collected',
+      'loan_cycle',
+    ];
+    const sampleRow = [
+      'Juan',
+      'Dela',
+      'Cruz',
+      '',
+      'Male',
+      '1988-05-14',
+      'Married',
+      '09171234567',
+      'juan.delacruz@example.com',
+      'Blk 4 Lot 12 Rizal St',
+      'Commonwealth',
+      'Quezon City',
+      'Metro Manila',
+      'Sari-Sari Store Owner',
+      '22000',
+      'LCAP-1001',
+      '',
+      'Regular Loan',
+      '10000',
+      '3',
+      'Weekly',
+      '2026-10-15',
+      '3000',
+      '1',
+    ];
+    const csvContent = `${headers.join(',')}\n${sampleRow.join(',')}\n`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'tribute_legacy_borrowers_template.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleCsvFileUpload = (file: File) => {
+    setCsvImportResult(null);
+    setCsvFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = String(reader.result || '').replace(/^\uFEFF/, '');
+      const lines = text.split(/\r?\n/).filter((l) => l.trim() !== '');
+      if (lines.length < 2) {
+        setCsvPreviewRows([]);
+        setCsvImportResult({ ok: false, message: 'CSV file must contain a header row and at least one borrower row.' });
+        return;
+      }
+
+      const headers = parseCsvLine(lines[0]).map((h) => h.toLowerCase().trim());
+      const colIdx = (name: string) => headers.indexOf(name);
+
+      const parsed = lines.slice(1).map((line, idx) => {
+        const cols = parseCsvLine(line);
+        const get = (name: string) => {
+          const i = colIdx(name);
+          return i >= 0 && i < cols.length ? cols[i].trim() : '';
+        };
+
+        const firstName = get('first_name');
+        const middleName = get('middle_name');
+        const lastName = get('last_name');
+        const suffix = get('suffix');
+        const gender = get('gender') || 'Male';
+        const dateOfBirth = get('date_of_birth');
+        const civilStatus = get('civil_status') || 'Single';
+        const mobileNumber = get('mobile_number');
+        const email = get('email');
+        const address = get('address');
+        const barangay = get('barangay');
+        const city = get('city');
+        const province = get('province');
+        const occupation = get('occupation') || 'Microenterprise Member';
+        const monthlyIncome = Number(get('monthly_income')) || 15000;
+        const policyNo = get('policy_no') || 'LCAP-';
+        const mcid = get('mcid');
+        const productRaw = get('product_name');
+        const productName = ['Regular Loan', 'Small Business Loan', 'Emergency Loan'].includes(productRaw)
+          ? productRaw
+          : 'Regular Loan';
+        const principal = Number(get('principal_amount')) || 0;
+        const termMonths = Math.max(1, Number(get('term_months')) || 3);
+        const modeRaw = get('payment_mode');
+        const paymentMode: 'Daily' | 'Weekly' | 'Semi-Monthly' | 'Monthly' =
+          ['Daily', 'Weekly', 'Semi-Monthly', 'Monthly'].includes(modeRaw)
+            ? (modeRaw as 'Daily' | 'Weekly' | 'Semi-Monthly' | 'Monthly')
+            : 'Weekly';
+        const dateReleased = get('date_released') || new Date().toISOString().slice(0, 10);
+        const totalCollected = Math.max(0, Number(get('total_collected')) || 0);
+        const loanCycle = Math.max(1, Number(get('loan_cycle')) || 1);
+
+        let error: string | undefined;
+        if (!firstName || !lastName) error = 'Missing first_name or last_name';
+        else if (principal <= 0) error = 'principal_amount must be greater than 0';
+
+        return {
+          rowNum: idx + 2,
+          firstName,
+          middleName,
+          lastName,
+          suffix,
+          gender,
+          dateOfBirth,
+          civilStatus,
+          mobileNumber,
+          email,
+          address,
+          barangay,
+          city,
+          province,
+          occupation,
+          monthlyIncome,
+          policyNo,
+          mcid,
+          productName,
+          principal,
+          termMonths,
+          paymentMode,
+          dateReleased,
+          totalCollected,
+          loanCycle,
+          error,
+        };
+      });
+
+      setCsvPreviewRows(parsed);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleConfirmCsvImport = async () => {
+    const validRows = csvPreviewRows.filter((r) => !r.error);
+    if (validRows.length === 0) {
+      setCsvImportResult({ ok: false, message: 'No valid rows to import.' });
+      return;
+    }
+
+    setCsvImporting(true);
+    setCsvImportResult(null);
+
+    try {
+      const existingList = getCreditAssessments();
+      const baseMcid = generateNextCooperativeId();
+      const baseMcidMatch = baseMcid.match(/^(.*?)(\d+)$/);
+      const items: CreditAssessmentItem[] = validRows.map((row, idx) => {
+        const calc = calculateTributeLoan(row.principal, row.termMonths, row.productName, row.paymentMode);
+        const fullName = [row.firstName, row.middleName, row.lastName, row.suffix].filter(Boolean).join(' ');
+        const uniqueSuffix = `${Date.now().toString().slice(-5)}${String(idx + 1).padStart(2, '0')}`;
+        const appId = `TC-LN-MIG-${uniqueSuffix}`;
+        const caId = `CA-MIG-${uniqueSuffix}`;
+        const assignedMcid =
+          row.mcid ||
+          (baseMcidMatch
+            ? `${baseMcidMatch[1]}${String(Number(baseMcidMatch[2]) + idx).padStart(baseMcidMatch[2].length, '0')}`
+            : `${baseMcid}-${idx + 1}`);
+        const releaseDate = new Date(row.dateReleased);
+        const validRelease = isNaN(releaseDate.getTime()) ? new Date() : releaseDate;
+        const schedDates = generateCollectionScheduleDates(validRelease, row.termMonths, row.paymentMode, calc.numberOfInstallments);
+
+        const totalPaid = Math.min(calc.contractualBalance, row.totalCollected);
+        const remBalance = Math.max(0, Math.round((calc.contractualBalance - totalPaid) * 100) / 100);
+        let runningPaid = totalPaid;
+        let runningBal = calc.contractualBalance;
+        const instAmt = calc.installmentPerFrequency;
+
+        const ledgerRecords = schedDates.map((sd, sIdx) => {
+          if (runningPaid > 0.01) {
+            const applied = Math.min(runningPaid, sIdx === schedDates.length - 1 ? runningPaid : instAmt);
+            runningPaid = Math.max(0, Math.round((runningPaid - applied) * 100) / 100);
+            runningBal = Math.max(0, Math.round((runningBal - applied) * 100) / 100);
+            return {
+              installmentNo: sIdx + 1,
+              paymentSchedule: sd.dateStr,
+              status: 'Paid' as const,
+              datePaid: row.dateReleased,
+              principalAmount: row.principal,
+              interest: Math.round(calc.totalInterest / Math.max(1, calc.numberOfInstallments)),
+              payment: applied,
+              loanBalance: runningBal,
+              aoSignature: 'LEGACY-MIGRATION',
+              notes: 'Migrated from legacy system',
+            };
+          }
+          if (remBalance <= 0) {
+            return {
+              installmentNo: sIdx + 1,
+              paymentSchedule: sd.dateStr,
+              status: 'Settled' as const,
+              principalAmount: row.principal,
+              interest: Math.round(calc.totalInterest / Math.max(1, calc.numberOfInstallments)),
+              loanBalance: 0,
+            };
+          }
+          return {
+            installmentNo: sIdx + 1,
+            paymentSchedule: sd.dateStr,
+            status: 'Pending' as const,
+            principalAmount: row.principal,
+            interest: Math.round(calc.totalInterest / Math.max(1, calc.numberOfInstallments)),
+            loanBalance: calc.contractualBalance,
+          };
+        });
+
+        const nextPending = ledgerRecords.find((r) => r.status === 'Pending');
+
+        const item: CreditAssessmentItem = {
+          id: caId,
+          applicationId: appId,
+          borrowerName: fullName,
+          policyNo: row.policyNo || 'LCAP-',
+          contactNumber: row.mobileNumber || '+63 917 000 0000',
+          location: [row.address, row.barangay, row.city, row.province].filter(Boolean).join(', ') || 'Philippines',
+          livelihood: row.occupation,
+          yearsInBusiness: 3,
+          monthlyNetIncome: row.monthlyIncome,
+          existingDebts: 0,
+          netDisposableIncome: Math.round(row.monthlyIncome * 0.7),
+          requestedAmount: row.principal,
+          productName: row.productName,
+          termMonths: row.termMonths,
+          paymentMode: row.paymentMode,
+          aiPreApprovedAmount: row.principal,
+          aiRiskRating: 'Class A (Prime / Low Risk)',
+          aiDsr: 25,
+          aiConfidenceScore: 95,
+          aiRecommendationNote: 'Migrated active legacy borrower via CSV import.',
+          fiveCs: {
+            characterScore: 18,
+            characterNotes: 'Legacy active borrower with verified standing.',
+            capacityScore: 21,
+            capacityNotes: 'Verified legacy repayment history.',
+            capitalScore: 16,
+            capitalNotes: 'Cooperative CBU migrated.',
+            collateralScore: 14,
+            collateralNotes: 'Legacy agreement on file.',
+            conditionsScore: 13,
+            conditionsNotes: 'Active microenterprise.',
+            totalScore: 82,
+            riskGrade: 'Class A (Prime / Low Risk)',
+          },
+          officerAdjustedAmount: row.principal,
+          officerRecommendation: 'recommend_approve',
+          officerNotes: 'Migrated active borrower from legacy system via CSV Import.',
+          evaluatedByOfficer: 'Officer Juan (AO-001)',
+          evaluatedAt: new Date().toISOString().replace('T', ' ').substring(0, 16),
+          status: 'disbursed',
+          adminApprovedAmount: row.principal,
+          finalContractAmount: row.principal,
+          disbursedAt: validRelease.toISOString(),
+          disbursedBy: 'Legacy Migration',
+          disbursementReferenceNo: `MIG-${uniqueSuffix}`,
+          firstDueDate: schedDates[0]?.dueDate.toISOString().split('T')[0],
+          nextDueDate: nextPending ? nextPending.paymentSchedule : schedDates[0]?.dueDate.toISOString().split('T')[0],
+          totalCollected: totalPaid,
+          remainingBalance: remBalance,
+          loanCycle: row.loanCycle,
+          mcid: assignedMcid,
+          cidNumber: assignedMcid,
+          borrowerEmail: row.email || `${appId.toLowerCase()}@tribute.coop`,
+          paymentLedgerRecords: ledgerRecords,
+          fullProfile: {
+            step1: {
+              firstName: row.firstName,
+              middleName: row.middleName,
+              lastName: row.lastName,
+              suffix: row.suffix,
+              sex: row.gender,
+              dateOfBirth: row.dateOfBirth,
+              civilStatus: row.civilStatus,
+              tgswsPolicyNumber: row.policyNo || 'LCAP-',
+              cooperativeId: assignedMcid,
+            },
+            step2: {
+              mobileNumber: row.mobileNumber,
+              email: row.email,
+              addressLine1: row.address,
+              barangay: row.barangay,
+              city: row.city,
+              province: row.province,
+            },
+            step4: {
+              occupation: row.occupation,
+              monthlyNetIncome: row.monthlyIncome,
+            },
+            step5: {
+              productName: row.productName,
+              requestedAmount: row.principal,
+              termMonths: row.termMonths,
+              repaymentFrequency: row.paymentMode,
+            },
+          },
+        };
+
+        existingList.unshift(item);
+        return item;
+      });
+
+      const res = await fetch('/api/assessments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'save_batch', items }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(errData?.error || `Server returned ${res.status}`);
+      }
+
+      for (const item of items) {
+        saveCreditAssessment(item);
+      }
+
+      setCsvImportResult({
+        ok: true,
+        message: `Successfully imported ${items.length} active legacy borrower${items.length === 1 ? '' : 's'}! They are now visible in Current Borrowers.`,
+      });
+    } catch (err) {
+      setCsvImportResult({
+        ok: false,
+        message: err instanceof Error ? err.message : 'Failed to import CSV borrowers.',
+      });
+    } finally {
+      setCsvImporting(false);
+    }
+  };
+
   useEffect(() => {
     let active = true;
     fetch('/api/members')
@@ -1602,6 +2017,30 @@ export default function NewBorrowerRegistrationPage() {
               <span className={styles.autoSavedBadge}>
                 <Check size={12} /> Auto-Saved ({lastDraftSavedTime || 'Just now'})
               </span>
+              <button
+                type="button"
+                onClick={() => {
+                  setCsvImportResult(null);
+                  setCsvModalOpen(true);
+                }}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 14px',
+                  borderRadius: '10px',
+                  border: '1.5px solid #0284c7',
+                  backgroundColor: '#eff6ff',
+                  color: '#0369a1',
+                  fontSize: '12.5px',
+                  fontWeight: '700',
+                  cursor: 'pointer',
+                }}
+                title="Import active legacy borrowers from CSV"
+              >
+                <Upload size={14} />
+                <span>Import CSV</span>
+              </button>
               <button
                 type="button"
                 onClick={handleClearDraft}
@@ -5863,6 +6302,186 @@ export default function NewBorrowerRegistrationPage() {
 
       {/* Floating Bottom App Navigation on mobile */}
       <OfficerMobileNav onOpenSidebar={() => setMobileMenuOpen(true)} />
+
+      {/* Legacy Active Borrowers CSV Import Modal */}
+      {csvModalOpen && (
+        <div style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '20px',
+          zIndex: 9999,
+        }}>
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '18px',
+            maxWidth: '820px',
+            width: '100%',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            padding: '26px',
+            boxShadow: '0 25px 50px rgba(15, 23, 42, 0.25)',
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0f172a' }}>
+                  Import Legacy Active Borrowers (CSV)
+                </h2>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12.5px', color: '#64748b' }}>
+                  Migrate existing active borrowers from your legacy system directly into Current Borrowers.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCsvModalOpen(false)}
+                style={{ border: 'none', background: '#f1f5f9', borderRadius: '8px', padding: '6px 10px', cursor: 'pointer', fontWeight: '700' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              flexWrap: 'wrap',
+              gap: '12px',
+              padding: '14px 16px',
+              backgroundColor: '#f8fafc',
+              borderRadius: '12px',
+              border: '1px solid #e2e8f0',
+              marginBottom: '16px',
+            }}>
+              <div style={{ fontSize: '12.5px', color: '#334155' }}>
+                <strong>Step 1:</strong> Download the CSV template, fill in your active borrowers, then upload it below.
+              </div>
+              <button
+                type="button"
+                onClick={handleDownloadCsvTemplate}
+                style={{
+                  padding: '8px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid #0284c7',
+                  backgroundColor: '#ffffff',
+                  color: '#0369a1',
+                  fontWeight: '700',
+                  fontSize: '12.5px',
+                  cursor: 'pointer',
+                }}
+              >
+                ⬇ Download CSV Template
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ display: 'block', fontSize: '12.5px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                Step 2: Select Filled CSV File (.csv)
+              </label>
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleCsvFileUpload(f);
+                }}
+                style={{ width: '100%', padding: '10px', border: '1.5px dashed #94a3b8', borderRadius: '10px', fontSize: '13px' }}
+              />
+              {csvFileName && (
+                <div style={{ marginTop: '6px', fontSize: '12px', color: '#475569' }}>
+                  Loaded file: <strong>{csvFileName}</strong> ({csvPreviewRows.length} row{csvPreviewRows.length === 1 ? '' : 's'})
+                </div>
+              )}
+            </div>
+
+            {csvImportResult && (
+              <div style={{
+                padding: '12px 14px',
+                borderRadius: '10px',
+                marginBottom: '16px',
+                fontSize: '13px',
+                fontWeight: '700',
+                backgroundColor: csvImportResult.ok ? '#dcfce7' : '#fee2e2',
+                color: csvImportResult.ok ? '#15803d' : '#b91c1c',
+                border: `1px solid ${csvImportResult.ok ? '#86efac' : '#fca5a5'}`,
+              }}>
+                {csvImportResult.message}
+              </div>
+            )}
+
+            {csvPreviewRows.length > 0 && (
+              <div style={{ maxHeight: '260px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '10px', marginBottom: '16px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                  <thead>
+                    <tr style={{ backgroundColor: '#f1f5f9', textAlign: 'left' }}>
+                      <th style={{ padding: '8px 10px' }}>Row</th>
+                      <th style={{ padding: '8px 10px' }}>Borrower</th>
+                      <th style={{ padding: '8px 10px' }}>Policy</th>
+                      <th style={{ padding: '8px 10px' }}>Product</th>
+                      <th style={{ padding: '8px 10px' }}>Principal</th>
+                      <th style={{ padding: '8px 10px' }}>Paid</th>
+                      <th style={{ padding: '8px 10px' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {csvPreviewRows.map((r) => (
+                      <tr key={r.rowNum} style={{ borderTop: '1px solid #e2e8f0' }}>
+                        <td style={{ padding: '7px 10px' }}>{r.rowNum}</td>
+                        <td style={{ padding: '7px 10px', fontWeight: '700' }}>{r.firstName} {r.lastName}</td>
+                        <td style={{ padding: '7px 10px', fontFamily: 'monospace' }}>{r.policyNo}</td>
+                        <td style={{ padding: '7px 10px' }}>{r.productName} ({r.termMonths}m {r.paymentMode})</td>
+                        <td style={{ padding: '7px 10px' }}>₱{r.principal.toLocaleString('en-PH')}</td>
+                        <td style={{ padding: '7px 10px' }}>₱{r.totalCollected.toLocaleString('en-PH')}</td>
+                        <td style={{ padding: '7px 10px' }}>
+                          {r.error ? (
+                            <span style={{ color: '#b91c1c', fontWeight: '700' }}>{r.error}</span>
+                          ) : (
+                            <span style={{ color: '#15803d', fontWeight: '700' }}>Ready (Active)</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => setCsvModalOpen(false)}
+                style={{ padding: '9px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#ffffff', cursor: 'pointer', fontWeight: '700' }}
+              >
+                Close
+              </button>
+              <Link
+                href="/officer/borrowers"
+                style={{ padding: '9px 16px', borderRadius: '8px', border: '1px solid #cbd5e1', background: '#f8fafc', color: '#0f172a', textDecoration: 'none', fontWeight: '700', fontSize: '13px' }}
+              >
+                View Current Borrowers
+              </Link>
+              <button
+                type="button"
+                disabled={csvImporting || csvPreviewRows.filter((r) => !r.error).length === 0}
+                onClick={handleConfirmCsvImport}
+                style={{
+                  padding: '9px 18px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: csvImporting || csvPreviewRows.filter((r) => !r.error).length === 0 ? '#cbd5e1' : '#16a34a',
+                  color: '#ffffff',
+                  fontWeight: '800',
+                  cursor: csvImporting ? 'wait' : 'pointer',
+                }}
+              >
+                {csvImporting ? 'Importing...' : `Import ${csvPreviewRows.filter((r) => !r.error).length} Active Borrower(s)`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style jsx global>{`
         @keyframes spin {
